@@ -72,6 +72,10 @@ yarn-error.log*
 # ===== Tooling scratch =====
 .playwright-mcp/
 **/.playwright-mcp/
+# Unsloth compiles patched trainers into this dir at runtime
+unsloth_compiled_cache/
+**/unsloth_compiled_cache/
+_unsloth_temporary_saved_buffers/
 
 # ===== OS / editor =====
 .DS_Store

@@ -302,6 +302,65 @@ def _make_sftconfig(SFTConfig, base: dict[str, Any], optional: dict[str, Any]):
                 raise
 
 
+# ── OOM handling ──────────────────────────────────────────────────────────────
+def _is_oom(exc: BaseException) -> bool:
+    """True for a CUDA out-of-memory error (class or message)."""
+    try:
+        import torch
+        if isinstance(exc, torch.cuda.OutOfMemoryError):
+            return True
+    except Exception:
+        pass
+    text = str(exc).lower()
+    return "out of memory" in text or "cuda oom" in text or "alloc" in text and "memory" in text
+
+
+def _free_gpu() -> None:
+    import gc
+    gc.collect()
+    try:
+        import torch
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
+    except Exception:
+        pass
+
+
+def _one_attempt(cfg: dict[str, Any], dataset, metrics: MetricsWriter) -> dict[str, Any]:
+    """A single load→train→save attempt. Always releases GPU refs (so a retry
+    starts from a clean slate). Raises on failure (OOM or otherwise)."""
+    model = tokenizer = trainer = None
+    try:
+        loaded = try_load_unsloth(cfg)
+        backend = "unsloth"
+        if loaded is None:
+            loaded = load_hf(cfg)
+            backend = "transformers"
+        model, tokenizer = loaded
+        metrics.emit({"event": "loaded", "backend": backend, "max_seq_len": int(cfg.get("max_seq_len", 4096)), **gpu_mem()})
+        print(f"[train_qlora] model loaded via {backend} @ seq_len={cfg.get('max_seq_len')}", flush=True)
+
+        trainer = build_trainer(cfg, model, tokenizer, dataset, metrics)
+        result = trainer.train()
+
+        out = cfg["output_dir"]
+        Path(out).mkdir(parents=True, exist_ok=True)
+        trainer.model.save_pretrained(out)
+        tokenizer.save_pretrained(out)
+        return {
+            "adapter_path": out,
+            "train_loss": float(result.training_loss) if result and result.training_loss else None,
+            "backend": backend,
+            "max_seq_len": int(cfg.get("max_seq_len", 4096)),
+            **gpu_mem(),
+        }
+    finally:
+        # Drop GPU references so the next attempt (or the OOM cleanup) reclaims VRAM.
+        del trainer, model, tokenizer
+        _free_gpu()
+
+
 # ── main ──────────────────────────────────────────────────────────────────────
 def main() -> int:
     ap = argparse.ArgumentParser()
@@ -318,34 +377,43 @@ def main() -> int:
             raise ValueError("Empty dataset — no approved examples to train on.")
         metrics.emit({"event": "dataset", "num_examples": len(dataset)})
 
-        loaded = try_load_unsloth(cfg)
-        backend = "unsloth"
-        if loaded is None:
-            loaded = load_hf(cfg)
-            backend = "transformers"
-        model, tokenizer = loaded
-        metrics.emit({"event": "loaded", "backend": backend, **gpu_mem()})
-        print(f"[train_qlora] model loaded via {backend}", flush=True)
+        # Auto-OOM recovery: on a CUDA out-of-memory, free VRAM, halve max_seq_len,
+        # and retry — down to a floor — so a too-ambitious context self-corrects.
+        min_seq = int(cfg.get("min_seq_len", 256))
+        max_retries = int(cfg.get("oom_max_retries", 4))
+        last_tb = ""
+        for attempt in range(max_retries + 1):
+            try:
+                final_metrics = _one_attempt(cfg, dataset, metrics)
+                metrics.emit({"event": "done", **final_metrics})
+                write_status(cfg, status="completed",
+                             adapter_path=final_metrics["adapter_path"], metrics=final_metrics)
+                print("[train_qlora] completed", flush=True)
+                return 0
+            except BaseException as exc:  # noqa: BLE001
+                oom = _is_oom(exc)
+                msg = str(exc)[:500]
+                last_tb = traceback.format_exc()
+            # (exc is dropped here, before cleanup, so VRAM can be reclaimed)
+            _free_gpu()
+            cur = int(cfg.get("max_seq_len", 4096))
+            if oom and cur > min_seq:
+                new_len = max(min_seq, cur // 2)
+                cfg["max_seq_len"] = new_len
+                cfg["packing"] = False  # packing raises peak activation memory
+                metrics.emit({"event": "oom_retry", "old_seq_len": cur,
+                              "new_seq_len": new_len, "attempt": attempt + 1})
+                print(f"[train_qlora] CUDA OOM → retry {attempt + 1} at max_seq_len={new_len}", flush=True)
+                continue
+            # not an OOM we can recover from → fail
+            print(last_tb, file=sys.stderr, flush=True)
+            reason = ("CUDA out of memory even at the minimum sequence length; "
+                      "use a smaller model or fewer/shorter examples.\n\n" if oom else "") + msg
+            metrics.emit({"event": "error", "error": reason})
+            write_status(cfg, status="failed", error=f"{reason}\n\n{last_tb}")
+            return 1
 
-        trainer = build_trainer(cfg, model, tokenizer, dataset, metrics)
-        result = trainer.train()
-
-        out = cfg["output_dir"]
-        Path(out).mkdir(parents=True, exist_ok=True)
-        trainer.model.save_pretrained(out)
-        tokenizer.save_pretrained(out)
-
-        final_metrics = {
-            "train_loss": float(result.training_loss) if result and result.training_loss else None,
-            "backend": backend,
-            **gpu_mem(),
-        }
-        metrics.emit({"event": "done", "adapter_path": out, **final_metrics})
-        write_status(cfg, status="completed", adapter_path=out, metrics=final_metrics)
-        print("[train_qlora] completed", flush=True)
-        return 0
-
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001 — dataset/setup failures
         tb = traceback.format_exc()
         print(tb, file=sys.stderr, flush=True)
         metrics.emit({"event": "error", "error": str(exc)})

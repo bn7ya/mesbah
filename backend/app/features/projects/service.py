@@ -134,4 +134,8 @@ def _default_train_config() -> dict:
         "use_rslora": False,
         "neftune_noise_alpha": 5,
         "seed": 42,
+        # Auto-OOM recovery: on CUDA OOM, halve max_seq_len and retry down to
+        # min_seq_len, up to oom_max_retries times.
+        "oom_max_retries": 4,
+        "min_seq_len": 256,
     }

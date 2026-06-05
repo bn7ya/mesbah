@@ -277,6 +277,17 @@ export class TrainingPanel implements OnInit, OnDestroy {
   }
 
   private onMetric(p: MetricPoint): void {
+    if (p.event === 'oom_retry') {
+      // GPU ran out of memory → backend halved seq_len and is retrying. Reset
+      // the curve so the new attempt draws cleanly.
+      this.resetChart();
+      this.toast.add({
+        severity: 'warn', summary: 'نفاد ذاكرة GPU',
+        detail: `قلّصنا طول السياق إلى ${(p as any).new_seq_len} وأعدنا المحاولة تلقائيًا.`,
+        life: 6000,
+      });
+      return;
+    }
     if (p.event === 'log' && p.step != null && p.loss != null) {
       this.steps.push(p.step);
       this.losses.push(p.loss);

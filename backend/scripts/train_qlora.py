@@ -122,11 +122,15 @@ def load_hf(cfg: dict[str, Any]):
         bnb_4bit_use_double_quant=True,
         bnb_4bit_compute_dtype=torch.bfloat16,
     )
+    # Pin the WHOLE quantized model on one GPU. device_map="auto" may offload
+    # layers to CPU/disk, which bitsandbytes 4-bit forbids ("Some modules are
+    # dispatched on the CPU or the disk…"). For single-GPU QLoRA, force GPU 0.
+    device_map = {"": torch.cuda.current_device()} if torch.cuda.is_available() else None
     model = AutoModelForCausalLM.from_pretrained(
         cfg["base_model"],
         quantization_config=quant,
-        torch_dtype=torch.bfloat16,
-        device_map="auto",
+        dtype=torch.bfloat16,                # (torch_dtype is deprecated in transformers 5.x)
+        device_map=device_map,
         # Blackwell sm_120: flash-attn unavailable → use PyTorch SDPA.
         attn_implementation="sdpa",
         trust_remote_code=True,

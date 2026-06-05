@@ -125,8 +125,10 @@ class TrainingManager:
         with self._lock:
             if run_id in self._procs and self._procs[run_id].poll() is None:
                 return  # already running
-        # Give the whole GPU to training.
-        inference_engine.unload()
+        # Give the whole GPU to training: unload AND freeze so a warmup/chat
+        # can't re-load a model mid-run and steal VRAM (which causes bitsandbytes
+        # "Some modules are dispatched on the CPU or the disk").
+        inference_engine.freeze()
 
         run_dir = self.run_dir(run_id)
         cfg_path = run_dir / "config.json"
@@ -155,6 +157,13 @@ class TrainingManager:
         threading.Thread(target=self._monitor, args=(run_id, proc), daemon=True).start()
 
     def _monitor(self, run_id: str, proc: subprocess.Popen) -> None:
+        try:
+            self._finalize(run_id, proc)
+        finally:
+            # Re-enable inference now that the GPU is free again.
+            inference_engine.unfreeze()
+
+    def _finalize(self, run_id: str, proc: subprocess.Popen) -> None:
         proc.wait()
         with self._lock:
             self._procs.pop(run_id, None)

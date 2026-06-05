@@ -39,6 +39,9 @@ class InferenceEngine:
     def __init__(self) -> None:
         self._lock = threading.RLock()
         self._loaded: Optional[LoadedModel] = None
+        # When frozen (during a training run) the engine refuses to load so the
+        # training subprocess gets the whole GPU. See freeze()/unfreeze().
+        self._frozen = False
 
     # ── status ────────────────────────────────────────────────────────────────
     def status(self) -> dict[str, Any]:
@@ -77,9 +80,28 @@ class InferenceEngine:
         except Exception:
             return {"cuda": False}
 
+    # ── freeze (during training) ────────────────────────────────────────────────
+    def freeze(self) -> None:
+        """Unload and refuse to load until unfrozen — gives training the whole GPU."""
+        with self._lock:
+            self._frozen = True
+            self.unload()
+
+    def unfreeze(self) -> None:
+        with self._lock:
+            self._frozen = False
+
+    @property
+    def frozen(self) -> bool:
+        return self._frozen
+
     # ── load / unload ───────────────────────────────────────────────────────────
     def ensure_loaded(self, base_id: str, adapter_path: Optional[str] = None) -> LoadedModel:
         with self._lock:
+            if self._frozen:
+                raise ModelRuntimeUnavailable(
+                    "Inference is paused while a training run is using the GPU."
+                )
             if self._loaded and self._loaded.base_id == base_id:
                 if self._loaded.adapter_path != adapter_path:
                     self._swap_adapter(adapter_path)
@@ -125,11 +147,15 @@ class InferenceEngine:
             bnb_4bit_use_double_quant=True,
             bnb_4bit_compute_dtype=torch.bfloat16,
         )
+        # Pin the whole 4-bit model on one GPU — "auto" can offload to CPU/disk,
+        # which bitsandbytes 4-bit rejects. Single-GPU box → force GPU 0.
+        device_map = {"": torch.cuda.current_device()} if torch.cuda.is_available() else "cpu"
         model = AutoModelForCausalLM.from_pretrained(
             base_id,
             quantization_config=quant,
-            torch_dtype=torch.bfloat16,
-            device_map="auto",
+            dtype=torch.bfloat16,
+            device_map=device_map,
+            attn_implementation="sdpa",
             trust_remote_code=True,
         )
         model.eval()

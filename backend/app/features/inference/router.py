@@ -61,6 +61,8 @@ def warmup(req: WarmupRequest, db: Session = Depends(get_session)):
     project = db.get(Project, req.project_id)
     if not project:
         raise HTTPException(404, "Project not found")
+    if engine.frozen:
+        return {"warming": False, "reason": "training_in_progress"}
     if not engine.status().get("runtime_available"):
         return {"warming": False, "reason": "runtime_unavailable"}
     if not project.base_model_local_path or not os.path.isdir(project.base_model_local_path):

@@ -110,7 +110,7 @@ import { CuratedModel, Project } from '../../core/types';
     .card:hover { transform: translateY(-3px); box-shadow: 0 14px 50px rgba(0,0,0,0.5); }
     .card-top { display: flex; justify-content: space-between; align-items: center; }
     .card .name { margin: 0; font-size: 1.15rem; }
-    .card .base { font-size: 0.78rem; color: var(--accent); background: rgba(79,209,197,0.08); padding: 0.2rem 0.5rem; border-radius: 8px; width: fit-content; }
+    .card .base { font-size: 0.78rem; color: var(--accent); background: var(--accent-soft); padding: 0.2rem 0.5rem; border-radius: 8px; width: fit-content; }
     .card .desc { font-size: 0.85rem; margin: 0; }
     .stats { display: flex; gap: 0.9rem; font-size: 0.8rem; color: var(--text-2); flex-wrap: wrap; }
     .foot { font-size: 0.72rem; margin-top: auto; }
@@ -123,7 +123,7 @@ import { CuratedModel, Project } from '../../core/types';
     .model-head { display: flex; justify-content: space-between; align-items: center; }
     .model .repo { font-weight: 700; font-size: 0.86rem; }
     .badges { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-    .badges .b { font-size: 0.68rem; padding: 0.12rem 0.45rem; border-radius: 6px; background: rgba(255,255,255,0.07); }
+    .badges .b { font-size: 0.68rem; padding: 0.12rem 0.45rem; border-radius: 6px; background: rgba(150,95,70,0.09); }
     .model .note { font-size: 0.74rem; margin: 0; }
     @media (max-width: 640px) { .models { grid-template-columns: 1fr; } }
   `],

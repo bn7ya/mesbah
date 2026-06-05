@@ -135,7 +135,7 @@ const STATUS_AR: Record<RunStatus, string> = {
     .launch, .runs, .dash { padding: 1rem; }
     .h { margin: 0 0 0.4rem; font-size: 1.05rem; }
     .sub { font-size: 0.8rem; margin: 0 0 0.7rem; }
-    .ds { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.7rem; border-radius: 10px; background: rgba(79,209,197,0.1); color: var(--accent); margin-bottom: 0.7rem; font-size: 0.9rem; }
+    .ds { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.7rem; border-radius: 10px; background: var(--accent-soft); color: var(--accent); margin-bottom: 0.7rem; font-size: 0.9rem; }
     .link { background: none; border: none; color: var(--accent); cursor: pointer; text-decoration: underline; font-size: 0.8rem; margin-inline-start: auto; }
     .adv-toggle { background: none; border: none; color: var(--text-2); cursor: pointer; display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0; font-size: 0.85rem; margin-bottom: 0.4rem; }
     .adv-toggle:hover { color: var(--text-1); }
@@ -202,10 +202,10 @@ export class TrainingPanel implements OnInit, OnDestroy {
 
   chartOptions = {
     responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
-    plugins: { legend: { labels: { color: 'rgba(255,255,255,0.7)' } } },
+    plugins: { legend: { labels: { color: 'rgba(74,56,47,0.75)' } } },
     scales: {
-      x: { ticks: { color: 'rgba(255,255,255,0.4)' }, grid: { color: 'rgba(255,255,255,0.06)' }, title: { display: true, text: 'step', color: 'rgba(255,255,255,0.5)' } },
-      y: { ticks: { color: 'rgba(255,255,255,0.4)' }, grid: { color: 'rgba(255,255,255,0.06)' }, title: { display: true, text: 'loss', color: 'rgba(255,255,255,0.5)' } },
+      x: { ticks: { color: 'rgba(74,56,47,0.5)' }, grid: { color: 'rgba(74,56,47,0.08)' }, title: { display: true, text: 'step', color: 'rgba(74,56,47,0.6)' } },
+      y: { ticks: { color: 'rgba(74,56,47,0.5)' }, grid: { color: 'rgba(74,56,47,0.08)' }, title: { display: true, text: 'loss', color: 'rgba(74,56,47,0.6)' } },
     },
   };
 
@@ -284,7 +284,7 @@ export class TrainingPanel implements OnInit, OnDestroy {
         labels: [...this.steps],
         datasets: [{
           label: 'loss', data: [...this.losses], tension: 0.35, borderWidth: 2,
-          borderColor: '#4fd1c5', backgroundColor: 'rgba(79,209,197,0.15)', fill: true, pointRadius: 0,
+          borderColor: '#cf7d5c', backgroundColor: 'rgba(207,125,92,0.18)', fill: true, pointRadius: 0,
         }],
       });
     }
@@ -319,6 +319,6 @@ export class TrainingPanel implements OnInit, OnDestroy {
 
   private resetChart(): void { this.steps = []; this.losses = []; this.chartData.set(this.emptyChart()); }
   private emptyChart() {
-    return { labels: [], datasets: [{ label: 'loss', data: [], borderColor: '#4fd1c5', backgroundColor: 'rgba(79,209,197,0.15)', fill: true, tension: 0.35, pointRadius: 0 }] };
+    return { labels: [], datasets: [{ label: 'loss', data: [], borderColor: '#cf7d5c', backgroundColor: 'rgba(207,125,92,0.18)', fill: true, tension: 0.35, pointRadius: 0 }] };
   }
 }

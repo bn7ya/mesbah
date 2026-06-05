@@ -6,6 +6,8 @@ and quick prompt testing.
 """
 from __future__ import annotations
 
+import os
+import threading
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -30,6 +32,11 @@ class GenerateRequest(BaseModel):
     top_p: Optional[float] = None
 
 
+class WarmupRequest(BaseModel):
+    project_id: str
+    version_id: Optional[str] = None
+
+
 @router.get("/status")
 def status():
     return engine.status()
@@ -37,9 +44,38 @@ def status():
 
 @router.post("/unload")
 def unload():
-    """Free all VRAM (handy before launching a training run)."""
+    """Free all VRAM. Called automatically when leaving a project workspace and
+    before launching a training run."""
     engine.unload()
     return {"ok": True}
+
+
+@router.post("/warmup")
+def warmup(req: WarmupRequest, db: Session = Depends(get_session)):
+    """Pre-load the project's active model into VRAM in the background.
+
+    Called when entering a project so the first chat is instant. Loads ONLY when
+    the base weights are already downloaded locally — never triggers a multi-GB
+    HuggingFace download, and silently no-ops if the ML runtime is absent.
+    """
+    project = db.get(Project, req.project_id)
+    if not project:
+        raise HTTPException(404, "Project not found")
+    if not engine.status().get("runtime_available"):
+        return {"warming": False, "reason": "runtime_unavailable"}
+    if not project.base_model_local_path or not os.path.isdir(project.base_model_local_path):
+        return {"warming": False, "reason": "model_not_local"}
+
+    base_id, adapter_path = resolve_weights(db, project, req.version_id)
+
+    def _load():
+        try:
+            engine.ensure_loaded(base_id, adapter_path)
+        except Exception:
+            pass
+
+    threading.Thread(target=_load, daemon=True).start()
+    return {"warming": True, "base_id": base_id}
 
 
 @router.post("/generate")

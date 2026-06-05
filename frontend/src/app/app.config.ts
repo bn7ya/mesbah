@@ -10,13 +10,13 @@ import { definePreset } from '@primeuix/themes';
 
 import { routes } from './app.routes';
 
-/** Misbah preset — Aura tuned to the teal→violet glass accent. */
+/** Misbah preset — Aura tuned to the warm creamy coral accent. */
 const MisbahPreset = definePreset(Aura, {
   semantic: {
     primary: {
-      50: '#eafaf8', 100: '#c5f0ea', 200: '#9fe6dc', 300: '#79dccd',
-      400: '#5fd6c4', 500: '#4fd1c5', 600: '#3bb6ab', 700: '#2c9089',
-      800: '#1f6f78', 900: '#134e54', 950: '#0a2f34',
+      50: '#fbf1ea', 100: '#f6ddcd', 200: '#efc3a8', 300: '#e7a983',
+      400: '#dd9069', 500: '#cf7d5c', 600: '#bd6a4b', 700: '#9d543b',
+      800: '#7d4330', 900: '#5f3325', 950: '#3a1f16',
     },
   },
 });

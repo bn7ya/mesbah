@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, inject, signal } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TabsModule } from 'primeng/tabs';
 import { ButtonModule } from 'primeng/button';
@@ -59,7 +59,7 @@ import { VersionsPanel } from '../versions/versions-panel';
     .back:hover { color: var(--text-1); }
     .meta .name { margin: 0 0 0.35rem; font-size: 1.5rem; }
     .row { display: flex; gap: 0.7rem; align-items: center; flex-wrap: wrap; }
-    .base { font-size: 0.8rem; color: var(--accent); background: rgba(79,209,197,0.08); padding: 0.2rem 0.55rem; border-radius: 8px; }
+    .base { font-size: 0.8rem; color: var(--accent); background: var(--accent-soft); padding: 0.2rem 0.55rem; border-radius: 8px; }
     .desc { margin: 0.5rem 0 0; font-size: 0.88rem; }
     .center { text-align: center; padding: 4rem; }
     :host ::ng-deep .p-tablist { background: transparent; }
@@ -68,14 +68,23 @@ import { VersionsPanel } from '../versions/versions-panel';
     :host ::ng-deep .p-tab[data-p-active="true"] { color: var(--accent); }
   `],
 })
-export class WorkspacePage implements OnInit {
+export class WorkspacePage implements OnInit, OnDestroy {
   @Input() id!: string;                       // bound from route param
   private api = inject(Api);
 
   readonly project = signal<Project | null>(null);
   readonly versions = signal<ModelVersion[]>([]);
 
-  ngOnInit(): void { this.reload(); }
+  ngOnInit(): void {
+    this.reload();
+    // Warm-load the active model on entering the project (background, local-only).
+    this.api.warmupModel(this.id).subscribe({ next: () => {}, error: () => {} });
+  }
+
+  ngOnDestroy(): void {
+    // Offload the model from VRAM when leaving the project.
+    this.api.unloadModel().subscribe({ next: () => {}, error: () => {} });
+  }
 
   reload(): void {
     this.api.getProject(this.id).subscribe((p) => this.project.set(p));

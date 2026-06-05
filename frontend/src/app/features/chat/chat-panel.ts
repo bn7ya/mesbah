@@ -56,17 +56,19 @@ import { ChatMessage, ChatSession, ModelVersion } from '../../core/types';
 
           <div class="stream">
             @for (m of s.messages; track m.id) {
-              <div class="msg" [class.user]="m.role === 'user'" [class.assistant]="m.role === 'assistant'">
+              <div class="msg" [class.user]="m.role === 'user'" [class.assistant]="m.role === 'assistant'"
+                   [class.editing]="editingId() === m.id">
                 <div class="avatar">{{ m.role === 'user' ? '🧑' : '🕯️' }}</div>
                 <div class="bubble glass">
                   @if (editingId() === m.id) {
-                    <textarea pTextarea rows="5" [(ngModel)]="editText" class="edit-area"></textarea>
+                    <div class="edit-head muted small"><i class="pi pi-pencil"></i> تصحيح الرد — اكتب ما كان يجب أن يقوله النموذج</div>
+                    <textarea pTextarea [(ngModel)]="editText" class="edit-area" autofocus></textarea>
                     <div class="edit-actions">
-                      <p-button label="حفظ التصحيح" icon="pi pi-check" size="small" (onClick)="saveEdit(m)" />
-                      <p-button label="إلغاء" severity="secondary" [text]="true" size="small" (onClick)="editingId.set(null)" />
+                      <p-button label="حفظ التصحيح" icon="pi pi-check" (onClick)="saveEdit(m)" />
+                      <p-button label="إلغاء" severity="secondary" [text]="true" (onClick)="editingId.set(null)" />
                     </div>
                   } @else {
-                    <p class="content">{{ m.content }}</p>
+                    <p class="content">{{ m.content }}@if (thinking() && isLast(m) && m.role === 'assistant') {<span class="caret">▍</span>}</p>
                     <div class="tags">
                       @if (m.corrected) { <p-tag value="معدّل" severity="warn" icon="pi pi-pencil" /> }
                       @if (m.approved) { <p-tag value="معتمد للتدريب" severity="success" icon="pi pi-check" /> }
@@ -84,9 +86,6 @@ import { ChatMessage, ChatSession, ModelVersion } from '../../core/types';
                   }
                 </div>
               </div>
-            }
-            @if (thinking()) {
-              <div class="msg assistant"><div class="avatar">🕯️</div><div class="bubble glass thinking">…النموذج يكتب</div></div>
             }
           </div>
 
@@ -126,15 +125,20 @@ import { ChatMessage, ChatSession, ModelVersion } from '../../core/types';
     .stream { flex: 1; overflow: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.9rem; }
     .msg { display: flex; gap: 0.6rem; max-width: 86%; }
     .msg.user { flex-direction: row-reverse; margin-inline-start: auto; }
+    .msg.editing { max-width: 100%; width: 100%; }
+    .msg.editing .bubble { flex: 1; }
     .avatar { font-size: 1.3rem; }
     .bubble { padding: 0.7rem 0.9rem; border-radius: 16px; }
-    .msg.user .bubble { background: rgba(79,209,197,0.12); }
+    .msg.user .bubble { background: var(--accent-soft); }
     .content { margin: 0; white-space: pre-wrap; line-height: 1.7; }
     .tags { display: flex; gap: 0.3rem; margin-top: 0.4rem; }
     .msg-actions { display: flex; gap: 0.2rem; margin-top: 0.3rem; flex-wrap: wrap; }
-    .edit-area, .composer-in { width: 100%; }
-    .edit-actions { display: flex; gap: 0.4rem; margin-top: 0.4rem; }
-    .thinking { color: var(--text-2); font-style: italic; }
+    .composer-in { width: 100%; }
+    .edit-head { margin-bottom: 0.5rem; display: flex; gap: 0.4rem; align-items: center; }
+    .edit-area { width: 100%; min-height: 260px; font-size: 0.98rem; line-height: 1.8; resize: vertical; }
+    .edit-actions { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
+    .caret { display: inline-block; margin-inline-start: 2px; color: var(--accent); animation: blink 1s steps(2) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
     .composer { display: flex; gap: 0.5rem; align-items: flex-end; padding: 0.7rem; border-top: 1px solid var(--glass-border); }
     .composer-in { flex: 1; resize: none; }
     .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 0.4rem; }
@@ -196,22 +200,55 @@ export class ChatPanel implements OnInit {
     this.api.updateSession(s.id, { title: s.title }).subscribe(() => this.refreshList());
   }
 
+  /** Stream the reply token-by-token into an optimistic assistant bubble. */
   send(): void {
     const s = this.current();
-    if (!s || !this.draft.trim()) return;
+    if (!s || !this.draft.trim() || this.thinking()) return;
     const text = this.draft.trim();
     this.draft = '';
     this.thinking.set(true);
-    this.api.chat(s.id, text).subscribe({
-      next: (msgs) => { this.thinking.set(false); this.append(msgs); this.refreshList(); },
-      error: (e) => {
+
+    const stamp = Date.now();
+    const tmpUser = 'tmp-u-' + stamp;
+    const tmpAsst = 'tmp-a-' + stamp;
+    const now = new Date().toISOString();
+    const mk = (role: 'user' | 'assistant', content: string, id: string): ChatMessage => ({
+      id, session_id: s.id, role, content, original_content: null,
+      corrected: false, approved: false, include_in_training: true,
+      order_index: 0, created_at: now, meta: {},
+    });
+    this.current.set({ ...s, messages: [...s.messages, mk('user', text, tmpUser), mk('assistant', '', tmpAsst)] });
+
+    this.api.chatStream(s.id, { content: text }, {
+      onUser: (p) => this.setMsgId(tmpUser, p.id),
+      onToken: (t) => this.appendToken(tmpAsst, t),
+      onDone: (p) => {
         this.thinking.set(false);
-        this.toast.add({ severity: e.status === 503 ? 'warn' : 'error', summary: 'تعذر التوليد',
-          detail: e.status === 503 ? 'لم يتم تثبيت بيئة النموذج بعد (راجع requirements-ml.txt).' : String(e?.error?.detail ?? e.message), life: 6000 });
-        // keep the user's message visible by reloading the session
+        this.setMsgId(tmpAsst, p.id, p.content);
+        this.refreshList();
+      },
+      onError: (msg) => {
+        this.thinking.set(false);
+        const soft = /runtime|install|importable|torch|transformers/i.test(msg);
+        this.toast.add({
+          severity: soft ? 'warn' : 'error', summary: 'تعذر التوليد',
+          detail: soft ? 'لم يتم تثبيت بيئة النموذج بعد (راجع requirements-ml.txt).' : msg,
+          life: 6000,
+        });
         this.open(s.id);
       },
     });
+  }
+
+  private appendToken(id: string, t: string): void {
+    this.updateMsg(id, (m) => ({ ...m, content: m.content + t }));
+  }
+  private setMsgId(oldId: string, newId: string, content?: string): void {
+    this.updateMsg(oldId, (m) => ({ ...m, id: newId, ...(content != null ? { content } : {}) }));
+  }
+  private updateMsg(id: string, fn: (m: ChatMessage) => ChatMessage): void {
+    const s = this.current(); if (!s) return;
+    this.current.set({ ...s, messages: s.messages.map((m) => (m.id === id ? fn(m) : m)) });
   }
 
   regenerate(): void {
@@ -244,10 +281,6 @@ export class ChatPanel implements OnInit {
     return msgs.length > 0 && msgs[msgs.length - 1].id === m.id;
   }
 
-  private append(msgs: ChatMessage[]): void {
-    const s = this.current(); if (!s) return;
-    this.current.set({ ...s, messages: [...s.messages, ...msgs] });
-  }
   private replace(upd: ChatMessage): void {
     const s = this.current(); if (!s) return;
     this.current.set({ ...s, messages: s.messages.map((x) => (x.id === upd.id ? upd : x)) });

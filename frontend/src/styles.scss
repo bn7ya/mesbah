@@ -1,44 +1,44 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    مِصباح · Misbah — global design system
-   A glassy, calm, emotional surface for LLM fine-tuning. RTL-first (Arabic UI),
-   technical terms stay LTR/Latin. Inspired by frosted glass + aurora depth.
+   A soft, creamy, emotional surface for LLM fine-tuning. RTL-first (Arabic UI),
+   technical terms stay LTR/Latin. Warm frosted glass over a blurred peach photo.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Aurora background palette ── */
-  --bg-0: #070a16;
-  --bg-1: #0b1020;
-  --aurora-a: #1f6f78;   /* teal */
-  --aurora-b: #5b3fb0;   /* violet */
-  --aurora-c: #0e3a5f;   /* deep blue */
+  /* ── Creamy palette ── */
+  --cream-0: #f7e6d8;          /* base behind the photo */
+  --cream-1: #fbeee2;
 
-  /* ── Glass tokens ── */
-  --glass-bg: rgba(255, 255, 255, 0.06);
-  --glass-bg-strong: rgba(255, 255, 255, 0.10);
-  --glass-border: rgba(255, 255, 255, 0.14);
-  --glass-shadow: 0 8px 40px rgba(0, 0, 0, 0.45);
-  --glass-blur: 18px;
+  /* ── Warm accents (no purple/teal) ── */
+  --accent: #cf7d5c;           /* terracotta / warm coral */
+  --accent-2: #e6a981;         /* peach */
+  --accent-soft: rgba(207, 125, 92, 0.14);
+  --accent-grad: linear-gradient(120deg, #d98963 0%, #ecb892 100%);
+
+  /* ── Glass tokens (frosted warm white) ── */
+  --glass-bg: rgba(255, 250, 244, 0.55);
+  --glass-bg-strong: rgba(255, 250, 244, 0.74);
+  --glass-border: rgba(150, 95, 70, 0.18);
+  --glass-shadow: 0 10px 42px rgba(170, 110, 80, 0.16);
+  --glass-blur: 16px;
   --radius-lg: 22px;
   --radius-md: 16px;
   --radius-sm: 11px;
 
-  /* ── Text ── */
-  --text-1: rgba(255, 255, 255, 0.95);
-  --text-2: rgba(255, 255, 255, 0.66);
-  --text-3: rgba(255, 255, 255, 0.40);
+  /* ── Text (warm brown on cream) ── */
+  --text-1: #4a382f;
+  --text-2: rgba(74, 56, 47, 0.66);
+  --text-3: rgba(74, 56, 47, 0.42);
 
-  /* ── Accents / semantic ── */
-  --accent: #4fd1c5;
-  --accent-2: #a78bfa;
-  --accent-grad: linear-gradient(120deg, #4fd1c5 0%, #a78bfa 100%);
-  --ok: #34d399;
-  --warn: #fbbf24;
-  --err: #fb7185;
+  /* ── Semantic ── */
+  --ok: #4f9a78;
+  --warn: #cf962f;
+  --err: #cf6257;
 
   --font-ar: 'IBM Plex Sans Arabic', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -48,26 +48,33 @@ html, body {
   height: 100%;
   font-family: var(--font-ar);
   color: var(--text-1);
-  background: var(--bg-0);
+  background: var(--cream-0);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* Living aurora backdrop — gentle, never distracting */
-body {
-  position: relative;
-  overflow: hidden;
-  background:
-    radial-gradient(60vw 60vw at 85% -10%, color-mix(in srgb, var(--aurora-a) 55%, transparent), transparent 60%),
-    radial-gradient(50vw 50vw at 5% 110%, color-mix(in srgb, var(--aurora-b) 50%, transparent), transparent 60%),
-    radial-gradient(70vw 50vw at 50% 50%, color-mix(in srgb, var(--aurora-c) 35%, transparent), transparent 70%),
-    var(--bg-1);
-  animation: aurora-drift 24s ease-in-out infinite alternate;
-}
+/* ── Background photo: blurred + recolored toward creamy ── */
+body { position: relative; overflow: hidden; }
 
-@keyframes aurora-drift {
-  0%   { background-position: 0 0, 0 0, 0 0, 0 0; }
-  100% { background-position: 6% 4%, -5% -3%, 2% -2%, 0 0; }
+body::before {
+  content: '';
+  position: fixed;
+  inset: -8%;                                   /* overscan so blur edges don't show */
+  background: url('/bg.jpg') center / cover no-repeat;
+  /* recolor: lift, desaturate a touch, warm it; heavy blur for a dreamy wash */
+  filter: blur(70px) saturate(0.82) brightness(1.12) hue-rotate(-6deg);
+  transform: scale(1.12);
+  z-index: -2;
+}
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  /* cream tint to push the peach photo toward soft creamy tones */
+  background:
+    radial-gradient(70vw 60vw at 80% -10%, rgba(255, 246, 235, 0.55), transparent 60%),
+    linear-gradient(160deg, rgba(255, 244, 233, 0.40) 0%, rgba(250, 226, 211, 0.30) 100%);
+  z-index: -1;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -80,8 +87,8 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(135%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(135%);
 }
 .glass-strong { background: var(--glass-bg-strong); }
 
@@ -92,42 +99,39 @@ body {
   color: transparent;
 }
 
-/* Latin/technical terms keep their natural direction inside Arabic flow */
 .ltr, code, kbd, .mono { direction: ltr; unicode-bidi: isolate; font-family: var(--font-mono); }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); border-radius: 8px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.24); }
+::-webkit-scrollbar-thumb { background: rgba(150, 95, 70, 0.22); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(150, 95, 70, 0.35); }
 
-/* ── PrimeNG glass overrides (kept light; component CSS does the rest) ── */
+/* ── PrimeNG glass overrides (light/creamy) ── */
 .p-component { font-family: var(--font-ar); }
 
 .p-dialog, .p-dialog .p-dialog-content, .p-dialog .p-dialog-header, .p-dialog .p-dialog-footer {
-  background: rgba(15, 20, 38, 0.82) !important;
-  backdrop-filter: blur(22px) saturate(150%);
+  background: rgba(255, 250, 244, 0.92) !important;
+  backdrop-filter: blur(22px) saturate(140%);
   color: var(--text-1) !important;
   border-color: var(--glass-border) !important;
 }
 .p-dialog { border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--glass-border); }
 
-.p-button {
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-}
-.p-button.p-button-primary, .p-button:not(.p-button-outlined):not(.p-button-text) {
+.p-button { border-radius: var(--radius-sm); font-weight: 600; }
+.p-button.p-button-primary, .p-button:not(.p-button-outlined):not(.p-button-text):not(.p-button-secondary) {
   background: var(--accent-grad);
   border: none;
-  color: #06121a;
+  color: #fff;
 }
 .p-inputtext, .p-textarea, textarea.p-inputtext {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.55);
   border: 1px solid var(--glass-border);
   color: var(--text-1);
   border-radius: var(--radius-sm);
 }
+.p-inputtext::placeholder, .p-textarea::placeholder { color: var(--text-3); }
 .p-inputtext:enabled:focus, .p-textarea:enabled:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .p-toast { font-family: var(--font-ar); }
 

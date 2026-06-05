@@ -118,7 +118,7 @@ interface DownloadState { status: string; bytes_done: number; local_path?: strin
     .repo { font-weight: 700; font-size: 0.9rem; }
     .meta { display: flex; gap: 0.7rem; font-size: 0.78rem; }
     .badges { display: flex; gap: 0.3rem; flex-wrap: wrap; }
-    .badges .b { font-size: 0.66rem; padding: 0.1rem 0.4rem; border-radius: 6px; background: rgba(255,255,255,0.07); }
+    .badges .b { font-size: 0.66rem; padding: 0.1rem 0.4rem; border-radius: 6px; background: rgba(150,95,70,0.09); }
     .dl { display: flex; align-items: center; gap: 0.5rem; min-width: 160px; }
     .dl .pb { width: 110px; }
     .small { font-size: 0.72rem; }

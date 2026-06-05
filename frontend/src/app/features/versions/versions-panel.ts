@@ -66,7 +66,7 @@ interface FlatNode { node: VersionNode; depth: number; isLastChild: boolean; }
     .rail.root { color: var(--accent); }
     .node-card { flex: 1; display: flex; justify-content: space-between; gap: 0.8rem; align-items: center; padding: 0.7rem 0.9rem; border-radius: 14px; background: var(--glass-bg); border: 1px solid var(--glass-border); transition: all 0.15s ease; }
     .node-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent); }
-    .node-card.base { background: rgba(255,255,255,0.04); }
+    .node-card.base { background: rgba(150,95,70,0.05); }
     .line1 { display: flex; align-items: center; gap: 0.5rem; }
     .label { font-weight: 700; }
     .line2 { display: flex; gap: 0.5rem; margin-top: 0.2rem; flex-wrap: wrap; }

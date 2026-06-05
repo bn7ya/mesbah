@@ -17,8 +17,8 @@ export class App implements OnInit {
   readonly sys = signal<SystemInfo | null>(null);
 
   ngOnInit(): void {
-    // Permanent dark surface (glass tokens assume dark).
-    document.documentElement.classList.add('dark');
+    // Light creamy surface — PrimeNG stays in light mode (no .dark class).
+    document.documentElement.classList.remove('dark');
     this.poll();
     setInterval(() => this.poll(), 5000);
   }

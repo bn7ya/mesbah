@@ -47,7 +47,7 @@
 .chip.warn { color: var(--warn); }
 .chip.vram .bar {
   width: 70px; height: 6px; border-radius: 4px;
-  background: rgba(255,255,255,0.12); overflow: hidden;
+  background: rgba(150,95,70,0.16); overflow: hidden;
 }
 .chip.vram .fill {
   display: block; height: 100%;

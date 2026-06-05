@@ -42,6 +42,33 @@ class InferenceEngine:
         # When frozen (during a training run) the engine refuses to load so the
         # training subprocess gets the whole GPU. See freeze()/unfreeze().
         self._frozen = False
+        # Memoized heavy ML imports (torch + transformers classes). Importing
+        # transformers lazily inside a worker thread races with the /api/system
+        # poll's `import transformers`, which can make the FIRST load fail with
+        # "cannot import name 'AutoModelForCausalLM'". We resolve it once, under a
+        # dedicated lock, and pre-warm it at startup (see warm()).
+        self._ml: Optional[tuple] = None
+        self._import_lock = threading.Lock()
+
+    def _import_ml(self):
+        """Import torch + transformers classes exactly once (thread-safe)."""
+        if self._ml is not None:
+            return self._ml
+        with self._import_lock:
+            if self._ml is None:
+                import torch
+                from transformers import (AutoModelForCausalLM, AutoTokenizer,
+                                          BitsAndBytesConfig)
+                self._ml = (torch, AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig)
+        return self._ml
+
+    def warm(self) -> bool:
+        """Pre-resolve the ML imports (called at startup). Best-effort."""
+        try:
+            self._import_ml()
+            return True
+        except Exception:
+            return False
 
     # ── status ────────────────────────────────────────────────────────────────
     def status(self) -> dict[str, Any]:
@@ -54,8 +81,10 @@ class InferenceEngine:
         info.update(self._gpu_info())
         return info
 
-    @staticmethod
-    def _runtime_available() -> bool:
+    def _runtime_available(self) -> bool:
+        # Cheap once warmed; the heavy import is memoized in _import_ml.
+        if self._ml is not None:
+            return True
         try:
             import torch  # noqa: F401
             import transformers  # noqa: F401
@@ -107,33 +136,43 @@ class InferenceEngine:
                     self._swap_adapter(adapter_path)
                 return self._loaded
             self.unload()
-            self._loaded = self._load(base_id, adapter_path)
+            try:
+                self._loaded = self._load(base_id, adapter_path)
+            except BaseException:
+                # A failed/partial load can leave tensors on the GPU — free them
+                # so VRAM isn't leaked (otherwise the next attempt OOMs).
+                self._loaded = None
+                self._free_vram()
+                raise
             return self._loaded
 
     def unload(self) -> None:
         with self._lock:
-            if self._loaded is None:
-                return
             self._loaded = None
-            try:
-                import gc
+            self._free_vram()
 
-                import torch
-                gc.collect()
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-            except Exception:
-                pass
+    @staticmethod
+    def _free_vram() -> None:
+        """Release cached GPU memory. Safe to call even when nothing is tracked
+        as loaded — recovers VRAM leaked by a failed/partial load."""
+        try:
+            import gc
+
+            import torch
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                torch.cuda.ipc_collect()
+        except Exception:
+            pass
 
     def _load(self, base_id: str, adapter_path: Optional[str]) -> LoadedModel:
         try:
-            import torch
-            from transformers import (AutoModelForCausalLM, AutoTokenizer,
-                                      BitsAndBytesConfig)
+            torch, AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig = self._import_ml()
         except Exception as exc:  # pragma: no cover - env dependent
             raise ModelRuntimeUnavailable(
                 "The model runtime (torch/transformers) is not importable. "
-                "Install backend/requirements.txt into your conda env. "
+                "Install backend/requirements-ml.txt into your conda env. "
                 f"Original error: {exc}"
             ) from exc
 

@@ -171,14 +171,26 @@ def chat_stream(session_id: str, req: ChatRequest, db: Session = Depends(get_ses
         except ModelRuntimeUnavailable as exc:
             yield f"event: error\ndata: {json.dumps({'message': str(exc)})}\n\n"
             return
+        except Exception as exc:  # noqa: BLE001 — surface any generation error
+            yield f"event: error\ndata: {json.dumps({'message': f'generation failed: {exc}'})}\n\n"
+            return
         # Persist the assembled reply with a fresh DB session (generator scope).
+        # expire_on_commit=False + capturing the id INSIDE the block so the later
+        # `done` event can't hit a DetachedInstanceError after the session closes.
+        full_text = "".join(chunks)
+        msg_id = ""
         from sqlmodel import Session as _S
-        with _S(db_engine) as db2:
-            msg = service.add_message(db2, session_id, MessageRole.assistant, "".join(chunks))
-            s2 = db2.get(ChatSession, session_id)
-            if s2:
-                service.touch_session(db2, s2)
-        yield f"event: done\ndata: {json.dumps({'id': msg.id, 'content': msg.content})}\n\n"
+        try:
+            with _S(db_engine, expire_on_commit=False) as db2:
+                msg = service.add_message(db2, session_id, MessageRole.assistant, full_text)
+                msg_id = msg.id
+                s2 = db2.get(ChatSession, session_id)
+                if s2:
+                    service.touch_session(db2, s2)
+        except Exception as exc:  # noqa: BLE001
+            yield f"event: error\ndata: {json.dumps({'message': f'save failed: {exc}'})}\n\n"
+            return
+        yield f"event: done\ndata: {json.dumps({'id': msg_id, 'content': full_text})}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
 

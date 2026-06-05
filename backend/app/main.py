@@ -30,6 +30,11 @@ from .features.versioning.router import router as versioning_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    # Pre-resolve the heavy ML imports in the background so the FIRST chat doesn't
+    # race the /api/system poll's `import transformers` (which made the first load
+    # intermittently fail). Best-effort — boots fine without the ML stack.
+    import threading
+    threading.Thread(target=engine.warm, daemon=True).start()
     yield
 
 

@@ -6,20 +6,25 @@ import { TextareaModule } from 'primeng/textarea';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { SelectModule } from 'primeng/select';
+import { DialogModule } from 'primeng/dialog';
+import { CheckboxModule } from 'primeng/checkbox';
 import { MessageService } from 'primeng/api';
 import { Api } from '../../core/api';
-import { ChatMessage, ChatSession, ModelVersion } from '../../core/types';
+import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/types';
 
 @Component({
   selector: 'app-chat-panel',
-  imports: [FormsModule, ButtonModule, InputTextModule, TextareaModule, TagModule, TooltipModule, SelectModule],
+  imports: [FormsModule, ButtonModule, InputTextModule, TextareaModule, TagModule, TooltipModule, SelectModule, DialogModule, CheckboxModule],
   template: `
     <div class="chat-layout">
       <!-- sessions rail -->
       <aside class="rail glass">
         <div class="rail-head">
           <span class="t">الجلسات</span>
-          <p-button icon="pi pi-plus" [rounded]="true" [text]="true" size="small" pTooltip="جلسة جديدة" (onClick)="newSession()" />
+          <div class="rail-actions">
+            <p-button icon="pi pi-clone" [rounded]="true" [text]="true" size="small" pTooltip="استيراد محادثات من مشروع آخر" (onClick)="openImport()" />
+            <p-button icon="pi pi-plus" [rounded]="true" [text]="true" size="small" pTooltip="جلسة جديدة" (onClick)="newSession()" />
+          </div>
         </div>
         <div class="sessions">
           @for (s of sessions(); track s.id) {
@@ -39,6 +44,7 @@ import { ChatMessage, ChatSession, ModelVersion } from '../../core/types';
           <header class="conv-head">
             <input pInputText class="title-in" [(ngModel)]="s.title" (blur)="renameSession(s)" />
             <div class="head-right">
+              <p-button icon="pi pi-cog" [text]="true" size="small" label="تعليمات النظام" pTooltip="تعليمات النظام (system prompt)" (onClick)="openSysPrompt(s)" />
               <!-- which model is this chat talking to -->
               <div class="model-of" pTooltip="النموذج الذي تحادثه في هذه الجلسة">
                 @if (s.is_base_model) {
@@ -102,12 +108,59 @@ import { ChatMessage, ChatSession, ModelVersion } from '../../core/types';
         }
       </section>
     </div>
+
+    <!-- system prompt editor -->
+    <p-dialog header="تعليمات النظام · system prompt" [(visible)]="showSysPrompt" [modal]="true"
+              [style]="{ width: '640px', maxWidth: '94vw' }" [dismissableMask]="true">
+      <p class="muted small dlg-sub">توجيه يُضاف قبل كل محادثة في هذه الجلسة لضبط أسلوب النموذج.</p>
+      <textarea pTextarea [(ngModel)]="sysPromptDraft" class="sys-area" placeholder="مثال: أنت مساعد عربي مفيد ودقيق، تجيب بإيجاز وباللغة العربية الفصحى."></textarea>
+      <ng-template pTemplate="footer">
+        <p-button label="إلغاء" severity="secondary" [text]="true" (onClick)="showSysPrompt = false" />
+        <p-button label="حفظ" icon="pi pi-check" (onClick)="saveSysPrompt()" />
+      </ng-template>
+    </p-dialog>
+
+    <!-- inherit chats from other projects -->
+    <p-dialog header="استيراد محادثات من مشروع آخر" [(visible)]="showImport" [modal]="true"
+              [style]="{ width: '720px', maxWidth: '94vw' }" [dismissableMask]="true">
+      <p class="muted small dlg-sub">انسخ جلسات (مع تصحيحاتها) من مشروع آخر إلى هذا المشروع لإعادة استخدامها في التدريب.</p>
+      <label class="lbl">المشروع المصدر</label>
+      <p-select [options]="otherProjects()" optionLabel="name" optionValue="id" [(ngModel)]="importSourceId"
+                (onChange)="loadSourceSessions($event.value)" placeholder="اختر مشروعًا" styleClass="full" appendTo="body" />
+
+      @if (importSourceId) {
+        <div class="src-list">
+          @for (s of sourceSessions(); track s.id) {
+            <label class="src-row">
+              <p-checkbox [binary]="true" [ngModel]="isPicked(s.id)" (ngModelChange)="togglePick(s.id)" />
+              <span class="src-title">{{ s.title }}</span>
+              <span class="src-meta dim">{{ s.approved_count }} مثال معتمد</span>
+            </label>
+          }
+          @if (sourceSessions().length === 0) { <p class="muted dim">لا جلسات في هذا المشروع.</p> }
+        </div>
+      }
+      <ng-template pTemplate="footer">
+        <p-button label="إلغاء" severity="secondary" [text]="true" (onClick)="showImport = false" />
+        <p-button label="استيراد المحدد" icon="pi pi-clone" [disabled]="picked().length === 0" [loading]="importing()" (onClick)="doImport()" />
+      </ng-template>
+    </p-dialog>
   `,
   styles: [`
     .chat-layout { display: grid; grid-template-columns: 260px 1fr; gap: 0.9rem; height: 68vh; }
     .rail { padding: 0.8rem; display: flex; flex-direction: column; }
     .rail-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
     .rail-head .t { font-weight: 700; }
+    .rail-actions { display: flex; gap: 0.1rem; }
+    .dlg-sub { margin: 0 0 0.8rem; }
+    .lbl { font-weight: 600; display: block; margin: 0.4rem 0 0.3rem; }
+    .full { width: 100%; }
+    .sys-area { width: 100%; min-height: 180px; font-size: 0.95rem; line-height: 1.8; resize: vertical; }
+    .src-list { display: flex; flex-direction: column; gap: 0.2rem; margin-top: 0.8rem; max-height: 320px; overflow: auto; }
+    .src-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.6rem; border-radius: 10px; cursor: pointer; }
+    .src-row:hover { background: var(--glass-bg); }
+    .src-title { flex: 1; font-size: 0.9rem; }
+    .src-meta { font-size: 0.76rem; }
     .sessions { display: flex; flex-direction: column; gap: 0.3rem; overflow: auto; }
     .srow { display: flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.6rem; border-radius: 10px; background: transparent; border: 1px solid transparent; color: var(--text-2); cursor: pointer; text-align: start; }
     .srow:hover { background: var(--glass-bg); color: var(--text-1); }
@@ -159,9 +212,72 @@ export class ChatPanel implements OnInit {
   draft = '';
   editText = '';
 
+  // system prompt editor
+  showSysPrompt = false;
+  sysPromptDraft = '';
+  private sysPromptSession: ChatSession | null = null;
+
+  // import-from-other-project dialog
+  showImport = false;
+  importing = signal(false);
+  importSourceId: string | null = null;
+  readonly otherProjects = signal<Project[]>([]);
+  readonly sourceSessions = signal<ChatSession[]>([]);
+  readonly picked = signal<string[]>([]);
+
   ngOnInit(): void {
     this.loadSessions();
     this.loadVersions();
+  }
+
+  // ── system prompt ──
+  openSysPrompt(s: ChatSession): void {
+    this.sysPromptSession = s;
+    this.sysPromptDraft = s.system_prompt ?? '';
+    this.showSysPrompt = true;
+  }
+  saveSysPrompt(): void {
+    const s = this.sysPromptSession; if (!s) return;
+    this.api.updateSession(s.id, { system_prompt: this.sysPromptDraft }).subscribe(() => {
+      this.showSysPrompt = false;
+      this.open(s.id);
+      this.toast.add({ severity: 'success', summary: 'حُفظت تعليمات النظام' });
+    });
+  }
+
+  // ── import chats from other projects ──
+  openImport(): void {
+    this.importSourceId = null;
+    this.sourceSessions.set([]);
+    this.picked.set([]);
+    this.api.listProjects().subscribe((ps) =>
+      this.otherProjects.set(ps.filter((p) => p.id !== this.projectId)));
+    this.showImport = true;
+  }
+  loadSourceSessions(projectId: string): void {
+    this.picked.set([]);
+    this.api.listSessions(projectId).subscribe((s) => this.sourceSessions.set(s));
+  }
+  isPicked(id: string): boolean { return this.picked().includes(id); }
+  togglePick(id: string): void {
+    const cur = this.picked();
+    this.picked.set(cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]);
+  }
+  doImport(): void {
+    if (this.picked().length === 0) return;
+    this.importing.set(true);
+    this.api.importSessions(this.projectId, this.picked()).subscribe({
+      next: (created) => {
+        this.importing.set(false);
+        this.showImport = false;
+        this.loadSessions();
+        this.toast.add({ severity: 'success', summary: 'تم الاستيراد', detail: `${created.length} جلسة` });
+      },
+      error: (e) => {
+        this.importing.set(false);
+        this.toast.add({ severity: 'error', summary: 'تعذّر الاستيراد', detail: String(e?.error?.detail ?? e.message) });
+      },
+    });
   }
 
   loadVersions(): void {

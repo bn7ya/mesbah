@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 
 from sqlmodel import Session, func, select
 
-from ...core.models import Message, MessageRole
+from ...core.models import Message, MessageRole, Project
 from ...core.models import Session as ChatSession
 
 
@@ -86,6 +86,54 @@ def set_flags(db: Session, message: Message, *, approved: bool | None,
     db.commit()
     db.refresh(message)
     return message
+
+
+def import_sessions(db: Session, target_project_id: str, session_ids: list[str]) -> list[ChatSession]:
+    """Copy whole chats (with their messages + corrections) into another project.
+
+    Each imported session becomes a fresh session in the target project, bound to
+    the target's active model version (the source version doesn't exist here).
+    Message correction/approval flags are preserved so the imported turns are
+    immediately usable as training data in the new project.
+    """
+    target = db.get(Project, target_project_id)
+    if not target:
+        raise ValueError("Target project not found")
+
+    created: list[ChatSession] = []
+    for sid in session_ids:
+        src = db.get(ChatSession, sid)
+        if not src or src.project_id == target_project_id:
+            continue  # skip missing or same-project sessions
+        new_session = ChatSession(
+            project_id=target_project_id,
+            task_id=None,
+            title=f"{src.title} (مستورد)",
+            system_prompt=src.system_prompt,
+            model_version_id=target.active_version_id,
+        )
+        db.add(new_session)
+        db.flush()  # assign id
+        src_msgs = db.exec(
+            select(Message).where(Message.session_id == src.id).order_by(Message.order_index)
+        ).all()
+        for m in src_msgs:
+            db.add(Message(
+                session_id=new_session.id,
+                role=m.role,
+                content=m.content,
+                original_content=m.original_content,
+                corrected=m.corrected,
+                approved=m.approved,
+                include_in_training=m.include_in_training,
+                order_index=m.order_index,
+                meta=m.meta,
+            ))
+        created.append(new_session)
+    db.commit()
+    for s in created:
+        db.refresh(s)
+    return created
 
 
 def approved_count(db: Session, session_id: str) -> int:

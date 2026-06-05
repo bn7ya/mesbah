@@ -6,6 +6,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from ...core.db import engine as db_engine
@@ -70,6 +71,21 @@ def create_session(project_id: str, data: SessionCreate, db: Session = Depends(g
     db.commit()
     db.refresh(s)
     return _session_read(db, s)
+
+
+class ImportSessionsRequest(BaseModel):
+    session_ids: list[str]
+
+
+@router.post("/projects/{project_id}/sessions/import", response_model=list[SessionRead], status_code=201)
+def import_sessions(project_id: str, body: ImportSessionsRequest, db: Session = Depends(get_session)):
+    """Inherit chats from other projects: copy the given sessions (and their
+    messages/corrections) into this project."""
+    target = db.get(Project, project_id)
+    if not target:
+        raise HTTPException(404, "Project not found")
+    created = service.import_sessions(db, project_id, body.session_ids)
+    return [_session_read(db, s, with_messages=False) for s in created]
 
 
 @router.get("/sessions/{session_id}", response_model=SessionRead)

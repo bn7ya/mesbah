@@ -55,6 +55,10 @@ export class Api {
   listSessions(pid: string): Observable<ChatSession[]> { return this.http.get<ChatSession[]>(`${API_BASE}/projects/${pid}/sessions`); }
   createSession(pid: string, body: Partial<ChatSession>): Observable<ChatSession> { return this.http.post<ChatSession>(`${API_BASE}/projects/${pid}/sessions`, body); }
   getSession(id: string): Observable<ChatSession> { return this.http.get<ChatSession>(`${API_BASE}/sessions/${id}`); }
+  /** Inherit chats from other projects into this one (copies sessions + messages). */
+  importSessions(pid: string, session_ids: string[]): Observable<ChatSession[]> {
+    return this.http.post<ChatSession[]>(`${API_BASE}/projects/${pid}/sessions/import`, { session_ids });
+  }
   updateSession(id: string, body: Partial<ChatSession>): Observable<ChatSession> { return this.http.patch<ChatSession>(`${API_BASE}/sessions/${id}`, body); }
   deleteSession(id: string): Observable<void> { return this.http.delete<void>(`${API_BASE}/sessions/${id}`); }
   chat(sessionId: string, content: string, opts: Record<string, unknown> = {}): Observable<ChatMessage[]> {

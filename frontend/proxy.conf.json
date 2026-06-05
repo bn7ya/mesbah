@@ -1,0 +1,9 @@
+{
+  "/api": {
+    "target": "http://127.0.0.1:8077",
+    "secure": false,
+    "ws": true,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}

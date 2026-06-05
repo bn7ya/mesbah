@@ -1,0 +1,38 @@
+<p-toast position="top-left" />
+<p-confirmdialog />
+
+<div class="shell">
+  <header class="topbar glass-strong">
+    <a routerLink="/" class="brand">
+      <span class="lamp">🕯️</span>
+      <span class="brand-text">
+        <span class="text-grad name">مِصباح</span>
+        <small class="muted">استوديو ضبط النماذج</small>
+      </span>
+    </a>
+
+    <nav class="nav">
+      <a routerLink="/" class="nav-link"><i class="pi pi-folder"></i> المشاريع</a>
+    </nav>
+
+    @if (sys(); as s) {
+      <div class="status">
+        <span class="chip" [class.ok]="s.engine.runtime_available" [class.warn]="!s.engine.runtime_available">
+          <i class="pi" [class.pi-bolt]="s.engine.runtime_available" [class.pi-exclamation-triangle]="!s.engine.runtime_available"></i>
+          <span class="mono">{{ s.engine.runtime_available ? 'GPU runtime' : 'CPU only' }}</span>
+        </span>
+        @if (s.engine.cuda && s.engine.vram_total_gb) {
+          <span class="chip vram" title="VRAM usage">
+            <span class="mono">VRAM</span>
+            <span class="bar"><span class="fill" [style.width.%]="vramPct()"></span></span>
+            <span class="mono dim">{{ s.engine.vram_used_gb | number:'1.1-1' }}/{{ s.engine.vram_total_gb | number:'1.0-0' }} GB</span>
+          </span>
+        }
+      </div>
+    }
+  </header>
+
+  <main class="content">
+    <router-outlet />
+  </main>
+</div>

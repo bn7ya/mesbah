@@ -1,0 +1,14 @@
+# ── Misbah backend :: API + app layer (lightweight, lets the app boot) ────────
+# Install:  pip install -r requirements.txt
+# The heavy ML/training stack lives in requirements-ml.txt (installed separately
+# so the GUI/API run even before the GPU stack is ready).
+
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+sqlmodel>=0.0.22
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+python-multipart>=0.0.12
+websockets>=13.0
+huggingface_hub>=0.27.0
+hf_transfer>=0.1.8            # faster model downloads (set HF_HUB_ENABLE_HF_TRANSFER=1)

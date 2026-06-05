@@ -1,0 +1,37 @@
+# ── Misbah backend :: ML / QLoRA training + inference stack ───────────────────
+# Tuned for RTX 5080 (Blackwell sm_120), CUDA 13.2, PyTorch 2.11.0+cu130.
+# See docs/MODEL_SELECTION.md and docs/HARDWARE.md for the full rationale.
+#
+# Install (into the SAME env that already has torch 2.11.0+cu130):
+#     pip install -r requirements-ml.txt
+# then verify bitsandbytes can see the CUDA-13 runtime:
+#     python -m bitsandbytes
+#
+# DO NOT install flash-attn — it has no official Blackwell sm_120 build.
+# The training script uses attn_implementation="sdpa" (+ Unsloth Triton kernels).
+
+# torch is assumed pre-installed:  torch==2.11.0+cu130  (do NOT reinstall)
+
+# CUDA-13 runtime libs bitsandbytes needs on a cu130 torch. Without these,
+# bnb throws "Missing dependency: libnvJitLink.so.13" on Blackwell (bnb #1905).
+nvidia-cuda-runtime-cu13
+nvidia-cuda-nvrtc-cu13
+nvidia-nvjitlink-cu13
+
+# 4-bit QLoRA core
+bitsandbytes>=0.49.2          # single fat wheel; sm_120/Blackwell + CUDA 13 supported
+transformers>=5.5.0           # 5.5.x = Blackwell-QLoRA battle-tested series
+peft>=0.19.1
+trl>=0.29.1
+accelerate>=1.13.0
+datasets>=4.8.5
+triton>=3.3.1                 # Blackwell sm_120 (usually bundled with torch 2.11)
+
+# Preferred long-context / fast path (custom Triton kernels; replaces flash-attn
+# on Blackwell). Let Unsloth pin its own transformers/trl if it prefers.
+unsloth
+unsloth_zoo
+
+# tokenizer / serialization helpers
+sentencepiece>=0.2.0
+protobuf>=4.25.0

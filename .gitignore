@@ -1,0 +1,82 @@
+# ─────────────────────────────────────────────────────────────
+# Misbah — LLM fine-tuning studio :: .gitignore
+# ─────────────────────────────────────────────────────────────
+
+# ===== Secrets / local config =====
+.env
+.env.*
+!.env.example
+*.local
+backend/.env
+frontend/src/environments/environment.local.ts
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.egg-info/
+dist/
+build/
+pip-wheel-metadata/
+
+# ===== ML artifacts (NEVER commit weights / datasets / runs) =====
+# Base models & HuggingFace cache
+backend/data/models/
+backend/data/hf_cache/
+backend/data/.cache/
+**/.cache/huggingface/
+# LoRA adapters & merged checkpoints produced by training runs
+backend/data/adapters/
+backend/data/checkpoints/
+backend/data/merged/
+# Generated training datasets
+backend/data/datasets/
+# Training run logs / tensorboard / metrics
+backend/data/runs/
+backend/data/logs/
+runs/
+wandb/
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+# SQLite app database (local state)
+backend/data/*.db
+backend/data/*.db-journal
+backend/data/*.sqlite3
+
+# ===== Node / Angular =====
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ===== Tooling scratch =====
+.playwright-mcp/
+**/.playwright-mcp/
+
+# ===== OS / editor =====
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.shared.json
+*.swp
+*~

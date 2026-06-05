@@ -59,6 +59,8 @@ export interface ChatSession {
   updated_at: string;
   messages: ChatMessage[];
   approved_count: number;
+  model_label?: string | null;   // which model this chat talks to
+  is_base_model?: boolean;       // true = raw base model, false = fine-tuned (has adapter)
 }
 
 export interface ModelVersion {

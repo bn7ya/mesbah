@@ -10,7 +10,7 @@ from sqlmodel import Session, select
 
 from ...core.db import engine as db_engine
 from ...core.db import get_session
-from ...core.models import Message, MessageRole, Project
+from ...core.models import Message, MessageRole, ModelVersion, Project
 from ...core.models import Session as ChatSession
 from ..inference import service as inference_service
 from ..inference.engine import ModelRuntimeUnavailable
@@ -21,12 +21,27 @@ from .schemas import (ChatRequest, MessageEdit, MessageRead, SessionCreate,
 router = APIRouter(prefix="/api", tags=["sessions"])
 
 
+def _resolve_version(db: Session, s: ChatSession) -> ModelVersion | None:
+    """The version this chat actually uses: the session's, else project active."""
+    if s.model_version_id:
+        v = db.get(ModelVersion, s.model_version_id)
+        if v:
+            return v
+    project = db.get(Project, s.project_id)
+    if project and project.active_version_id:
+        return db.get(ModelVersion, project.active_version_id)
+    return None
+
+
 def _session_read(db: Session, s: ChatSession, with_messages: bool = True) -> SessionRead:
     msgs = service.history(db, s.id) if with_messages else []
+    version = _resolve_version(db, s)
     return SessionRead(
         **s.model_dump(),
         messages=[MessageRead(**m.model_dump()) for m in msgs],
         approved_count=service.approved_count(db, s.id),
+        model_label=version.label if version else None,
+        is_base_model=version.is_base if version else True,
     )
 
 

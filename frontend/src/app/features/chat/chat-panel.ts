@@ -5,13 +5,14 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
+import { SelectModule } from 'primeng/select';
 import { MessageService } from 'primeng/api';
 import { Api } from '../../core/api';
-import { ChatMessage, ChatSession } from '../../core/types';
+import { ChatMessage, ChatSession, ModelVersion } from '../../core/types';
 
 @Component({
   selector: 'app-chat-panel',
-  imports: [FormsModule, ButtonModule, InputTextModule, TextareaModule, TagModule, TooltipModule],
+  imports: [FormsModule, ButtonModule, InputTextModule, TextareaModule, TagModule, TooltipModule, SelectModule],
   template: `
     <div class="chat-layout">
       <!-- sessions rail -->
@@ -37,7 +38,20 @@ import { ChatMessage, ChatSession } from '../../core/types';
         @if (current(); as s) {
           <header class="conv-head">
             <input pInputText class="title-in" [(ngModel)]="s.title" (blur)="renameSession(s)" />
-            <span class="muted dim approved"><i class="pi pi-database"></i> {{ s.approved_count }} مثال تدريب</span>
+            <div class="head-right">
+              <!-- which model is this chat talking to -->
+              <div class="model-of" pTooltip="النموذج الذي تحادثه في هذه الجلسة">
+                @if (s.is_base_model) {
+                  <p-tag value="النموذج الأساسي" severity="contrast" icon="pi pi-box" />
+                } @else {
+                  <p-tag value="نموذج مُدرَّب" severity="success" icon="pi pi-sparkles" />
+                }
+                <p-select [options]="versionOptions()" optionLabel="label" optionValue="id"
+                          [ngModel]="s.model_version_id" (onChange)="switchModel(s, $event.value)"
+                          styleClass="ver-sel" appendTo="body" />
+              </div>
+              <span class="muted dim approved"><i class="pi pi-database"></i> {{ s.approved_count }} مثال تدريب</span>
+            </div>
           </header>
 
           <div class="stream">
@@ -103,9 +117,12 @@ import { ChatMessage, ChatSession } from '../../core/types';
     .srow .cnt { font-size: 0.7rem; background: var(--accent-grad); color: #06121a; border-radius: 999px; padding: 0 0.4rem; font-weight: 700; }
     .hint { padding: 0.5rem; font-size: 0.8rem; }
     .conv { display: flex; flex-direction: column; overflow: hidden; }
-    .conv-head { display: flex; align-items: center; justify-content: space-between; padding: 0.7rem 1rem; border-bottom: 1px solid var(--glass-border); }
-    .title-in { background: transparent; border: none; font-weight: 700; font-size: 1rem; color: var(--text-1); }
-    .approved { font-size: 0.78rem; }
+    .conv-head { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; padding: 0.7rem 1rem; border-bottom: 1px solid var(--glass-border); }
+    .title-in { background: transparent; border: none; font-weight: 700; font-size: 1rem; color: var(--text-1); flex: 1; min-width: 0; }
+    .head-right { display: flex; align-items: center; gap: 0.8rem; flex-shrink: 0; }
+    .model-of { display: flex; align-items: center; gap: 0.4rem; }
+    .approved { font-size: 0.78rem; white-space: nowrap; }
+    :host ::ng-deep .ver-sel { font-size: 0.78rem; }
     .stream { flex: 1; overflow: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.9rem; }
     .msg { display: flex; gap: 0.6rem; max-width: 86%; }
     .msg.user { flex-direction: row-reverse; margin-inline-start: auto; }
@@ -134,10 +151,30 @@ export class ChatPanel implements OnInit {
   readonly current = signal<ChatSession | null>(null);
   readonly thinking = signal(false);
   readonly editingId = signal<string | null>(null);
+  readonly versionOptions = signal<{ id: string; label: string }[]>([]);
   draft = '';
   editText = '';
 
-  ngOnInit(): void { this.loadSessions(); }
+  ngOnInit(): void {
+    this.loadSessions();
+    this.loadVersions();
+  }
+
+  loadVersions(): void {
+    this.api.listVersions(this.projectId).subscribe((vs: ModelVersion[]) => {
+      this.versionOptions.set(vs.map((v) => ({
+        id: v.id,
+        label: (v.is_base ? '◦ ' : '★ ') + v.label + (v.is_active ? ' (نشط)' : ''),
+      })));
+    });
+  }
+
+  switchModel(s: ChatSession, versionId: string): void {
+    this.api.updateSession(s.id, { model_version_id: versionId }).subscribe((upd) => {
+      // refresh the open session so the badge + subsequent replies use the new model
+      this.open(upd.id);
+    });
+  }
 
   loadSessions(): void {
     this.api.listSessions(this.projectId).subscribe((s) => {

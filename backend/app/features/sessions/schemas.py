@@ -48,6 +48,10 @@ class SessionRead(BaseModel):
     updated_at: datetime
     messages: list[MessageRead] = []
     approved_count: int = 0
+    # Which model this chat actually talks to (resolved from model_version_id,
+    # falling back to the project's active version).
+    model_label: Optional[str] = None
+    is_base_model: bool = True
 
 
 class ChatRequest(BaseModel):

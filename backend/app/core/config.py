@@ -72,9 +72,13 @@ class Settings(BaseSettings):
     def runs_dir(self) -> Path:          # per-training-run logs + metrics.jsonl
         return self.data_dir / "runs"
 
+    @property
+    def offload_dir(self) -> Path:       # disk spillover when VRAM + RAM are full
+        return self.data_dir / "offload"
+
     def ensure_dirs(self) -> None:
-        for p in (self.data_dir, self.hf_home, self.models_dir,
-                  self.adapters_dir, self.datasets_dir, self.runs_dir):
+        for p in (self.data_dir, self.hf_home, self.models_dir, self.adapters_dir,
+                  self.datasets_dir, self.runs_dir, self.offload_dir):
             p.mkdir(parents=True, exist_ok=True)
 
 

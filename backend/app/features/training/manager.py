@@ -93,6 +93,10 @@ class TrainingManager:
             "status_path": str(self.status_path(run.id)),
             "log_path": str(run_dir / "train.log"),
             "hf_cache": str(settings.hf_home),
+            # Disk spillover dir + how much CPU RAM the offload fallback may use
+            # (the box has 128 GB → generous default).
+            "offload_folder": str(settings.offload_dir / run.id),
+            "cpu_offload_gb": 96,
             "num_examples": n,
             **project.default_train_config,
             **(run.config.get("hyperparams") or {}),

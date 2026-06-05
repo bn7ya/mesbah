@@ -30,8 +30,20 @@ also injects `base_model` (local path preferred), `resume_adapter_path` (parent
 adapter, for "enhance from node"), dataset/output/metrics paths, and a
 `total_steps` estimate for the progress bar.
 
+## Backends & memory (scripts/train_qlora.py)
+- **Unsloth** is preferred for from-base runs (less VRAM, RAM activation offload).
+  **HF path** is the fallback: used for resume runs, when Unsloth isn't installed,
+  or when Unsloth can't load — and it adds a **VRAM→RAM→disk** offload tier.
+- `load_with_offload_fallback`: tier 1 = whole model on GPU (`device_map={"":0}`);
+  tier 2 on CUDA OOM = `device_map="auto"` with `max_memory` (GPU cap + `cpu_offload_gb`
+  RAM) + `offload_folder` (disk). The manager injects `offload_folder` / `cpu_offload_gb`.
+- Dataset is pre-formatted to a `text` column via the chat template (works for both
+  trl and Unsloth). `assistant_only_loss` defaults OFF (many templates lack the
+  `{% generation %}` mask and would hard-error).
+
 ## Gotchas
-- Training needs the whole GPU → `launch()` unloads the inference engine first.
+- Training needs the whole GPU → `launch()` **freezes** the inference engine
+  (unload + refuse to load) so a warmup/chat can't steal VRAM mid-run; the monitor
+  unfreezes on run end. (Pinning the 4-bit model on GPU avoids bnb's
+  "modules dispatched on CPU/disk" error.)
 - A run with 0 approved examples is marked `failed` early with a helpful message.
-- Resuming a parent adapter is handled on the **HF path** (Unsloth path trains a
-  fresh adapter); see `scripts/train_qlora.py`.

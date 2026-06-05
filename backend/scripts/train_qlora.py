@@ -85,12 +85,24 @@ def try_load_unsloth(cfg: dict[str, Any]):
     except Exception:
         return None
 
-    model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=cfg["base_model"],
-        max_seq_length=int(cfg.get("max_seq_len", 4096)),
-        dtype=None,                      # auto (bf16 on Blackwell)
-        load_in_4bit=bool(cfg.get("load_in_4bit", True)),
-    )
+    try:
+        model, tokenizer = FastLanguageModel.from_pretrained(
+            model_name=cfg["base_model"],
+            max_seq_length=int(cfg.get("max_seq_len", 4096)),
+            dtype=None,                      # auto (bf16 on Blackwell)
+            load_in_4bit=bool(cfg.get("load_in_4bit", True)),
+        )
+    except Exception as exc:
+        # If Unsloth can't even load (e.g. VRAM too small for the model), fall
+        # back to the HF path which can spill weights to CPU RAM / disk.
+        import gc
+
+        import torch
+        print(f"[train_qlora] Unsloth load failed ({exc}); using HF offload path.", flush=True)
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        return None
     model = FastLanguageModel.get_peft_model(
         model,
         r=int(cfg.get("lora_r", 16)),
@@ -103,6 +115,47 @@ def try_load_unsloth(cfg: dict[str, Any]):
         use_rslora=bool(cfg.get("use_rslora", False)),
     )
     return model, tokenizer
+
+
+def load_with_offload_fallback(cfg: dict[str, Any], load_fn):
+    """Load the 4-bit model on the GPU; if VRAM is exhausted, spill to CPU RAM
+    then disk.
+
+    Tier 1 (fast): the whole model on GPU 0 (device_map={"":0}).
+    Tier 2 (fallback on CUDA OOM): device_map="auto" with a per-device
+      ``max_memory`` cap — GPU first, then CPU RAM (``cpu_offload_gb``), then a
+      disk ``offload_folder``. Slower, but lets an over-large model still train.
+    """
+    import gc
+    from pathlib import Path as _Path
+
+    import torch
+
+    if not torch.cuda.is_available():
+        return load_fn(None)
+
+    dev = torch.cuda.current_device()
+    try:
+        return load_fn({"": dev})
+    except (torch.cuda.OutOfMemoryError, RuntimeError, ValueError) as exc:
+        msg = str(exc).lower()
+        if "out of memory" not in msg and "dispatched" not in msg and "memory" not in msg:
+            raise
+        gc.collect()
+        torch.cuda.empty_cache()
+        total = torch.cuda.get_device_properties(dev).total_memory
+        gpu_gib = max(1, int(total / (1024 ** 3)) - 1)          # leave ~1 GiB headroom
+        cpu_gib = int(cfg.get("cpu_offload_gb", 96))
+        offload_dir = cfg.get("offload_folder") or "offload"
+        _Path(offload_dir).mkdir(parents=True, exist_ok=True)
+        print(f"[train_qlora] VRAM full → offload fallback: GPU {gpu_gib}GiB + "
+              f"CPU {cpu_gib}GiB + disk {offload_dir} (slower)", flush=True)
+        return load_fn(
+            "auto",
+            max_memory={dev: f"{gpu_gib}GiB", "cpu": f"{cpu_gib}GiB"},
+            offload_folder=offload_dir,
+            offload_state_dict=True,
+        )
 
 
 # ── model loading: pure HF fallback ───────────────────────────────────────────
@@ -121,20 +174,20 @@ def load_hf(cfg: dict[str, Any]):
         bnb_4bit_quant_type="nf4",
         bnb_4bit_use_double_quant=True,
         bnb_4bit_compute_dtype=torch.bfloat16,
+        # Permit fp32 CPU-offloaded modules (needed by the RAM/disk fallback).
+        llm_int8_enable_fp32_cpu_offload=True,
     )
-    # Pin the WHOLE quantized model on one GPU. device_map="auto" may offload
-    # layers to CPU/disk, which bitsandbytes 4-bit forbids ("Some modules are
-    # dispatched on the CPU or the disk…"). For single-GPU QLoRA, force GPU 0.
-    device_map = {"": torch.cuda.current_device()} if torch.cuda.is_available() else None
-    model = AutoModelForCausalLM.from_pretrained(
-        cfg["base_model"],
+    common = dict(
         quantization_config=quant,
         dtype=torch.bfloat16,                # (torch_dtype is deprecated in transformers 5.x)
-        device_map=device_map,
-        # Blackwell sm_120: flash-attn unavailable → use PyTorch SDPA.
-        attn_implementation="sdpa",
+        attn_implementation="sdpa",          # Blackwell sm_120: no flash-attn → SDPA
         trust_remote_code=True,
     )
+
+    def _load(device_map, **extra):
+        return AutoModelForCausalLM.from_pretrained(cfg["base_model"], device_map=device_map, **common, **extra)
+
+    model = load_with_offload_fallback(cfg, _load)
     model = prepare_model_for_kbit_training(
         model, use_gradient_checkpointing=bool(cfg.get("gradient_checkpointing", True))
     )
@@ -159,6 +212,14 @@ def load_hf(cfg: dict[str, Any]):
 def build_trainer(cfg: dict[str, Any], model, tokenizer, dataset, metrics: MetricsWriter):
     from transformers import TrainerCallback
     from trl import SFTConfig, SFTTrainer
+
+    # Pre-format conversations into a single "text" column via the chat template.
+    # vanilla trl auto-handles a "messages" column, but Unsloth's patched trainer
+    # requires an explicit text field — doing it here works for both paths.
+    if "messages" in dataset.column_names:
+        def _fmt(ex):
+            return {"text": tokenizer.apply_chat_template(ex["messages"], tokenize=False)}
+        dataset = dataset.map(_fmt, remove_columns=dataset.column_names)
 
     total_steps_holder: dict[str, int] = {"total": int(cfg.get("_total_steps", 0))}
 
@@ -203,9 +264,14 @@ def build_trainer(cfg: dict[str, Any], model, tokenizer, dataset, metrics: Metri
         gradient_checkpointing=bool(cfg.get("gradient_checkpointing", True)),
     )
     # assistant-only loss + neftune are newer SFTConfig fields; tolerate older trl.
+    # assistant_only_loss defaults OFF: it requires the chat template to emit a
+    # `{% generation %}` mask, which many templates (e.g. Qwen2.5) lack — enabling
+    # it then hard-errors. Training on the full corrected conversation works for
+    # every template. Advanced users can opt in via hyperparams.
     optional = {
-        "assistant_only_loss": True,
+        "assistant_only_loss": True if cfg.get("assistant_only_loss") else None,
         "neftune_noise_alpha": cfg.get("neftune_noise_alpha"),
+        "dataset_text_field": "text",
     }
     args = _make_sftconfig(SFTConfig, sft_kwargs, optional)
 

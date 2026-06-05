@@ -40,7 +40,17 @@ python -m bitsandbytes          # MUST print a working report
 ### Do NOT install flash-attention
 
 FA2 is Ampere/Ada/Hopper only; FA3 refuses Blackwell. The code uses
-`attn_implementation="sdpa"` and Unsloth's Triton kernels instead.
+`attn_implementation="sdpa"` and Unsloth's Triton kernels (+ xformers) instead.
+
+### Note: installing Unsloth re-pins torch (and it's fine)
+
+`pip install unsloth unsloth_zoo` downgrades **torch 2.11.0+cu130 → 2.10.0+cu128**
+and pins **transformers 5.5.0 / trl 0.24.0 / xformers 0.0.35**. This is VERIFIED
+working on the RTX 5080: cu128 supports Blackwell sm_120, and bitsandbytes 4-bit,
+Unsloth training, and inference all run. After installing, run
+`python scripts/check_gpu.py` to confirm. The trainer prefers Unsloth for
+from-base runs and falls back to the pure-HF path (which adds VRAM→RAM→disk
+offload) for resume runs or when Unsloth can't load.
 
 ## Escape hatches
 

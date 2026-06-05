@@ -70,7 +70,7 @@ import { CuratedModel, Project } from '../../core/types';
         <div class="models">
           @for (m of models(); track m.repo_id) {
             <button class="model glass" [class.sel]="form.base_model_repo === m.repo_id"
-                    (click)="form.base_model_repo = m.repo_id" type="button">
+                    (click)="selectCard(m.repo_id)" type="button">
               <div class="model-head">
                 <span class="ltr repo">{{ m.label }}</span>
                 @if (m.recommended) { <p-tag value="موصى به" severity="success" /> }
@@ -84,6 +84,11 @@ import { CuratedModel, Project } from '../../core/types';
               <p class="muted note">{{ m.note }}</p>
             </button>
           }
+        </div>
+        <div class="custom">
+          <label class="lbl">أو معرّف نموذج مخصص من <code class="ltr">HuggingFace</code></label>
+          <input pInputText class="ltr" [ngModel]="customRepo()" (ngModelChange)="setCustom($event)"
+                 placeholder="مثال: Qwen/Qwen3-8B  ·  ابحث وحمّل من صفحة النماذج" />
         </div>
       </div>
       <ng-template pTemplate="footer">
@@ -133,7 +138,14 @@ export class ProjectsPage implements OnInit {
   readonly loading = signal(true);
   readonly dialog = signal(false);
   readonly creating = signal(false);
+  readonly customRepo = signal('');
   form = { name: '', description: '', base_model_repo: '' };
+
+  setCustom(v: string): void {
+    this.customRepo.set(v);
+    if (v.trim()) this.form.base_model_repo = v.trim();   // free-text overrides card selection
+  }
+  selectCard(repo: string): void { this.form.base_model_repo = repo; this.customRepo.set(''); }
 
   ngOnInit(): void {
     this.api.listProjects().subscribe({
@@ -144,6 +156,7 @@ export class ProjectsPage implements OnInit {
   }
 
   openNew(): void {
+    this.customRepo.set('');
     this.form = { name: '', description: '', base_model_repo: this.models().find((m) => m.recommended)?.repo_id ?? '' };
     this.dialog.set(true);
   }

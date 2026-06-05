@@ -4,34 +4,40 @@
 #
 # Install (into the SAME env that already has torch 2.11.0+cu130):
 #     pip install -r requirements-ml.txt
-# then verify bitsandbytes can see the CUDA-13 runtime:
-#     python -m bitsandbytes
+# Verify bitsandbytes 4-bit runs on the GPU:
+#     python scripts/check_gpu.py
 #
-# DO NOT install flash-attn — it has no official Blackwell sm_120 build.
-# The training script uses attn_implementation="sdpa" (+ Unsloth Triton kernels).
+# VERIFIED WORKING on this machine (2026-06): the versions below load a 4-bit
+# model and run a bnb 4-bit forward on the RTX 5080. torch 2.11+cu130 already
+# bundles the CUDA-13 runtime libs, so the separate nvidia-*-cu13 wheels are NOT
+# needed (and were renamed/deprecated — installing them breaks the transaction).
+#
+# DO NOT install flash-attn — no official Blackwell sm_120 build. The trainer
+# uses attn_implementation="sdpa" (+ Unsloth Triton kernels if Unsloth is present).
 
 # torch is assumed pre-installed:  torch==2.11.0+cu130  (do NOT reinstall)
 
-# CUDA-13 runtime libs bitsandbytes needs on a cu130 torch. Without these,
-# bnb throws "Missing dependency: libnvJitLink.so.13" on Blackwell (bnb #1905).
-nvidia-cuda-runtime-cu13
-nvidia-cuda-nvrtc-cu13
-nvidia-nvjitlink-cu13
-
-# 4-bit QLoRA core
-bitsandbytes>=0.49.2          # single fat wheel; sm_120/Blackwell + CUDA 13 supported
-transformers>=5.5.0           # 5.5.x = Blackwell-QLoRA battle-tested series
-peft>=0.19.1
-trl>=0.29.1
-accelerate>=1.13.0
+# 4-bit QLoRA core — these exact versions are verified on the 5080:
+bitsandbytes>=0.49.2          # 0.49.2 OK; sm_120/Blackwell + CUDA 13 supported
+transformers>=5.5.0           # 5.10.2 verified
+peft>=0.19.1                  # 0.19.1 verified
+trl>=0.29.1                   # 1.5.1 verified (API drift handled in train_qlora.py)
+accelerate>=1.13.0            # 1.13.0 verified
 datasets>=4.8.5
-triton>=3.3.1                 # Blackwell sm_120 (usually bundled with torch 2.11)
-
-# Preferred long-context / fast path (custom Triton kernels; replaces flash-attn
-# on Blackwell). Let Unsloth pin its own transformers/trl if it prefers.
-unsloth
-unsloth_zoo
-
-# tokenizer / serialization helpers
 sentencepiece>=0.2.0
 protobuf>=4.25.0
+
+# ── OPTIONAL: Unsloth (preferred for long-context QLoRA on 16 GB) ─────────────
+# ~2x faster, ~50-70% less VRAM, ~4x longer trainable context than plain trl.
+# Install SEPARATELY and check torch afterwards — Unsloth can try to re-pin torch,
+# which you do NOT want on Blackwell:
+#     pip install unsloth unsloth_zoo && python -c "import torch;print(torch.__version__)"
+#     # must still print 2.11.0+cu130 — if it changed, reinstall the cu130 wheel.
+# The trainer auto-detects Unsloth; without it, it falls back to the pure-HF path.
+# unsloth
+# unsloth_zoo
+
+# ── OPTIONAL fallback if bitsandbytes can't find CUDA-13 libs on your setup ────
+# (not needed here — torch bundles them). The cu13 wheels were renamed; use:
+#     pip install nvidia-cuda-runtime nvidia-cuda-nvrtc nvidia-nvjitlink
+#   or:  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-13.2/lib64

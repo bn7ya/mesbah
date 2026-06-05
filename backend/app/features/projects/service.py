@@ -24,11 +24,18 @@ def _now() -> datetime:
 
 def create_project(db: Session, data: ProjectCreate) -> Project:
     config = data.default_train_config or _default_train_config()
+    # If the model is already downloaded locally, point at it so chat/training
+    # never hit the network (see features/models download layout).
+    local_path = data.base_model_local_path
+    if not local_path:
+        candidate = settings.models_dir / data.base_model_repo.replace("/", "__")
+        if candidate.exists() and any(candidate.iterdir()):
+            local_path = str(candidate)
     project = Project(
         name=data.name,
         description=data.description,
         base_model_repo=data.base_model_repo,
-        base_model_local_path=data.base_model_local_path,
+        base_model_local_path=local_path,
         language=data.language,
         default_train_config=config,
     )

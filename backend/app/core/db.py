@@ -37,6 +37,12 @@ def init_db() -> None:
 
 
 def get_session() -> Iterator[DBSession]:
-    """FastAPI dependency: yields a transactional session."""
-    with DBSession(engine) as session:
+    """FastAPI dependency: yields a request-scoped session.
+
+    ``expire_on_commit=False`` so objects fetched/refreshed earlier in a request
+    keep their loaded values after a *later* commit in the same request (e.g. the
+    chat route commits the user turn, then the assistant turn — without this the
+    user-turn object would be expired and serialize as empty).
+    """
+    with DBSession(engine, expire_on_commit=False) as session:
         yield session

@@ -7,6 +7,11 @@ export const routes: Routes = [
     title: 'المشاريع · مِصباح',
   },
   {
+    path: 'models',
+    loadComponent: () => import('./features/models/models-page').then((m) => m.ModelsPage),
+    title: 'النماذج · مِصباح',
+  },
+  {
     path: 'projects/:id',
     loadComponent: () => import('./features/workspace/workspace-page').then((m) => m.WorkspacePage),
     title: 'مساحة العمل · مِصباح',

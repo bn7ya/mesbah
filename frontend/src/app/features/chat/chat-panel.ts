@@ -79,7 +79,7 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
                       @if (m.corrected) { <p-tag value="معدّل" severity="warn" icon="pi pi-pencil" /> }
                       @if (m.approved) { <p-tag value="معتمد للتدريب" severity="success" icon="pi pi-check" /> }
                     </div>
-                    @if (m.role === 'assistant') {
+                    @if (m.role === 'assistant' && isPersisted(m)) {
                       <div class="msg-actions">
                         <p-button icon="pi pi-pencil" [text]="true" size="small" label="تصحيح" (onClick)="startEdit(m)" />
                         <p-button [icon]="m.approved ? 'pi pi-star-fill' : 'pi pi-star'" [text]="true" size="small"
@@ -88,6 +88,8 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
                           <p-button icon="pi pi-refresh" [text]="true" size="small" label="إعادة توليد" (onClick)="regenerate()" />
                         }
                       </div>
+                    } @else if (m.role === 'assistant' && !isPersisted(m)) {
+                      <div class="msg-actions dim small">…سيمكن التصحيح بعد اكتمال الرد</div>
                     }
                   }
                 </div>
@@ -151,6 +153,7 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
     .rail { padding: 0.8rem; display: flex; flex-direction: column; }
     .rail-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
     .rail-head .t { font-weight: 700; }
+    .small { font-size: 0.75rem; }
     .rail-actions { display: flex; gap: 0.1rem; }
     .dlg-sub { margin: 0 0 0.8rem; }
     .lbl { font-weight: 600; display: block; margin: 0.4rem 0 0.3rem; }
@@ -377,19 +380,43 @@ export class ChatPanel implements OnInit {
     });
   }
 
-  startEdit(m: ChatMessage): void { this.editingId.set(m.id); this.editText = m.content; }
+  /** A message is editable only once it's persisted (not a streaming temp id). */
+  isPersisted(m: ChatMessage): boolean { return !m.id.startsWith('tmp-'); }
+
+  startEdit(m: ChatMessage): void {
+    if (!this.isPersisted(m)) return;       // can't edit a reply that's still streaming
+    this.editingId.set(m.id);
+    this.editText = m.content;
+  }
 
   saveEdit(m: ChatMessage): void {
-    this.api.editMessage(m.id, { content: this.editText }).subscribe((upd) => {
-      this.editingId.set(null);
-      this.replace(upd);
-      this.refreshList();
-      this.toast.add({ severity: 'success', summary: 'حُفظ التصحيح', detail: 'أصبح هذا الرد مثال تدريب معتمد.' });
+    if (!this.isPersisted(m)) {
+      this.toast.add({ severity: 'warn', summary: 'انتظر اكتمال الرد', detail: 'لا يمكن حفظ التصحيح قبل انتهاء التوليد.' });
+      return;
+    }
+    this.api.editMessage(m.id, { content: this.editText }).subscribe({
+      next: (upd) => {
+        this.editingId.set(null);
+        this.replace(upd);
+        this.refreshList();
+        this.toast.add({ severity: 'success', summary: 'حُفظ التصحيح', detail: 'أصبح هذا الرد مثال تدريب معتمد.' });
+      },
+      error: (e) => {
+        // keep the edit box open so the user's text isn't lost
+        this.toast.add({
+          severity: 'error', summary: 'تعذّر حفظ التصحيح',
+          detail: String(e?.error?.detail ?? e?.message ?? e), life: 7000,
+        });
+      },
     });
   }
 
   toggleApprove(m: ChatMessage): void {
-    this.api.editMessage(m.id, { approved: !m.approved }).subscribe((upd) => { this.replace(upd); this.refreshList(); });
+    if (!this.isPersisted(m)) return;
+    this.api.editMessage(m.id, { approved: !m.approved }).subscribe({
+      next: (upd) => { this.replace(upd); this.refreshList(); },
+      error: (e) => this.toast.add({ severity: 'error', summary: 'تعذّر التحديث', detail: String(e?.error?.detail ?? e?.message ?? e) }),
+    });
   }
 
   isLast(m: ChatMessage): boolean {

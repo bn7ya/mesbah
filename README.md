@@ -30,7 +30,19 @@ becomes a node in a **version tree** you can branch, roll back, and keep improvi
 ## Quickstart
 
 ```bash
-# Backend  (in the conda env that has torch 2.11+cu130)
+./run.sh --install          # one-time: install API + frontend deps, then boot both
+./run.sh                    # boot backend (:8077) + frontend (:4200)
+./run.sh --ml               # also install the heavy ML/QLoRA stack (requirements-ml.txt)
+```
+
+`run.sh` resolves the conda env (override with `MISBAH_CONDA_ENV`), starts the
+FastAPI backend on **:8077** and the Angular app on **:4200**, and stops both on
+Ctrl-C. Flags: `--backend` / `--frontend` to run just one side.
+
+<details><summary>Manual steps (what <code>run.sh</code> does)</summary>
+
+```bash
+# Backend  (in the conda env that has torch + CUDA)
 cd backend
 pip install -r requirements.txt        # API — boots immediately
 pip install -r requirements-ml.txt     # ML/QLoRA stack (Blackwell-pinned)
@@ -41,6 +53,8 @@ uvicorn app.main:app --port 8077
 # Frontend  (new terminal)
 cd frontend && npm install && npm start   # → http://localhost:4200
 ```
+
+</details>
 
 The API runs **without** the ML stack too — the whole authoring experience
 (projects, sessions, version tree) works before any GPU setup; chat & training

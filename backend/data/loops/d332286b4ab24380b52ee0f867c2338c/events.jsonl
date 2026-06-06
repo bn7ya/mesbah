@@ -1,0 +1,11 @@
+{"ts": 1780757134.9090514, "type": "generation_start", "generation": 1}
+{"ts": 1780757134.9100628, "type": "turn_start", "generation": 1, "turn": 1}
+{"ts": 1780757134.9108195, "type": "ask", "generation": 1, "turn": 1, "text": "ما هي فكرة الإنتروبيا؟"}
+{"ts": 1780757134.91258, "type": "answer", "generation": 1, "turn": 1, "message_id": "b1696796b4084e6cbd915da0b9115744", "text": "## إجابة\nالإنتروبيا مقياس للفوضى."}
+{"ts": 1780757134.9129627, "type": "evaluation", "generation": 1, "turn": 1, "round": 0, "scores": {"logic": 9.0, "language": 9.0, "context": 9.0, "factuality": 9.0}}
+{"ts": 1780757134.9142258, "type": "correction", "generation": 1, "turn": 1, "round": 1, "text": "## نسخة محسّنة\nشرح أدق وأوضح."}
+{"ts": 1780757134.9142873, "type": "evaluation", "generation": 1, "turn": 1, "round": 1, "scores": {"logic": 9.0, "language": 9.0, "context": 9.0, "factuality": 9.0}}
+{"ts": 1780757134.914647, "type": "turn_done", "generation": 1, "turn": 1, "approved": false, "scores": {"logic": 9.0, "language": 9.0, "context": 9.0, "factuality": 9.0}, "rounds": 1}
+{"ts": 1780757134.914699, "type": "generation_done", "generation": 1, "approved": 0, "total": 1, "avg_scores": {"logic": 9.0, "language": 9.0, "context": 9.0, "factuality": 9.0}}
+{"ts": 1780757134.9160297, "type": "training_skipped", "generation": 1, "reason": "no approved examples"}
+{"ts": 1780757134.9166954, "type": "loop_done", "status": "completed", "generations": 1, "versions": [null]}

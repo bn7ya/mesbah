@@ -176,6 +176,38 @@ class ModelVersion(SQLModel, table=True):
 
 
 # ── TrainingRun ───────────────────────────────────────────────────────────────
+class AutoEnhanceLoop(SQLModel, table=True):
+    """An automated self-improvement loop (التحسين التلقائي).
+
+    The model talks to itself: generate a topic → answer → score the answer on
+    logic/language/context/factuality → self-correct until it passes → curate the
+    passing turns → train a QLoRA run → activate the new version → repeat for a
+    number of *generations*. Reuses :class:`RunStatus` so the frontend's
+    severity/label maps work unchanged. One loop runs at a time (single GPU).
+    """
+    __tablename__ = "auto_enhance_loops"
+
+    id: str = Field(default_factory=_uuid, primary_key=True)
+    project_id: str = Field(foreign_key="projects.id", index=True)
+    name: str
+    status: RunStatus = Field(default=RunStatus.pending)
+    # Frozen at create time (reproducible across a restart): generations,
+    # turns_per_generation, thresholds{logic,language,context,factuality},
+    # max_correction_rounds, topic_source, hyperparams, parent_version_id,
+    # ask_prompt, eval_prompt.
+    config: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    # Live cursor: {generation, turn, phase, last_scores, current_run_id}.
+    progress: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    # Per-generation summary: {generations: [{generation, run_id, version_id,
+    # approved, total, avg_scores}]}.
+    results: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
+    pid: Optional[int] = None
+    error: Optional[str] = Field(default=None, sa_column=Column(Text))
+    created_at: datetime = Field(default_factory=_now)
+    started_at: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
+
+
 class TrainingRun(SQLModel, table=True):
     __tablename__ = "training_runs"
 

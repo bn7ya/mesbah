@@ -1,0 +1,10 @@
+{"ts": 1780757551.1081157, "type": "generation_start", "generation": 1}
+{"ts": 1780757551.1104703, "type": "turn_start", "generation": 1, "turn": 1}
+{"ts": 1780757551.1120586, "type": "ask", "generation": 1, "turn": 1, "text": "ما هي الإنتروبيا؟"}
+{"ts": 1780757551.115238, "type": "answer", "generation": 1, "turn": 1, "message_id": "3910e32087d34919bcf9809a889e941f", "text": "## إجابة\nالإنتروبيا مقياس للفوضى."}
+{"ts": 1780757551.115649, "type": "evaluation", "generation": 1, "turn": 1, "round": 0, "scores": {"logic": 9.0, "language": 8.0, "context": 9.0, "factuality": 9.0}}
+{"ts": 1780757551.1168182, "type": "turn_done", "generation": 1, "turn": 1, "approved": true, "scores": {"logic": 9.0, "language": 8.0, "context": 9.0, "factuality": 9.0}, "rounds": 0}
+{"ts": 1780757551.1168838, "type": "generation_done", "generation": 1, "approved": 1, "total": 1, "avg_scores": {"logic": 9.0, "language": 8.0, "context": 9.0, "factuality": 9.0}}
+{"ts": 1780757551.1203413, "type": "training_start", "generation": 1, "run_id": "d6a005fb32c64ec59e4848dcdabf4044", "num_examples": 1}
+{"ts": 1780757551.1283777, "type": "training_status", "run_id": "d6a005fb32c64ec59e4848dcdabf4044", "status": "completed", "progress": {}}
+{"ts": 1780757551.129396, "type": "loop_done", "status": "completed", "generations": 1, "versions": ["53db6a47dcab4f25a864820dd06e27f7"]}

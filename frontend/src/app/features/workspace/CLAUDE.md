@@ -5,8 +5,8 @@ binds to the `@Input() id` (component input binding).
 
 - Loads the project + its versions; header shows name, base model, and the active
   version label (resolved from `active_version_id`).
-- Hosts four panels in PrimeNG **Tabs**: `ChatPanel`, `TasksPanel`,
-  `TrainingPanel`, `VersionsPanel` — each receives `[projectId]`.
+- Hosts five panels in PrimeNG **Tabs**: `ChatPanel`, `TasksPanel`,
+  `TrainingPanel`, `AutoEnhancePanel`, `VersionsPanel` — each receives `[projectId]`.
 - `reload()` re-fetches project + versions; wired to the training/versions panels'
   `(changed)` output so activating/finishing a run refreshes the header badge.
 

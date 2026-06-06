@@ -68,7 +68,14 @@ trap cleanup INT TERM EXIT
 
 if [ "$RUN_BACKEND" = 1 ]; then
   c "Backend  → http://localhost:$BACKEND_PORT  (uvicorn, env: $CONDA_ENV)"
-  ( cd "$BACKEND" && exec "$PY" -m uvicorn app.main:app --port "$BACKEND_PORT" --reload ) &
+  # NOTE: scope --reload to the source tree only. Without --reload-dir, uvicorn
+  # watches all of backend/ including backend/data/ — and a training run /
+  # auto-enhance loop writes there constantly (runs/, loops/, adapters/,
+  # datasets/, offload/), so every write restarts the worker mid-run, killing
+  # the monitor/loop thread (status freezes, VRAM goes idle, loops get marked
+  # "failed: interrupted by API restart").
+  ( cd "$BACKEND" && exec "$PY" -m uvicorn app.main:app --port "$BACKEND_PORT" \
+      --reload --reload-dir app ) &
   PIDS+=($!)
 fi
 

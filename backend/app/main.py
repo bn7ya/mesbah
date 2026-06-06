@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .core.config import settings
 from .core.db import init_db
+from .features.auto_enhance.router import router as auto_enhance_router
 from .features.inference.engine import engine
 from .features.inference.router import router as inference_router
 from .features.models.router import router as models_router
@@ -35,6 +36,10 @@ async def lifespan(app: FastAPI):
     # even though the subprocess finished. Re-adopt + finalize from status.json.
     from .features.training.manager import manager as training_manager
     training_manager.reconcile_orphans()
+    # Loops can't be re-adopted (their worker thread died with the old process):
+    # mark any left non-terminal as failed so the UI doesn't show a phantom run.
+    from .features.auto_enhance.manager import manager as auto_enhance_manager
+    auto_enhance_manager.reconcile_orphans()
     # Pre-resolve the heavy ML imports in the background so the FIRST chat doesn't
     # race the /api/system poll's `import transformers` (which made the first load
     # intermittently fail). Best-effort — boots fine without the ML stack.
@@ -54,7 +59,7 @@ app.add_middleware(
 )
 
 for r in (projects_router, tasks_router, sessions_router, models_router,
-          inference_router, training_router, versioning_router):
+          inference_router, training_router, versioning_router, auto_enhance_router):
     app.include_router(r)
 
 

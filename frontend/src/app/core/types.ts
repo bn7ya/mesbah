@@ -102,6 +102,60 @@ export interface TrainingRun {
   finished_at: string | null;
 }
 
+/** An automated self-improvement loop (التحسين التلقائي). Reuses RunStatus. */
+export interface AutoEnhanceLoop {
+  id: string;
+  project_id: string;
+  name: string;
+  status: RunStatus;
+  config: {
+    generations: number;
+    turns_per_generation: number;
+    thresholds: { logic: number; language: number; context: number; factuality: number };
+    max_correction_rounds: number;
+    topic_source: 'tasks' | 'free';
+    hyperparams: Record<string, unknown>;
+    parent_version_id: string | null;
+    ask_prompt?: string;
+    eval_prompt?: string;
+  };
+  progress: {
+    generation?: number; turn?: number; phase?: string;
+    last_scores?: Record<string, number>; current_run_id?: string; [k: string]: unknown;
+  };
+  results: { generations?: Array<Record<string, unknown>>; [k: string]: unknown };
+  error: string | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+/** One live event streamed over the auto-enhance WebSocket (`{type:'event',data}`). */
+export interface AutoEnhanceEvent {
+  type:
+    | 'generation_start' | 'turn_start' | 'ask' | 'answer' | 'evaluation'
+    | 'correction' | 'turn_done' | 'training_start' | 'training_status'
+    | 'training_skipped' | 'generation_done' | 'loop_done' | 'error';
+  ts: number;
+  generation?: number;
+  turn?: number;
+  round?: number;
+  text?: string;
+  message_id?: string;
+  scores?: Record<string, number>;
+  approved?: boolean;
+  rounds?: number;
+  run_id?: string;
+  num_examples?: number;
+  status?: string;
+  progress?: Record<string, unknown>;
+  avg_scores?: Record<string, number>;
+  version_id?: string | null;
+  versions?: Array<string | null>;
+  reason?: string;
+  message?: string;
+}
+
 export interface CuratedModel {
   repo_id: string;
   label: string;

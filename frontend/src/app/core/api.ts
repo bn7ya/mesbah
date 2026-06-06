@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
-  ChatMessage, ChatSession, CuratedModel, ModelVersion, Project,
+  AutoEnhanceLoop, ChatMessage, ChatSession, CuratedModel, ModelVersion, Project,
   SystemInfo, Task, TrainingRun, VersionNode,
 } from './types';
 
@@ -186,5 +186,23 @@ export class Api {
   /** Live training metrics WebSocket for a run. */
   trainingSocket(runId: string): WebSocket {
     return new WebSocket(`${WS_BASE}/api/training/runs/${runId}/ws`);
+  }
+
+  // ── auto-enhance (automated self-improvement loop) ──
+  listAutoEnhanceLoops(pid: string): Observable<AutoEnhanceLoop[]> {
+    return this.http.get<AutoEnhanceLoop[]>(`${API_BASE}/projects/${pid}/auto-enhance/loops`);
+  }
+  createAutoEnhanceLoop(pid: string, body: Record<string, unknown>): Observable<AutoEnhanceLoop> {
+    return this.http.post<AutoEnhanceLoop>(`${API_BASE}/projects/${pid}/auto-enhance/loops`, body);
+  }
+  getAutoEnhanceLoop(id: string): Observable<AutoEnhanceLoop> {
+    return this.http.get<AutoEnhanceLoop>(`${API_BASE}/auto-enhance/loops/${id}`);
+  }
+  cancelAutoEnhanceLoop(id: string): Observable<{ cancelled: boolean }> {
+    return this.http.post<{ cancelled: boolean }>(`${API_BASE}/auto-enhance/loops/${id}/cancel`, {});
+  }
+  /** Live auto-enhance loop transcript + status WebSocket. */
+  autoEnhanceSocket(loopId: string): WebSocket {
+    return new WebSocket(`${WS_BASE}/api/auto-enhance/loops/${loopId}/ws`);
   }
 }

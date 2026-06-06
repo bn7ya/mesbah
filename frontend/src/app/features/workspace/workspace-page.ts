@@ -9,12 +9,13 @@ import { ChatPanel } from '../chat/chat-panel';
 import { TasksPanel } from '../tasks/tasks-panel';
 import { TrainingPanel } from '../training/training-panel';
 import { VersionsPanel } from '../versions/versions-panel';
+import { AutoEnhancePanel } from '../auto-enhance/auto-enhance-panel';
 
 @Component({
   selector: 'app-workspace-page',
   imports: [
     RouterLink, TabsModule, ButtonModule, TagModule,
-    ChatPanel, TasksPanel, TrainingPanel, VersionsPanel,
+    ChatPanel, TasksPanel, TrainingPanel, VersionsPanel, AutoEnhancePanel,
   ],
   template: `
     @if (project(); as p) {
@@ -38,13 +39,15 @@ import { VersionsPanel } from '../versions/versions-panel';
             <p-tab [value]="0"><i class="pi pi-comments"></i> المحادثات والتصحيح</p-tab>
             <p-tab [value]="1"><i class="pi pi-check-square"></i> المهام</p-tab>
             <p-tab [value]="2"><i class="pi pi-bolt"></i> التدريب <span class="ltr">QLoRA</span></p-tab>
-            <p-tab [value]="3"><i class="pi pi-sitemap"></i> شجرة الإصدارات</p-tab>
+            <p-tab [value]="3"><i class="pi pi-sync"></i> التحسين التلقائي</p-tab>
+            <p-tab [value]="4"><i class="pi pi-sitemap"></i> شجرة الإصدارات</p-tab>
           </p-tablist>
           <p-tabpanels>
             <p-tabpanel [value]="0"><app-chat-panel [projectId]="p.id" /></p-tabpanel>
             <p-tabpanel [value]="1"><app-tasks-panel [projectId]="p.id" /></p-tabpanel>
             <p-tabpanel [value]="2"><app-training-panel [projectId]="p.id" (changed)="reload()" /></p-tabpanel>
-            <p-tabpanel [value]="3"><app-versions-panel [projectId]="p.id" (changed)="reload()" /></p-tabpanel>
+            <p-tabpanel [value]="3"><app-auto-enhance-panel [projectId]="p.id" (changed)="reload()" /></p-tabpanel>
+            <p-tabpanel [value]="4"><app-versions-panel [projectId]="p.id" (changed)="reload()" /></p-tabpanel>
           </p-tabpanels>
         </p-tabs>
       </section>

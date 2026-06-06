@@ -80,6 +80,36 @@ class Settings(BaseSettings):
         "أعِد صياغة وتحسين ردك السابق وفق التعليمات أعلاه. أخرِج النسخة المحسّنة فقط."
     )
 
+    # ── Auto-enhance (automated self-improvement loop) ──
+    # The model invents a discussion topic, plays a curious, demanding user.
+    default_ask_prompt: str = (
+        "أنت مستخدم فضولي وذكي تحاور مساعدًا ذكيًا بالعربية الفصحى. مهمتك طرح سؤال "
+        "واحد عميق ومحدد يستحق إجابة مدروسة. إن وُجد موضوع/هدف محدّد فالتزم به، وإلا "
+        "اختر موضوعًا متنوعًا (علم، تقنية، تاريخ، فلسفة، حياة عملية...). إن كان هناك "
+        "حوار سابق فاطرح سؤال متابعة طبيعيًا يعمّق النقاش. أخرِج السؤال فقط، دون مقدمات."
+    )
+    # The model scores its own answer. Higher = better on every axis; hallucination
+    # is phrased as `factuality` so the scale is consistent (10 = no hallucination).
+    default_eval_prompt: str = (
+        "أنت مُقيّم خبير صارم لجودة إجابات نموذج لغوي. ستُعرض عليك (السؤال) و(الإجابة). "
+        "قيّم الإجابة على أربعة أبعاد، كلٌّ من 0 إلى 10 (10 = الأفضل):\n"
+        "- logic: سلامة الاستدلال وخلوّه من التناقض والقفزات المنطقية.\n"
+        "- language: صحّة العربية الفصحى والوضوح وجودة الصياغة (مع إبقاء المصطلحات "
+        "التقنية بالإنجليزية).\n"
+        "- context: مدى التزام الإجابة بالسؤال وسياقه وعدم الخروج عنه.\n"
+        "- factuality: دقّة المعلومات وخلوّها من الهلوسة (hallucination) — 10 يعني لا "
+        "توجد معلومات مُختلَقة، 0 يعني هلوسة شديدة.\n"
+        "أعِد ناتجك ككائن JSON صارم فقط، دون أي نص قبله أو بعده، بالشكل التالي:\n"
+        '{"logic": <0-10>, "language": <0-10>, "context": <0-10>, "factuality": <0-10>}'
+    )
+    auto_enhance_thresholds: dict[str, float] = Field(
+        default={"logic": 7, "language": 7, "context": 7, "factuality": 7}
+    )
+    auto_enhance_max_correction_rounds: int = 3
+    auto_enhance_generations: int = 2
+    auto_enhance_turns_per_generation: int = 5
+    auto_enhance_score_scale: int = 10
+
     # ── Derived data sub-dirs (created on startup) ──
     @property
     def models_dir(self) -> Path:        # downloaded base models
@@ -98,12 +128,16 @@ class Settings(BaseSettings):
         return self.data_dir / "runs"
 
     @property
+    def loops_dir(self) -> Path:         # per-auto-enhance-loop events.jsonl + status.json
+        return self.data_dir / "loops"
+
+    @property
     def offload_dir(self) -> Path:       # disk spillover when VRAM + RAM are full
         return self.data_dir / "offload"
 
     def ensure_dirs(self) -> None:
         for p in (self.data_dir, self.hf_home, self.models_dir, self.adapters_dir,
-                  self.datasets_dir, self.runs_dir, self.offload_dir):
+                  self.datasets_dir, self.runs_dir, self.loops_dir, self.offload_dir):
             p.mkdir(parents=True, exist_ok=True)
 
 

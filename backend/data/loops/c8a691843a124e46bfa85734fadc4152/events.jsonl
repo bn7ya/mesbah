@@ -1,0 +1,19 @@
+{"ts": 1780757134.8777568, "type": "generation_start", "generation": 1}
+{"ts": 1780757134.8800807, "type": "turn_start", "generation": 1, "turn": 1}
+{"ts": 1780757134.8815646, "type": "ask", "generation": 1, "turn": 1, "text": "ما هي فكرة الإنتروبيا؟"}
+{"ts": 1780757134.8847191, "type": "answer", "generation": 1, "turn": 1, "message_id": "d604e6a4e5084e799af8df9e7bb5b830", "text": "## إجابة\nالإنتروبيا مقياس للفوضى."}
+{"ts": 1780757134.8851123, "type": "evaluation", "generation": 1, "turn": 1, "round": 0, "scores": {"logic": 9.0, "language": 9.0, "context": 9.0, "factuality": 9.0}}
+{"ts": 1780757134.886301, "type": "turn_done", "generation": 1, "turn": 1, "approved": true, "scores": {"logic": 9.0, "language": 9.0, "context": 9.0, "factuality": 9.0}, "rounds": 0}
+{"ts": 1780757134.8863657, "type": "generation_done", "generation": 1, "approved": 1, "total": 1, "avg_scores": {"logic": 9.0, "language": 9.0, "context": 9.0, "factuality": 9.0}}
+{"ts": 1780757134.8901584, "type": "training_start", "generation": 1, "run_id": "0336637a1a2b4f528f1ca1e0e238c240", "num_examples": 1}
+{"ts": 1780757134.896275, "type": "training_status", "run_id": "0336637a1a2b4f528f1ca1e0e238c240", "status": "completed", "progress": {}}
+{"ts": 1780757134.8967576, "type": "generation_start", "generation": 2}
+{"ts": 1780757134.8981023, "type": "turn_start", "generation": 2, "turn": 1}
+{"ts": 1780757134.8988836, "type": "ask", "generation": 2, "turn": 1, "text": "ما هي فكرة الإنتروبيا؟"}
+{"ts": 1780757134.900575, "type": "answer", "generation": 2, "turn": 1, "message_id": "d6c73c19ba8746b0a9b745f0df23272b", "text": "## إجابة\nالإنتروبيا مقياس للفوضى."}
+{"ts": 1780757134.9009728, "type": "evaluation", "generation": 2, "turn": 1, "round": 0, "scores": {"logic": 9.0, "language": 9.0, "context": 9.0, "factuality": 9.0}}
+{"ts": 1780757134.9016206, "type": "turn_done", "generation": 2, "turn": 1, "approved": true, "scores": {"logic": 9.0, "language": 9.0, "context": 9.0, "factuality": 9.0}, "rounds": 0}
+{"ts": 1780757134.901702, "type": "generation_done", "generation": 2, "approved": 1, "total": 1, "avg_scores": {"logic": 9.0, "language": 9.0, "context": 9.0, "factuality": 9.0}}
+{"ts": 1780757134.9032707, "type": "training_start", "generation": 2, "run_id": "a9da05af17c545419ced85576048295e", "num_examples": 1}
+{"ts": 1780757134.905475, "type": "training_status", "run_id": "a9da05af17c545419ced85576048295e", "status": "completed", "progress": {}}
+{"ts": 1780757134.9062808, "type": "loop_done", "status": "completed", "generations": 2, "versions": ["86bb35579c9f419bb46ca5dc783d345c", "29d95a4d1bcd45b384742d39f256349d"]}

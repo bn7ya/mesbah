@@ -12,7 +12,7 @@ from sqlalchemy import text
 from sqlmodel import Session, select
 
 from ...core.config import settings
-from ...core.models import (Message, ModelVersion, Project)
+from ...core.models import (AutoEnhanceLoop, Message, ModelVersion, Project)
 from ...core.models import Session as ChatSession
 from ...core.models import Task, TrainingRun
 from .schemas import ProjectCreate, ProjectUpdate
@@ -98,7 +98,7 @@ def delete_project(db: Session, project: Project) -> None:
     if session_ids:
         for m in db.exec(select(Message).where(Message.session_id.in_(session_ids))).all():
             db.delete(m)
-    for model in (ChatSession, Task, TrainingRun, ModelVersion):
+    for model in (ChatSession, Task, TrainingRun, ModelVersion, AutoEnhanceLoop):
         for row in db.exec(select(model).where(model.project_id == project.id)).all():
             db.delete(row)
     db.delete(project)

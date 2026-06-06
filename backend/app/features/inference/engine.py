@@ -230,17 +230,29 @@ class InferenceEngine:
             self._loaded = self._load(base_id, adapter_path)
 
     # ── generation ──────────────────────────────────────────────────────────────
-    def _build_inputs(self, messages: list[dict[str, str]]):
+    def _build_inputs(self, messages: list[dict[str, str]], enable_thinking: Optional[bool] = None):
         assert self._loaded is not None
         tok = self._loaded.tokenizer
-        text = tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        kwargs: dict[str, Any] = {"tokenize": False, "add_generation_prompt": True}
+        # Hybrid-reasoning models (e.g. Qwen3) emit <think>…</think> before the
+        # answer. Callers that need clean/structured output (the auto-enhance
+        # evaluator, etc.) pass enable_thinking=False. Templates that don't accept
+        # the kwarg just fall back to their default.
+        if enable_thinking is not None:
+            try:
+                text = tok.apply_chat_template(messages, enable_thinking=enable_thinking, **kwargs)
+            except TypeError:
+                text = tok.apply_chat_template(messages, **kwargs)
+        else:
+            text = tok.apply_chat_template(messages, **kwargs)
         return tok(text, return_tensors="pt").to(self._loaded.model.device)
 
     def generate(self, messages: list[dict[str, str]], **gen_kwargs: Any) -> str:
         import torch
+        enable_thinking = gen_kwargs.pop("enable_thinking", None)
         with self._lock:
             assert self._loaded is not None
-            inputs = self._build_inputs(messages)
+            inputs = self._build_inputs(messages, enable_thinking)
             with torch.no_grad():
                 out = self._loaded.model.generate(**inputs, **self._gen_config(gen_kwargs))
             new_tokens = out[0][inputs["input_ids"].shape[1]:]
@@ -250,8 +262,9 @@ class InferenceEngine:
         """Yield text chunks as they are produced (for SSE/WebSocket chat)."""
         import torch
         from transformers import TextIteratorStreamer
+        enable_thinking = gen_kwargs.pop("enable_thinking", None)
         assert self._loaded is not None
-        inputs = self._build_inputs(messages)
+        inputs = self._build_inputs(messages, enable_thinking)
         streamer = TextIteratorStreamer(
             self._loaded.tokenizer, skip_prompt=True, skip_special_tokens=True
         )

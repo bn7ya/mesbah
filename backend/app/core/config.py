@@ -55,6 +55,31 @@ class Settings(BaseSettings):
     infer_temperature: float = 0.7
     infer_top_p: float = 0.9
 
+    # ── Self-correction (the "magic wand") ──
+    # The model re-evaluates and improves its own reply under this system prompt.
+    # Per-session overrides win; this is the fallback when a session leaves it empty.
+    default_correction_prompt: str = (
+        "أنت مُدقِّق ومُحسِّن خبير لردود نموذج لغوي. ستُعرض عليك إجابتك السابقة، "
+        "ومهمّتك إعادة كتابتها لتصبح أدقّ وأوضح وأكثر فائدة مع الحفاظ على نيّتها "
+        "ومعناها الأصلي. طبّق ما يلي:\n"
+        "1. تصحيح اللغة: أصلِح الأخطاء النحوية والإملائية وحسّن الصياغة بالعربية "
+        "الفصحى، مع إبقاء المصطلحات التقنية بالإنجليزية كما هي (مثل: loss، adapter، "
+        "QLoRA).\n"
+        "2. تصحيح المنطق: راجع سلامة الاستدلال، واكتشف أي تناقض أو قفزة منطقية أو "
+        "معلومة غير مدعومة وصحّحها.\n"
+        "3. تحسين خطوات التفكير: أعِد بناء الشرح على أساس المبادئ الأولى "
+        "(first-principles)، بحيث ينطلق من الأساسيات ثم يتدرّج منطقيًا حتى النتيجة.\n"
+        "4. البنية والتنسيق: نظّم الإجابة بعناوين Markdown (## للعناوين الفرعية)، "
+        "واستخدم الجداول (Markdown tables) لعرض المقارنات أو البيانات المنظّمة عند "
+        "الحاجة، والقوائم النقطية للخطوات.\n\n"
+        "أخرِج النسخة المُحسّنة النهائية فقط، دون أي مقدّمة أو تعليق على ما غيّرته."
+    )
+    # Short user-turn nudge appended after the draft. Kept here (not user-facing)
+    # so the rewrite framing stays reliable regardless of the editable prompt.
+    correction_trigger_text: str = (
+        "أعِد صياغة وتحسين ردك السابق وفق التعليمات أعلاه. أخرِج النسخة المحسّنة فقط."
+    )
+
     # ── Derived data sub-dirs (created on startup) ──
     @property
     def models_dir(self) -> Path:        # downloaded base models

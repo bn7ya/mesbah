@@ -6,7 +6,11 @@ replies. Used by the sessions feature; also exposed directly for diagnostics.
 ## Files
 - `engine.py` — `InferenceEngine` singleton (`engine`). **All ML imports are lazy.**
 - `service.py` — resolves `(base_id, adapter_path)` for a (project, version) and
-  builds the chat message list.
+  builds the chat message list. `build_messages`/`stream_reply` for normal chat;
+  `build_correction_messages`/`stream_correction` for self-correction (the "magic
+  wand") — the correction system prompt **replaces** the session system prompt, the
+  draft goes in as the last assistant turn, and a short user trigger asks for the
+  rewrite. Used by `sessions` `POST /messages/{id}/self-correct`.
 - `router.py` — `/api/inference/status|unload|generate`.
 
 ## Engine rules

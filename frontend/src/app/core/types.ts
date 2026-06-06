@@ -54,6 +54,7 @@ export interface ChatSession {
   task_id: string | null;
   title: string;
   system_prompt: string;
+  correction_prompt: string;   // editable prompt for the self-correct "magic wand"
   model_version_id: string | null;
   created_at: string;
   updated_at: string;

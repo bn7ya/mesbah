@@ -31,9 +31,26 @@ def _set_sqlite_pragma(dbapi_conn, _record):  # pragma: no cover - infra glue
     cur.close()
 
 
+def _ensure_columns() -> None:
+    """Add columns that were introduced after a DB was first created.
+
+    ``create_all`` only creates *missing tables* — it never alters an existing
+    one, and we have no migration framework (single-user local studio). This
+    guard keeps an existing ``misbah.db`` usable without the user dropping data.
+    """
+    with engine.connect() as conn:
+        cols = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(sessions)")}
+        if "correction_prompt" not in cols:
+            conn.exec_driver_sql(
+                "ALTER TABLE sessions ADD COLUMN correction_prompt TEXT NOT NULL DEFAULT ''"
+            )
+            conn.commit()
+
+
 def init_db() -> None:
     settings.ensure_dirs()
     SQLModel.metadata.create_all(engine)
+    _ensure_columns()
 
 
 def get_session() -> Iterator[DBSession]:

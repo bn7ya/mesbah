@@ -25,6 +25,12 @@
   --radius-md: 16px;
   --radius-sm: 11px;
 
+  /* ── Component surfaces (themed; used by PrimeNG overrides below) ── */
+  --surface-overlay: rgba(255, 250, 244, 0.92);   /* dialogs / popovers */
+  --input-bg: rgba(255, 255, 255, 0.55);
+  --scrollbar-thumb: rgba(150, 95, 70, 0.22);
+  --scrollbar-thumb-hover: rgba(150, 95, 70, 0.35);
+
   /* ── Text (warm brown on cream) ── */
   --text-1: #4a382f;
   --text-2: rgba(74, 56, 47, 0.66);
@@ -39,6 +45,45 @@
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
   color-scheme: light;
+}
+
+/* ═══ Dark mode ═══ — warm espresso, not cold grey; same terracotta accent.
+   PrimeNG flips its own tokens via darkModeSelector '.dark' (app.config.ts);
+   we mirror that here for the custom design system. */
+:root.dark {
+  /* ── Deep warm surface ── */
+  --cream-0: #16110e;          /* base behind the photo */
+  --cream-1: #1e1813;
+
+  /* ── Warm accents (lifted a touch so they read on dark) ── */
+  --accent: #e0916d;
+  --accent-2: #f0b893;
+  --accent-soft: rgba(224, 145, 109, 0.18);
+  --accent-grad: linear-gradient(120deg, #e0916d 0%, #f0b893 100%);
+
+  /* ── Glass tokens (frosted warm charcoal) ── */
+  --glass-bg: rgba(46, 37, 31, 0.52);
+  --glass-bg-strong: rgba(46, 37, 31, 0.72);
+  --glass-border: rgba(230, 185, 150, 0.14);
+  --glass-shadow: 0 10px 42px rgba(0, 0, 0, 0.45);
+
+  /* ── Text (warm cream on espresso) ── */
+  --text-1: #f3e6db;
+  --text-2: rgba(243, 230, 219, 0.66);
+  --text-3: rgba(243, 230, 219, 0.40);
+
+  /* ── Semantic (brightened for dark) ── */
+  --ok: #6fc09a;
+  --warn: #e3b25a;
+  --err: #e88278;
+
+  /* ── Component surfaces ── */
+  --surface-overlay: rgba(34, 27, 22, 0.94);
+  --input-bg: rgba(255, 255, 255, 0.06);
+  --scrollbar-thumb: rgba(230, 185, 150, 0.18);
+  --scrollbar-thumb-hover: rgba(230, 185, 150, 0.32);
+
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -77,6 +122,16 @@ body::after {
   z-index: -1;
 }
 
+/* Dark: dim the photo to a faint warm glow so nothing burns the eyes. */
+.dark body::before {
+  filter: blur(70px) saturate(0.7) brightness(0.3) hue-rotate(-6deg);
+}
+.dark body::after {
+  background:
+    radial-gradient(70vw 60vw at 80% -10%, rgba(70, 46, 33, 0.45), transparent 60%),
+    linear-gradient(160deg, rgba(18, 14, 11, 0.55) 0%, rgba(28, 21, 17, 0.72) 100%);
+}
+
 @media (prefers-reduced-motion: reduce) {
   body, * { animation: none !important; transition: none !important; }
 }
@@ -102,14 +157,14 @@ body::after {
 .ltr, code, kbd, .mono { direction: ltr; unicode-bidi: isolate; font-family: var(--font-mono); }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: rgba(150, 95, 70, 0.22); border-radius: 8px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(150, 95, 70, 0.35); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 
 /* ── PrimeNG glass overrides (light/creamy) ── */
 .p-component { font-family: var(--font-ar); }
 
 .p-dialog, .p-dialog .p-dialog-content, .p-dialog .p-dialog-header, .p-dialog .p-dialog-footer {
-  background: rgba(255, 250, 244, 0.92) !important;
+  background: var(--surface-overlay) !important;
   backdrop-filter: blur(22px) saturate(140%);
   color: var(--text-1) !important;
   border-color: var(--glass-border) !important;
@@ -123,7 +178,7 @@ body::after {
   color: #fff;
 }
 .p-inputtext, .p-textarea, textarea.p-inputtext {
-  background: rgba(255, 255, 255, 0.55);
+  background: var(--input-bg);
   border: 1px solid var(--glass-border);
   color: var(--text-1);
   border-radius: var(--radius-sm);

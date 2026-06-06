@@ -111,6 +111,9 @@ class Session(SQLModel, table=True):
     title: str = Field(default="جلسة جديدة")
     # Optional system prompt steering the assistant for this session.
     system_prompt: str = Field(default="", sa_column=Column(Text))
+    # System prompt used when the model self-corrects a reply (the "magic wand").
+    # Empty => fall back to settings.default_correction_prompt.
+    correction_prompt: str = Field(default="", sa_column=Column(Text))
     # Which model version produced the answers in this chat (None => base).
     model_version_id: Optional[str] = Field(default=None, foreign_key="model_versions.id")
     created_at: datetime = Field(default_factory=_now)

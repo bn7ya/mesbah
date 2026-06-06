@@ -222,7 +222,18 @@ export class TrainingPanel implements OnInit, OnDestroy {
   ngOnDestroy(): void { this.socket?.close(); }
 
   loadPreview(): void { this.api.datasetPreview(this.projectId).subscribe((p) => this.preview.set(p.count)); }
-  loadRuns(): void { this.api.listRuns(this.projectId).subscribe((r) => this.runs.set(r)); }
+  loadRuns(): void {
+    this.api.listRuns(this.projectId).subscribe((r) => {
+      this.runs.set(r);
+      // Auto-attach to an in-progress run so live metrics stream immediately on
+      // page load — without this you'd have to click the run, and short runs can
+      // finish before you do.
+      if (!this.selected()) {
+        const active = r.find((x) => x.status === 'running' || x.status === 'preparing');
+        if (active) this.watch(active);
+      }
+    });
+  }
 
   openPreview(): void {
     this.api.datasetPreview(this.projectId).subscribe((p) => {

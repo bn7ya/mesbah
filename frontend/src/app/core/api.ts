@@ -66,11 +66,12 @@ export class Api {
   }
 
   /**
-   * Stream the assistant reply token-by-token over SSE (POST → ReadableStream).
-   * Calls the handlers as events arrive; returns an AbortController to cancel.
+   * Core SSE consumer (POST → ReadableStream). Parses `event:`/`data:` frames
+   * and dispatches to the handlers; returns an AbortController to cancel.
+   * Shared by `chatStream` and `selfCorrectStream`.
    */
-  chatStream(
-    sessionId: string,
+  private streamSse(
+    url: string,
     body: Record<string, unknown>,
     handlers: {
       onUser?: (p: { id: string }) => void;
@@ -83,7 +84,7 @@ export class Api {
     (async () => {
       let res: Response;
       try {
-        res = await fetch(`${API_BASE}/sessions/${sessionId}/chat/stream`, {
+        res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
@@ -126,6 +127,39 @@ export class Api {
       }
     })();
     return ctrl;
+  }
+
+  /**
+   * Stream the assistant reply token-by-token over SSE.
+   * Calls the handlers as events arrive; returns an AbortController to cancel.
+   */
+  chatStream(
+    sessionId: string,
+    body: Record<string, unknown>,
+    handlers: {
+      onUser?: (p: { id: string }) => void;
+      onToken?: (t: string) => void;
+      onDone?: (p: { id: string; content: string }) => void;
+      onError?: (message: string) => void;
+    },
+  ): AbortController {
+    return this.streamSse(`${API_BASE}/sessions/${sessionId}/chat/stream`, body, handlers);
+  }
+
+  /**
+   * "Magic wand": ask the same model to improve its own reply, streamed over SSE.
+   * `body.correction_prompt` (optional) overrides the session/default prompt.
+   */
+  selfCorrectStream(
+    messageId: string,
+    body: Record<string, unknown>,
+    handlers: {
+      onToken?: (t: string) => void;
+      onDone?: (p: { id: string; content: string }) => void;
+      onError?: (message: string) => void;
+    },
+  ): AbortController {
+    return this.streamSse(`${API_BASE}/messages/${messageId}/self-correct`, body, handlers);
   }
   regenerate(sessionId: string): Observable<ChatMessage> { return this.http.post<ChatMessage>(`${API_BASE}/sessions/${sessionId}/regenerate`, {}); }
   editMessage(id: string, body: { content?: string; approved?: boolean; include_in_training?: boolean }): Observable<ChatMessage> {

@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
+from ...core.config import settings
 from ...core.db import engine as db_engine
 from ...core.db import get_session
 from ...core.models import Message, MessageRole, ModelVersion, Project
@@ -16,8 +17,8 @@ from ...core.models import Session as ChatSession
 from ..inference import service as inference_service
 from ..inference.engine import ModelRuntimeUnavailable
 from . import service
-from .schemas import (ChatRequest, MessageEdit, MessageRead, SessionCreate,
-                      SessionRead, SessionUpdate)
+from .schemas import (ChatRequest, MessageEdit, MessageRead, SelfCorrectRequest,
+                      SessionCreate, SessionRead, SessionUpdate)
 
 router = APIRouter(prefix="/api", tags=["sessions"])
 
@@ -65,6 +66,7 @@ def create_session(project_id: str, data: SessionCreate, db: Session = Depends(g
         task_id=data.task_id,
         title=data.title or "جلسة جديدة",
         system_prompt=data.system_prompt,
+        correction_prompt=data.correction_prompt,
         model_version_id=data.model_version_id or project.active_version_id,
     )
     db.add(s)
@@ -228,6 +230,65 @@ def edit_message(message_id: str, data: MessageEdit, db: Session = Depends(get_s
         msg = service.set_flags(db, msg, approved=data.approved,
                                 include_in_training=data.include_in_training)
     return MessageRead(**msg.model_dump())
+
+
+@router.post("/messages/{message_id}/self-correct")
+def self_correct(message_id: str, req: SelfCorrectRequest, db: Session = Depends(get_session)):
+    """The "magic wand": stream an improved version of the model's own reply.
+
+    Mirrors ``chat_stream`` (SSE token stream + fresh-session persist), but feeds
+    the model its own draft under the correction system prompt and asks it to
+    rewrite. The result is marked ``corrected`` but left **unapproved** — a
+    self-correction needs human review before it counts as training data.
+    """
+    msg = db.get(Message, message_id)
+    if not msg:
+        raise HTTPException(404, "Message not found")
+    if msg.role != MessageRole.assistant:
+        raise HTTPException(400, "Only assistant replies can be self-corrected")
+    project, s = _project_and_session(db, msg.session_id)
+    prior = [m for m in service.history(db, msg.session_id) if m.order_index < msg.order_index]
+    draft = msg.content
+    prompt = req.correction_prompt or s.correction_prompt or settings.default_correction_prompt
+    trigger = settings.correction_trigger_text
+
+    def event_stream():
+        chunks: list[str] = []
+        try:
+            for chunk in inference_service.stream_correction(
+                db, project, s, prior, draft, prompt, trigger,
+                max_new_tokens=req.max_new_tokens,
+                temperature=req.temperature,
+                top_p=req.top_p,
+            ):
+                chunks.append(chunk)
+                yield f"event: token\ndata: {json.dumps({'t': chunk})}\n\n"
+        except ModelRuntimeUnavailable as exc:
+            yield f"event: error\ndata: {json.dumps({'message': str(exc)})}\n\n"
+            return
+        except Exception as exc:  # noqa: BLE001 — surface any generation error
+            yield f"event: error\ndata: {json.dumps({'message': f'correction failed: {exc}'})}\n\n"
+            return
+        improved = "".join(chunks).strip()
+        if not improved:
+            yield f"event: error\ndata: {json.dumps({'message': 'empty correction'})}\n\n"
+            return
+        # Persist with a fresh DB session (the generator outlives the request).
+        from sqlmodel import Session as _S
+        try:
+            with _S(db_engine, expire_on_commit=False) as db2:
+                m2 = db2.get(Message, message_id)
+                if m2:
+                    service.apply_self_correction(db2, m2, improved, prompt)
+                s2 = db2.get(ChatSession, msg.session_id)
+                if s2:
+                    service.touch_session(db2, s2)
+        except Exception as exc:  # noqa: BLE001
+            yield f"event: error\ndata: {json.dumps({'message': f'save failed: {exc}'})}\n\n"
+            return
+        yield f"event: done\ndata: {json.dumps({'id': message_id, 'content': improved})}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @router.delete("/messages/{message_id}", status_code=204)

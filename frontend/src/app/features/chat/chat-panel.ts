@@ -10,11 +10,12 @@ import { DialogModule } from 'primeng/dialog';
 import { CheckboxModule } from 'primeng/checkbox';
 import { MessageService } from 'primeng/api';
 import { Api } from '../../core/api';
+import { MarkdownPipe } from '../../core/markdown.pipe';
 import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/types';
 
 @Component({
   selector: 'app-chat-panel',
-  imports: [FormsModule, ButtonModule, InputTextModule, TextareaModule, TagModule, TooltipModule, SelectModule, DialogModule, CheckboxModule],
+  imports: [FormsModule, ButtonModule, InputTextModule, TextareaModule, TagModule, TooltipModule, SelectModule, DialogModule, CheckboxModule, MarkdownPipe],
   template: `
     <div class="chat-layout">
       <!-- sessions rail -->
@@ -45,6 +46,7 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
             <input pInputText class="title-in" [(ngModel)]="s.title" (blur)="renameSession(s)" />
             <div class="head-right">
               <p-button icon="pi pi-cog" [text]="true" size="small" label="تعليمات النظام" pTooltip="تعليمات النظام (system prompt)" (onClick)="openSysPrompt(s)" />
+              <p-button icon="pi pi-sparkles" [text]="true" size="small" label="تعليمات التحسين" pTooltip="تعليمات التحسين الذاتي (correction prompt)" (onClick)="openCorrectionPrompt(s)" />
               <!-- which model is this chat talking to -->
               <div class="model-of" pTooltip="النموذج الذي تحادثه في هذه الجلسة">
                 @if (s.is_base_model) {
@@ -74,18 +76,35 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
                       <p-button label="إلغاء" severity="secondary" [text]="true" (onClick)="editingId.set(null)" />
                     </div>
                   } @else {
-                    <p class="content">{{ m.content }}@if (thinking() && isLast(m) && m.role === 'assistant') {<span class="caret">▍</span>}</p>
+                    @if (m.role === 'assistant') {
+                      <div class="content md" [innerHTML]="displayContent(m) | markdown"></div>
+                    } @else {
+                      <p class="content">{{ m.content }}</p>
+                    }
+                    @if (showCaret(m)) { <span class="caret">▍</span> }
                     <div class="tags">
                       @if (m.corrected) { <p-tag value="معدّل" severity="warn" icon="pi pi-pencil" /> }
+                      @if (isSelfCorrected(m)) { <p-tag value="تحسين ذاتي" severity="info" icon="pi pi-sparkles" /> }
                       @if (m.approved) { <p-tag value="معتمد للتدريب" severity="success" icon="pi pi-check" /> }
                     </div>
                     @if (m.role === 'assistant' && isPersisted(m)) {
                       <div class="msg-actions">
-                        <p-button icon="pi pi-pencil" [text]="true" size="small" label="تصحيح" (onClick)="startEdit(m)" />
+                        <p-button icon="pi pi-pencil" [text]="true" size="small" label="تصحيح"
+                                  [disabled]="correcting() !== null" (onClick)="startEdit(m)" />
+                        <p-button icon="pi pi-sparkles" [text]="true" size="small" label="تحسين ذاتي"
+                                  pTooltip="اطلب من النموذج تحسين رده بنفسه"
+                                  [loading]="correcting() === m.id" [disabled]="correcting() !== null || thinking()"
+                                  (onClick)="selfCorrect(m)" />
                         <p-button [icon]="m.approved ? 'pi pi-star-fill' : 'pi pi-star'" [text]="true" size="small"
-                                  [label]="m.approved ? 'إلغاء الاعتماد' : 'اعتماد'" (onClick)="toggleApprove(m)" />
+                                  [label]="m.approved ? 'إلغاء الاعتماد' : 'اعتماد'"
+                                  [disabled]="correcting() !== null" (onClick)="toggleApprove(m)" />
+                        @if (m.corrected && m.original_content) {
+                          <p-button [icon]="isShowingOriginal(m) ? 'pi pi-eye-slash' : 'pi pi-history'" [text]="true" size="small"
+                                    [label]="isShowingOriginal(m) ? 'عرض المُحسّن' : 'عرض الأصل'" (onClick)="toggleOriginal(m)" />
+                        }
                         @if (isLast(m)) {
-                          <p-button icon="pi pi-refresh" [text]="true" size="small" label="إعادة توليد" (onClick)="regenerate()" />
+                          <p-button icon="pi pi-refresh" [text]="true" size="small" label="إعادة توليد"
+                                    [disabled]="correcting() !== null" (onClick)="regenerate()" />
                         }
                       </div>
                     } @else if (m.role === 'assistant' && !isPersisted(m)) {
@@ -119,6 +138,18 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
       <ng-template pTemplate="footer">
         <p-button label="إلغاء" severity="secondary" [text]="true" (onClick)="showSysPrompt = false" />
         <p-button label="حفظ" icon="pi pi-check" (onClick)="saveSysPrompt()" />
+      </ng-template>
+    </p-dialog>
+
+    <!-- self-correction prompt editor (the "magic wand") -->
+    <p-dialog header="تعليمات التحسين الذاتي · correction prompt" [(visible)]="showCorrectionPrompt" [modal]="true"
+              [style]="{ width: '640px', maxWidth: '94vw' }" [dismissableMask]="true">
+      <p class="muted small dlg-sub">توجيه يُملي على النموذج كيف يُحسّن ردّه عند الضغط على زر «تحسين ذاتي» (لغة، منطق، تفكير من المبادئ الأولى، وتنسيق Markdown). اتركه فارغًا لاستخدام التعليمات الافتراضية.</p>
+      <textarea pTextarea [(ngModel)]="correctionPromptDraft" class="sys-area"
+                [placeholder]="correctionPromptPlaceholder"></textarea>
+      <ng-template pTemplate="footer">
+        <p-button label="إلغاء" severity="secondary" [text]="true" (onClick)="showCorrectionPrompt = false" />
+        <p-button label="حفظ" icon="pi pi-check" (onClick)="saveCorrectionPrompt()" />
       </ng-template>
     </p-dialog>
 
@@ -187,6 +218,25 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
     .bubble { padding: 0.7rem 0.9rem; border-radius: 16px; }
     .msg.user .bubble { background: var(--accent-soft); }
     .content { margin: 0; white-space: pre-wrap; line-height: 1.7; }
+    /* Markdown-rendered assistant replies (headings + tables the magic wand emits) */
+    .content.md { white-space: normal; }
+    .content.md :first-child { margin-top: 0; }
+    .content.md :last-child { margin-bottom: 0; }
+    .content.md h1, .content.md h2, .content.md h3 { line-height: 1.35; margin: 0.8rem 0 0.4rem; font-weight: 700; }
+    .content.md h1 { font-size: 1.15rem; }
+    .content.md h2 { font-size: 1.05rem; }
+    .content.md h3 { font-size: 0.98rem; }
+    .content.md p { margin: 0.4rem 0; }
+    .content.md ul, .content.md ol { margin: 0.4rem 0; padding-inline-start: 1.4rem; }
+    .content.md li { margin: 0.15rem 0; }
+    .content.md a { color: var(--accent); }
+    .content.md code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.86em; background: var(--glass-bg); padding: 0.1em 0.35em; border-radius: 6px; direction: ltr; unicode-bidi: embed; }
+    .content.md pre { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 12px; padding: 0.7rem 0.9rem; overflow: auto; direction: ltr; text-align: left; }
+    .content.md pre code { background: none; padding: 0; }
+    .content.md blockquote { margin: 0.5rem 0; padding-inline-start: 0.8rem; border-inline-start: 3px solid var(--glass-border); color: var(--text-2); }
+    .content.md table { direction: rtl; border-collapse: collapse; width: 100%; margin: 0.6rem 0; font-size: 0.9rem; }
+    .content.md th, .content.md td { border: 1px solid var(--glass-border); padding: 0.4rem 0.6rem; text-align: start; }
+    .content.md th { background: var(--glass-bg); font-weight: 700; }
     .tags { display: flex; gap: 0.3rem; margin-top: 0.4rem; }
     .msg-actions { display: flex; gap: 0.2rem; margin-top: 0.3rem; flex-wrap: wrap; }
     .composer-in { width: 100%; }
@@ -220,6 +270,15 @@ export class ChatPanel implements OnInit {
   sysPromptDraft = '';
   private sysPromptSession: ChatSession | null = null;
 
+  // self-correction ("magic wand")
+  readonly correcting = signal<string | null>(null);        // message id being corrected
+  readonly showOriginalIds = signal<Set<string>>(new Set()); // messages viewing their original draft
+  showCorrectionPrompt = false;
+  correctionPromptDraft = '';
+  private correctionPromptSession: ChatSession | null = null;
+  readonly correctionPromptPlaceholder =
+    'اتركه فارغًا لاستخدام التعليمات الافتراضية: تصحيح اللغة والمنطق، التفكير من المبادئ الأولى، والتنسيق بعناوين Markdown وجداول.';
+
   // import-from-other-project dialog
   showImport = false;
   importing = signal(false);
@@ -245,6 +304,65 @@ export class ChatPanel implements OnInit {
       this.showSysPrompt = false;
       this.open(s.id);
       this.toast.add({ severity: 'success', summary: 'حُفظت تعليمات النظام' });
+    });
+  }
+
+  // ── self-correction prompt editor ──
+  openCorrectionPrompt(s: ChatSession): void {
+    this.correctionPromptSession = s;
+    this.correctionPromptDraft = s.correction_prompt ?? '';
+    this.showCorrectionPrompt = true;
+  }
+  saveCorrectionPrompt(): void {
+    const s = this.correctionPromptSession; if (!s) return;
+    this.api.updateSession(s.id, { correction_prompt: this.correctionPromptDraft }).subscribe(() => {
+      this.showCorrectionPrompt = false;
+      this.open(s.id);
+      this.toast.add({ severity: 'success', summary: 'حُفظت تعليمات التحسين' });
+    });
+  }
+
+  // ── self-correction ("magic wand") ──
+  isSelfCorrected(m: ChatMessage): boolean { return m.meta?.['self_corrected'] === true; }
+  isShowingOriginal(m: ChatMessage): boolean { return this.showOriginalIds().has(m.id); }
+  toggleOriginal(m: ChatMessage): void {
+    const next = new Set(this.showOriginalIds());
+    if (next.has(m.id)) next.delete(m.id); else next.add(m.id);
+    this.showOriginalIds.set(next);
+  }
+  displayContent(m: ChatMessage): string {
+    return this.isShowingOriginal(m) ? (m.original_content ?? m.content) : m.content;
+  }
+  showCaret(m: ChatMessage): boolean {
+    return (this.thinking() && this.isLast(m) && m.role === 'assistant') || this.correcting() === m.id;
+  }
+
+  /** Ask the model to improve its own reply; stream the improved text in place. */
+  selfCorrect(m: ChatMessage): void {
+    const s = this.current();
+    if (!s || !this.isPersisted(m) || this.correcting() || this.thinking()) return;
+    if (this.isShowingOriginal(m)) this.toggleOriginal(m);   // view the improved version while it streams
+    this.correcting.set(m.id);
+    // stash the first draft and clear content so tokens stream in fresh
+    this.updateMsg(m.id, (x) => ({ ...x, original_content: x.original_content ?? x.content, content: '' }));
+    const body: Record<string, unknown> = s.correction_prompt ? { correction_prompt: s.correction_prompt } : {};
+    this.api.selfCorrectStream(m.id, body, {
+      onToken: (t) => this.appendToken(m.id, t),
+      onDone: () => {
+        this.correcting.set(null);
+        this.open(s.id);          // reload → persisted content + "تحسين ذاتي" tag
+        this.refreshList();
+      },
+      onError: (msg) => {
+        this.correcting.set(null);
+        const soft = /runtime|install|importable|torch|transformers/i.test(msg);
+        this.toast.add({
+          severity: soft ? 'warn' : 'error', summary: 'تعذّر التحسين',
+          detail: soft ? 'لم يتم تثبيت بيئة النموذج بعد (راجع requirements-ml.txt).' : msg,
+          life: 6000,
+        });
+        this.open(s.id);          // restore the original reply on failure
+      },
     });
   }
 

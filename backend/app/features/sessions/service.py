@@ -76,6 +76,32 @@ def edit_message(db: Session, message: Message, new_content: str) -> Message:
     return message
 
 
+def apply_self_correction(db: Session, message: Message, improved: str,
+                          correction_prompt: str) -> Message:
+    """Persist a model-generated self-correction of an assistant reply.
+
+    Like :func:`edit_message` it preserves the first draft in
+    ``original_content`` and flips ``corrected``. Unlike it, it deliberately
+    does **not** touch ``approved``: a self-correction is the model's own
+    rewrite, not a human signal of quality, so it stays pending human review
+    before it can become a training example. Provenance is recorded in ``meta``.
+    """
+    if message.original_content is None:
+        message.original_content = message.content
+    message.content = improved
+    message.corrected = True
+    # Reassign a NEW dict so SQLAlchemy detects the JSON column change.
+    meta = dict(message.meta or {})
+    meta["self_corrected"] = True
+    meta["correction_prompt"] = correction_prompt
+    meta["corrected_at"] = _now().isoformat()
+    message.meta = meta
+    db.add(message)
+    db.commit()
+    db.refresh(message)
+    return message
+
+
 def set_flags(db: Session, message: Message, *, approved: bool | None,
               include_in_training: bool | None) -> Message:
     if approved is not None:

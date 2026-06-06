@@ -74,6 +74,9 @@ fi
 
 if [ "$RUN_FRONTEND" = 1 ]; then
   [ -d "$FRONTEND/node_modules" ] || { c "node_modules missing — running npm install"; ( cd "$FRONTEND" && npm install ); }
+  # ng serve runs without a TTY here; suppress the Angular CLI first-run analytics
+  # prompt, which otherwise force-closes and kills the frontend on a fresh machine.
+  export NG_CLI_ANALYTICS=false
   c "Frontend → http://localhost:$FRONTEND_PORT  (ng serve, proxies /api → :$BACKEND_PORT)"
   ( cd "$FRONTEND" && exec npm start -- --port "$FRONTEND_PORT" ) &
   PIDS+=($!)

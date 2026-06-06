@@ -13,6 +13,7 @@ class SessionCreate(BaseModel):
     title: Optional[str] = None
     task_id: Optional[str] = None
     system_prompt: str = ""
+    correction_prompt: str = ""
     model_version_id: Optional[str] = None
 
 
@@ -20,6 +21,7 @@ class SessionUpdate(BaseModel):
     title: Optional[str] = None
     task_id: Optional[str] = None
     system_prompt: Optional[str] = None
+    correction_prompt: Optional[str] = None
     model_version_id: Optional[str] = None
 
 
@@ -43,6 +45,7 @@ class SessionRead(BaseModel):
     task_id: Optional[str]
     title: str
     system_prompt: str
+    correction_prompt: str = ""
     model_version_id: Optional[str]
     created_at: datetime
     updated_at: datetime
@@ -67,3 +70,15 @@ class MessageEdit(BaseModel):
     content: Optional[str] = None
     approved: Optional[bool] = None
     include_in_training: Optional[bool] = None
+
+
+class SelfCorrectRequest(BaseModel):
+    """Ask the model to improve its own assistant reply (the "magic wand").
+
+    ``correction_prompt`` overrides the session/default correction prompt for
+    this one call. Generation knobs fall back to the inference defaults.
+    """
+    correction_prompt: Optional[str] = None
+    max_new_tokens: Optional[int] = None
+    temperature: Optional[float] = None
+    top_p: Optional[float] = None

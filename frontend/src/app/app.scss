@@ -36,7 +36,21 @@
 }
 .nav-link:hover { background: var(--glass-bg); color: var(--text-1); }
 
-.status { margin-inline-start: auto; display: flex; gap: 0.6rem; align-items: center; }
+.theme-toggle {
+  margin-inline-start: auto;          /* carries the trailing group to the edge */
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--text-1);
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.3s ease;
+}
+.theme-toggle:hover { background: var(--glass-bg-strong); color: var(--accent); transform: rotate(-18deg); }
+
+.status { display: flex; gap: 0.6rem; align-items: center; }
 .chip {
   display: inline-flex; align-items: center; gap: 0.45rem;
   padding: 0.4rem 0.7rem; border-radius: 999px;

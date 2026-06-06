@@ -16,6 +16,15 @@
       <a routerLink="/models" class="nav-link"><i class="pi pi-box"></i> النماذج</a>
     </nav>
 
+    <button
+      type="button"
+      class="theme-toggle"
+      (click)="toggleTheme()"
+      [title]="theme() === 'dark' ? 'الوضع الفاتح' : 'الوضع الداكن'"
+      [attr.aria-label]="theme() === 'dark' ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الداكن'">
+      <i class="pi" [class.pi-sun]="theme() === 'dark'" [class.pi-moon]="theme() === 'light'"></i>
+    </button>
+
     @if (sys(); as s) {
       <div class="status">
         <span class="chip" [class.ok]="s.engine.runtime_available" [class.warn]="!s.engine.runtime_available">

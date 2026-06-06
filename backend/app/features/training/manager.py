@@ -19,14 +19,17 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import subprocess
 import sys
 import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
 from sqlmodel import Session as DBSession
+from sqlmodel import select
 
 from ...core.config import BACKEND_DIR, settings
 from ...core.db import engine as db_engine
@@ -40,6 +43,21 @@ TRAIN_SCRIPT = BACKEND_DIR / "scripts" / "train_qlora.py"
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _pid_alive(pid: Optional[int]) -> bool:
+    """True if a process with ``pid`` currently exists.
+
+    An orphaned trainer is reparented to init but keeps its PID, so a plain
+    ``kill(pid, 0)`` existence probe is enough to know if it is still running.
+    """
+    if not pid:
+        return False
+    try:
+        os.kill(pid, 0)
+    except (ProcessLookupError, OSError):
+        return False
+    return True
 
 
 class TrainingManager:
@@ -171,6 +189,19 @@ class TrainingManager:
         proc.wait()
         with self._lock:
             self._procs.pop(run_id, None)
+        self._apply_result(
+            run_id,
+            proc_ok=proc.returncode == 0,
+            fail_reason=f"Trainer exited with code {proc.returncode}",
+        )
+
+    def _apply_result(self, run_id: str, *, proc_ok: bool, fail_reason: str) -> None:
+        """Read the child's ``status.json`` and write the terminal DB state.
+
+        Shared by the live monitor (``_finalize``) and startup recovery
+        (``_readopt``) so a run finalizes identically no matter which path
+        observes the process exit.
+        """
         status_file = self.status_path(run_id)
         result: dict[str, Any] = {}
         if status_file.exists():
@@ -189,7 +220,7 @@ class TrainingManager:
                 db.commit()
                 return
 
-            ok = proc.returncode == 0 and result.get("status") == "completed"
+            ok = proc_ok and result.get("status") == "completed"
             if ok:
                 project = db.get(Project, run.project_id)
                 version = versioning.create_child(
@@ -210,10 +241,49 @@ class TrainingManager:
                     versioning.set_active(db, project, version.id)
             else:
                 run.status = RunStatus.failed
-                run.error = result.get("error") or f"Trainer exited with code {proc.returncode}"
+                run.error = result.get("error") or fail_reason
             run.finished_at = _now()
             db.add(run)
             db.commit()
+
+    # ── crash / reload recovery ──
+    def reconcile_orphans(self) -> None:
+        """Recover runs left non-terminal by a worker restart or crash.
+
+        The live monitor thread runs *inside* the API worker. If that worker is
+        replaced (``uvicorn --reload``) or crashes mid-run, the training
+        subprocess keeps going and writes ``status.json``, but nothing updates
+        the DB — the run is stuck ``running``/``preparing`` forever. On startup
+        we re-adopt every such run: wait for its (possibly still-alive) process,
+        then finalize from ``status.json`` exactly as the monitor would.
+        """
+        with DBSession(db_engine) as db:
+            stmt = select(TrainingRun).where(
+                TrainingRun.status.in_([RunStatus.running, RunStatus.preparing])
+            )
+            orphans = [(r.id, r.pid) for r in db.exec(stmt).all()]
+        for run_id, pid in orphans:
+            if self.is_running(run_id):
+                continue  # this worker already owns a live monitor for it
+            threading.Thread(
+                target=self._readopt, args=(run_id, pid), daemon=True
+            ).start()
+
+    def _readopt(self, run_id: str, pid: Optional[int]) -> None:
+        """Wait for an orphaned trainer to exit, then finalize it."""
+        try:
+            while _pid_alive(pid):
+                time.sleep(2.0)
+            # Small grace so the child can flush status.json after exiting.
+            time.sleep(1.0)
+            self._apply_result(
+                run_id,
+                proc_ok=True,  # no returncode to trust → defer to status.json
+                fail_reason="Training process was lost (API restarted or crashed "
+                            "mid-run) and left no completion marker.",
+            )
+        finally:
+            inference_engine.unfreeze()
 
     def cancel(self, run_id: str) -> bool:
         with self._lock:

@@ -30,6 +30,11 @@ from .features.versioning.router import router as versioning_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    # Recover any training run orphaned by a previous worker (uvicorn --reload
+    # swap or a crash): its monitor thread died, so the run is stuck "running"
+    # even though the subprocess finished. Re-adopt + finalize from status.json.
+    from .features.training.manager import manager as training_manager
+    training_manager.reconcile_orphans()
     # Pre-resolve the heavy ML imports in the background so the FIRST chat doesn't
     # race the /api/system poll's `import transformers` (which made the first load
     # intermittently fail). Best-effort — boots fine without the ML stack.

@@ -41,6 +41,29 @@ def build_messages(session: ChatSession, history: list[Message], user_text: str)
     return msgs
 
 
+def build_correction_messages(
+    correction_prompt: str,
+    prior: list[Message],
+    draft: str,
+    trigger: str,
+) -> list[dict[str, str]]:
+    """Frame a self-correction as a multi-turn revision.
+
+    The ``correction_prompt`` *replaces* the session system prompt for this call
+    so the "fix language/logic/structure" directive dominates. ``prior`` is the
+    conversation up to and including the user turn that prompted the reply; the
+    draft to improve goes in as the last assistant turn, followed by a short
+    user ``trigger`` asking for the rewrite — so ``add_generation_prompt`` opens
+    a fresh assistant turn for the improved version.
+    """
+    msgs: list[dict[str, str]] = [{"role": "system", "content": correction_prompt}]
+    for m in prior:
+        msgs.append({"role": m.role.value, "content": m.content})
+    msgs.append({"role": "assistant", "content": draft})
+    msgs.append({"role": "user", "content": trigger})
+    return msgs
+
+
 def generate_reply(
     db: Session,
     project: Project,
@@ -66,4 +89,21 @@ def stream_reply(
     base_id, adapter_path = resolve_weights(db, project, session.model_version_id)
     engine.ensure_loaded(base_id, adapter_path)
     messages = build_messages(session, history, user_text)
+    yield from engine.stream(messages, **gen_kwargs)
+
+
+def stream_correction(
+    db: Session,
+    project: Project,
+    session: ChatSession,
+    prior: list[Message],
+    draft: str,
+    correction_prompt: str,
+    trigger: str,
+    **gen_kwargs: Any,
+) -> Iterator[str]:
+    """Stream a self-correction of ``draft`` using the SAME model as the chat."""
+    base_id, adapter_path = resolve_weights(db, project, session.model_version_id)
+    engine.ensure_loaded(base_id, adapter_path)
+    messages = build_correction_messages(correction_prompt, prior, draft, trigger)
     yield from engine.stream(messages, **gen_kwargs)

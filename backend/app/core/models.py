@@ -73,6 +73,13 @@ class Project(SQLModel, table=True):
     id: str = Field(default_factory=_uuid, primary_key=True)
     name: str
     description: str = Field(default="", sa_column=Column(Text))
+    # How this project's model comes to be:
+    #   "finetune" — QLoRA on a pretrained base model (base_model_repo is real).
+    #   "scratch"  — a model built from a custom architecture and trained from
+    #                random init; base_model_repo is a synthetic family tag
+    #                (e.g. "scratch/qwen3") and the architecture spec lives in
+    #                ``default_train_config["architecture"]`` + metadata.json.
+    kind: str = Field(default="finetune", index=True)
     # HuggingFace repo id of the base model this project fine-tunes.
     base_model_repo: str
     base_model_local_path: Optional[str] = None

@@ -135,9 +135,41 @@ class Settings(BaseSettings):
     def offload_dir(self) -> Path:       # disk spillover when VRAM + RAM are full
         return self.data_dir / "offload"
 
+    @property
+    def projects_dir(self) -> Path:      # per-project self-contained folders
+        return self.data_dir / "projects"
+
+    # ── Per-project layout ────────────────────────────────────────────────────
+    # Each project owns a folder under ``projects/<id>/`` holding its model
+    # versioning checkpoints, the training data (corpus) it used, a metadata.json
+    # describing the model, and a paging-offload scratch dir. The big base-model
+    # weights stay in the shared ``models_dir``/``hf_home`` cache (not copied per
+    # project). Transient run logs stay under ``runs/<run_id>/`` (the WebSocket
+    # and crash-recovery look runs up by run_id alone).
+    def project_dir(self, project_id: str) -> Path:
+        return self.projects_dir / project_id
+
+    def project_versions_dir(self, project_id: str) -> Path:   # trained checkpoints
+        return self.project_dir(project_id) / "versions"
+
+    def project_data_dir(self, project_id: str) -> Path:       # training corpus/datasets
+        return self.project_dir(project_id) / "data"
+
+    def project_offload_dir(self, project_id: str) -> Path:    # paging spillover
+        return self.project_dir(project_id) / "offload"
+
+    def project_metadata_path(self, project_id: str) -> Path:  # model metadata json
+        return self.project_dir(project_id) / "metadata.json"
+
+    def ensure_project_dirs(self, project_id: str) -> None:
+        for p in (self.project_dir(project_id), self.project_versions_dir(project_id),
+                  self.project_data_dir(project_id)):
+            p.mkdir(parents=True, exist_ok=True)
+
     def ensure_dirs(self) -> None:
         for p in (self.data_dir, self.hf_home, self.models_dir, self.adapters_dir,
-                  self.datasets_dir, self.runs_dir, self.loops_dir, self.offload_dir):
+                  self.datasets_dir, self.runs_dir, self.loops_dir, self.offload_dir,
+                  self.projects_dir):
             p.mkdir(parents=True, exist_ok=True)
 
 

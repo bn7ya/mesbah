@@ -3,8 +3,19 @@
 Discover, curate, and download base models.
 
 ## Files
-- `router.py` — `/api/models/curated|search|local|download|download/status`.
-- `service.py` — curated list, HF search, local registry, background downloads.
+- `router.py` — `/api/models/curated|search|local|download|download/status`, plus
+  `datasets/search`, `datasets/preview`, and `inspect`.
+- `service.py` — curated list, HF model+dataset search, local registry, background
+  downloads, `inspect_model` (reads a repo's `config.json`), `dataset_preview`
+  (columns via the datasets-server HTTP API).
+
+## New discovery endpoints
+- `GET /datasets/search?query=` — HF dataset search (the training-corpus picker).
+- `GET /datasets/preview?repo_id=` — column/text-field listing for a dataset.
+- `GET /inspect?repo_id=` — architecture facts from `config.json` (hidden_size,
+  vocab_size, MoE block, context). Used to validate a pretrained **embedding
+  source** for from-scratch projects. Gated/private/missing → clean 403/404/502.
+  Still **no torch**: only the small config file is fetched, never a model.
 
 ## Behaviours
 - `CURATED_MODELS` is the hand-picked list shown in the new-project picker

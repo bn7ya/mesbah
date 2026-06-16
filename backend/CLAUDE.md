@@ -27,10 +27,38 @@ app/
     events.py        async pub/sub for live progress (currently the WS tails files)
   features/<name>/   router.py + service.py (+ schemas.py); each has a CLAUDE.md
   scripts/
-    train_qlora.py   standalone training subprocess (imports nothing from app)
+    train_qlora.py   standalone QLoRA fine-tuning subprocess (kind="finetune")
+    train_scratch.py standalone from-scratch full-training subprocess (kind="scratch")
     download_model.py
-  data/              models/ adapters/ datasets/ runs/ hf_cache/ misbah.db  (git-ignored)
+  data/              models/ adapters/ datasets/ runs/ hf_cache/ projects/ misbah.db  (git-ignored)
 ```
+
+## Per-project storage (`data/projects/<id>/`)
+
+A project of either kind owns a self-contained folder created on `create_project`
+and removed on `delete_project`:
+
+```
+projects/<id>/
+  versions/<run_id>/   trained checkpoint for each run (→ ModelVersion.adapter_path)
+  data/<run_id>.jsonl  the training corpus/dataset used
+  offload/<run_id>/    paging spillover for that run
+  metadata.json        model metadata (kind, base/arch spec, train config)
+```
+
+Big base-model weights stay in the **shared** `models_dir`/`hf_home` cache (not
+copied per project). Transient run logs (`config.json`, `metrics.jsonl`,
+`status.json`, `train.log`) stay under `runs/<run_id>/` because the WebSocket and
+crash-recovery look runs up by `run_id` alone — keep that contract. See
+`core/config.py` (`project_*` helpers) and `features/projects/service.py`.
+
+## Project kinds
+
+`Project.kind` is `"finetune"` (QLoRA on a pretrained base) or `"scratch"` (a
+custom architecture, random-initialised, fully trained). The training manager
+picks the subprocess by kind; the architecture spec lives in
+`default_train_config["architecture"]` and `metadata.json`. The `architect`
+feature estimates params/memory before creation (pure-Python, no torch).
 
 ## Data rules (important)
 

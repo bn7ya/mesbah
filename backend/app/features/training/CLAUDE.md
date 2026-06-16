@@ -7,10 +7,21 @@ streams live metrics, and appends a `ModelVersion` on success.
 - `dataset.py` — `collect_examples` turns every approved assistant turn into an SFT
   example with its preceding context → `{messages:[…]}` JSONL.
 - `manager.py` — `TrainingManager` (`manager`): `prepare()` (dataset + config.json),
-  `launch()` (unload inference → spawn `scripts/train_qlora.py`), `_monitor()`
-  (finalize DB + create version), `cancel()`.
+  `launch()` (unload inference → spawn the trainer), `_monitor()` (finalize DB +
+  create version), `cancel()`.
 - `router.py` — REST + the **live WebSocket** `/api/training/runs/{id}/ws`.
-- (the trainer itself lives at `backend/scripts/train_qlora.py`)
+- trainers: `scripts/train_qlora.py` (finetune) and `scripts/train_scratch.py`
+  (from-scratch full training). `launch()` picks by `cfg["kind"]`.
+
+## Two kinds (by `project.kind`)
+- **finetune** — `prepare()` builds the dataset from approved chat turns (as
+  before), now written under `projects/<pid>/data/`; QLoRA via `train_qlora.py`.
+- **scratch** — no chat dataset; the config carries an `architecture` spec, an
+  `embedding_mode` (`new`/`pretrained`, always trainable), a `dataset_repo`
+  corpus, and paged-training knobs. `train_scratch.py` builds the model from
+  config (random init), ingests the HF dataset, and full-trains with paged
+  placement + paged 8-bit optimizer. Checkpoints land in
+  `projects/<pid>/versions/<run_id>/`.
 
 ## Subprocess contract
 The child reads `runs/<id>/config.json`, appends one JSON point per log step to

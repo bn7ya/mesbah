@@ -2,7 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
-  AutoEnhanceLoop, ChatMessage, ChatSession, CuratedModel, ModelVersion, Project,
+  ArchitectureSpec, AutoEnhanceLoop, ChatMessage, ChatSession, CuratedModel,
+  DatasetHit, FeasibilityEstimate, ModelArchitecture, ModelVersion, Project,
   SystemInfo, Task, TrainingRun, VersionNode,
 } from './types';
 
@@ -30,7 +31,7 @@ export class Api {
   // ── projects ──
   listProjects(): Observable<Project[]> { return this.http.get<Project[]>(`${API_BASE}/projects`); }
   getProject(id: string): Observable<Project> { return this.http.get<Project>(`${API_BASE}/projects/${id}`); }
-  createProject(body: Partial<Project> & { base_model_repo: string; name: string }): Observable<Project> {
+  createProject(body: Partial<Project> & { base_model_repo: string; name: string; architecture?: ArchitectureSpec }): Observable<Project> {
     return this.http.post<Project>(`${API_BASE}/projects`, body);
   }
   updateProject(id: string, body: Partial<Project>): Observable<Project> {
@@ -41,9 +42,22 @@ export class Api {
   // ── models ──
   curatedModels(): Observable<CuratedModel[]> { return this.http.get<CuratedModel[]>(`${API_BASE}/models/curated`); }
   searchModels(q: string): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/models/search`, { params: { query: q } }); }
+  searchDatasets(q: string): Observable<DatasetHit[]> { return this.http.get<DatasetHit[]>(`${API_BASE}/models/datasets/search`, { params: { query: q } }); }
+  datasetColumns(repo_id: string): Observable<{ configs: string[]; config: string | null; columns: string[]; text_field_candidates: string[] }> {
+    return this.http.get<any>(`${API_BASE}/models/datasets/preview`, { params: { repo_id } });
+  }
+  inspectModel(repo_id: string): Observable<ModelArchitecture> { return this.http.get<ModelArchitecture>(`${API_BASE}/models/inspect`, { params: { repo_id } }); }
   localModels(): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/models/local`); }
   downloadModel(repo_id: string): Observable<any> { return this.http.post(`${API_BASE}/models/download`, { repo_id }); }
   downloadStatus(repo_id: string): Observable<any> { return this.http.get(`${API_BASE}/models/download/status`, { params: { repo_id } }); }
+
+  // ── architect (from-scratch model design) ──
+  estimateArchitecture(spec: ArchitectureSpec): Observable<FeasibilityEstimate> {
+    return this.http.post<FeasibilityEstimate>(`${API_BASE}/architect/estimate`, spec);
+  }
+  solveHidden(body: { target_params: number; num_hidden_layers: number; vocab_size: number; family?: string; num_experts?: number }): Observable<{ suggested_hidden_size: number; estimate: FeasibilityEstimate }> {
+    return this.http.post<any>(`${API_BASE}/architect/solve-hidden`, body);
+  }
 
   // ── tasks ──
   listTasks(pid: string): Observable<Task[]> { return this.http.get<Task[]>(`${API_BASE}/projects/${pid}/tasks`); }

@@ -18,10 +18,20 @@ streams live metrics, and appends a `ModelVersion` on success.
   before), now written under `projects/<pid>/data/`; QLoRA via `train_qlora.py`.
 - **scratch** — no chat dataset; the config carries an `architecture` spec, an
   `embedding_mode` (`new`/`pretrained`, always trainable), a `dataset_repo`
-  corpus, and paged-training knobs. `train_scratch.py` builds the model from
-  config (random init), ingests the HF dataset, and full-trains with paged
-  placement + paged 8-bit optimizer. Checkpoints land in
+  corpus, and offload knobs. `train_scratch.py` builds the model from config
+  (random init), ingests the HF dataset, and full-trains. Checkpoints land in
   `projects/<pid>/versions/<run_id>/`.
+
+## ZeRO-Infinity (scratch + paged_training)
+To train a model larger than 16 GB **to completion**, the scratch trainer uses
+**DeepSpeed ZeRO-3 / ZeRO-Infinity**: params+grads+optimizer offload to host RAM
+then NVMe (`deepspeed_config.build_ds_config`; `offload_target` auto/cpu/nvme,
+`est_host_ram_gb` + `nvme_path` injected by `prepare()`). The trainer builds
+`HfDeepSpeedConfig` before the model (ZeRO-3 partitions at init), passes
+`deepspeed=ds_config.json` to the HF `Trainer`, and `launch()` sets the
+single-process distributed env (`RANK/WORLD_SIZE/MASTER_*`). Falls back to
+single-GPU placement (with a warning) if DeepSpeed isn't installed. Slow but
+finishes — it does not fix the compute/data need (see docs/HARDWARE.md).
 
 ## Subprocess contract
 The child reads `runs/<id>/config.json`, appends one JSON point per log step to

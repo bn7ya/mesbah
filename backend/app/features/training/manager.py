@@ -46,6 +46,14 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _free_port() -> int:
+    """An ephemeral free TCP port for the single-process DeepSpeed rendezvous."""
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
 def _pid_alive(pid: Optional[int]) -> bool:
     """True if a process with ``pid`` currently exists.
 
@@ -111,6 +119,19 @@ class TrainingManager:
             n = int(merged.get("max_train_samples") or 0)
             base_model = project.base_model_repo
             parent_adapter = None
+            # ZeRO-Infinity offload knobs: estimate the off-GPU (host RAM) footprint
+            # so "auto" can choose cpu vs nvme, and point NVMe spill at the run's
+            # project offload dir.
+            merged.setdefault("offload_target", "auto")
+            merged["nvme_path"] = str(settings.project_offload_dir(project.id) / run.id)
+            try:
+                from ..architect import service as architect
+                from ..architect.schemas import ArchitectureSpec
+                spec = ArchitectureSpec(**(merged.get("architecture") or {}))
+                merged.setdefault("est_host_ram_gb",
+                                  architect.estimate(spec).memory.host_ram_gb)
+            except Exception:
+                pass
         else:
             examples = dataset.collect_examples(
                 db, run.project_id,
@@ -180,14 +201,24 @@ class TrainingManager:
         # Pick the trainer by project kind (recorded in config.json): full
         # from-scratch training vs QLoRA fine-tuning.
         script = TRAIN_SCRIPT
+        scratch_paged = False
         try:
-            kind = json.loads(cfg_path.read_text(encoding="utf-8")).get("kind")
-            if kind == "scratch":
+            run_cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+            if run_cfg.get("kind") == "scratch":
                 script = SCRATCH_SCRIPT
+                scratch_paged = bool(run_cfg.get("paged_training"))
         except (OSError, json.JSONDecodeError):
             pass
         log_file = open(run_dir / "train.log", "a", encoding="utf-8")
         env = {"HF_HOME": str(settings.hf_home), "TOKENIZERS_PARALLELISM": "false"}
+        # ZeRO-Infinity (from-scratch paged) runs as a single-process distributed
+        # job; set the env DeepSpeed/HF Trainer need so no `deepspeed` CLI launcher
+        # is required. (Alternative: `deepspeed --num_gpus=1 scripts/train_scratch.py`.)
+        if scratch_paged:
+            env.update({
+                "RANK": "0", "LOCAL_RANK": "0", "WORLD_SIZE": "1",
+                "MASTER_ADDR": "127.0.0.1", "MASTER_PORT": str(_free_port()),
+            })
         import os
         proc = subprocess.Popen(
             [sys.executable, str(script), "--config", str(cfg_path)],

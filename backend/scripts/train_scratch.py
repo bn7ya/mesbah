@@ -92,6 +92,56 @@ def _free_gpu() -> None:
         pass
 
 
+def _deepspeed_ok() -> bool:
+    try:
+        import deepspeed  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
+def build_ds_config(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Inline copy of ``app.features.training.deepspeed_config.build_ds_config``
+    (kept here so this script stays app-independent). ZeRO-3 / ZeRO-Infinity:
+    offload params + optimizer to CPU RAM or NVMe so a model larger than VRAM
+    trains to completion."""
+    target = (cfg.get("offload_target") or "auto").lower()
+    if target not in ("cpu", "nvme"):
+        target = "nvme" if float(cfg.get("est_host_ram_gb") or 0) > 100 else "cpu"
+    nvme_path = cfg.get("nvme_path") or cfg.get("offload_folder") or "offload"
+    if target == "nvme":
+        Path(nvme_path).mkdir(parents=True, exist_ok=True)
+
+    off_opt: dict[str, Any] = {"device": target, "pin_memory": True}
+    off_par: dict[str, Any] = {"device": target, "pin_memory": True}
+    if target == "nvme":
+        off_opt["nvme_path"] = nvme_path
+        off_par["nvme_path"] = nvme_path
+
+    ds: dict[str, Any] = {
+        "bf16": {"enabled": bool(cfg.get("bf16", True))},
+        "train_micro_batch_size_per_gpu": "auto",
+        "gradient_accumulation_steps": "auto",
+        "gradient_clipping": "auto",
+        "zero_optimization": {
+            "stage": 3,
+            "offload_optimizer": off_opt,
+            "offload_param": off_par,
+            "overlap_comm": True,
+            "contiguous_gradients": True,
+            "sub_group_size": 1_000_000_000,
+            "stage3_max_live_parameters": 100_000_000,
+            "stage3_max_reuse_distance": 100_000_000,
+            "stage3_param_persistence_threshold": 1_000_000,
+            "stage3_gather_16bit_weights_on_model_save": True,
+        },
+    }
+    if target == "nvme":
+        ds["aio"] = {"block_size": 1_048_576, "queue_depth": 8, "thread_count": 1,
+                     "single_submit": False, "overlap_events": True}
+    return ds
+
+
 # ── model construction ─────────────────────────────────────────────────────────
 def build_arch_config_kwargs(arch: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     """Map an ArchitectureSpec dict → (model_type, transformers config kwargs).
@@ -136,13 +186,13 @@ def load_tokenizer(cfg: dict[str, Any]):
     return tok, repo
 
 
-def build_model(cfg: dict[str, Any], tokenizer, metrics: MetricsWriter):
+def build_model(cfg: dict[str, Any], tokenizer, metrics: MetricsWriter, ds_config=None):
     import torch
     from transformers import AutoConfig, AutoModelForCausalLM
 
     arch = cfg.get("architecture") or {}
     family, kwargs = build_arch_config_kwargs(arch)
-    # Keep vocab consistent with the actual tokenizer.
+    # Keep vocab consistent with the actual tokenizer (so no resize is needed).
     kwargs["vocab_size"] = len(tokenizer)
 
     hf_cfg = AutoConfig.for_model(family, **kwargs)
@@ -152,49 +202,65 @@ def build_model(cfg: dict[str, Any], tokenizer, metrics: MetricsWriter):
     except Exception:
         pass
 
-    model = AutoModelForCausalLM.from_config(hf_cfg)
-    model = model.to(torch.bfloat16)
-    n_params = sum(p.numel() for p in model.parameters())
+    if ds_config is not None:
+        # ZeRO-3: partition parameters at construction so a model too big for even
+        # CPU RAM can still be built (sharded straight to its offload home).
+        import deepspeed
+        with deepspeed.zero.Init(config_dict_or_path=ds_config, dtype=torch.bfloat16):
+            model = AutoModelForCausalLM.from_config(hf_cfg)
+    else:
+        model = AutoModelForCausalLM.from_config(hf_cfg).to(torch.bfloat16)
+
+    n_params = sum(getattr(p, "ds_numel", p.numel()) for p in model.parameters())
     metrics.emit({"event": "model_built", "family": family, "params": int(n_params),
                   "vocab_size": len(tokenizer)})
 
-    # Pretrained embedding: copy input embeddings (and lm_head if shapes match).
+    # Pretrained embedding: copy input embeddings (best-effort; trainable either way).
     if cfg.get("embedding_mode") == "pretrained" and cfg.get("embedding_source_repo"):
-        _load_pretrained_embedding(cfg["embedding_source_repo"], model, tokenizer, cfg, metrics)
+        _load_pretrained_embedding(cfg["embedding_source_repo"], model, tokenizer, cfg,
+                                   metrics, ds_active=ds_config is not None)
 
-    # Make sure embeddings are trainable (full training trains everything anyway,
-    # but be explicit — the corpus may add vocabulary).
+    # Embeddings are trainable (full training trains everything; the corpus may add
+    # vocabulary). Under ZeRO-3 the flags still apply to the sharded params.
     model.get_input_embeddings().weight.requires_grad_(True)
     if model.get_output_embeddings() is not None:
         model.get_output_embeddings().weight.requires_grad_(True)
-    # Resize in case the tokenizer added tokens beyond the configured vocab.
-    if model.get_input_embeddings().weight.shape[0] != len(tokenizer):
-        model.resize_token_embeddings(len(tokenizer))
     return model
 
 
-def _load_pretrained_embedding(source_repo: str, model, tokenizer, cfg, metrics):
+def _load_pretrained_embedding(source_repo: str, model, tokenizer, cfg, metrics,
+                               ds_active: bool = False):
     """Copy the embedding matrix from ``source_repo`` into the new model.
 
     Only copies when the hidden dimension matches; rows are copied up to the
     smaller vocab. The layer stays trainable. On any mismatch we warn and keep
-    the random init rather than crash.
+    the random init rather than crash. Under ZeRO-3 the destination param is
+    sharded, so the copy happens inside a gathered context on rank 0.
     """
-    import torch
+    import contextlib
+
     from transformers import AutoModel
     try:
         src = AutoModel.from_pretrained(source_repo, trust_remote_code=True,
                                         cache_dir=cfg.get("hf_cache"))
         src_emb = src.get_input_embeddings().weight.data
-        dst_emb = model.get_input_embeddings().weight.data
-        if src_emb.shape[1] != dst_emb.shape[1]:
-            metrics.emit({"event": "embedding_warn",
-                          "message": f"hidden_size mismatch ({src_emb.shape[1]} vs "
-                                     f"{dst_emb.shape[1]}); keeping random embedding."})
-        else:
-            rows = min(src_emb.shape[0], dst_emb.shape[0])
-            dst_emb[:rows] = src_emb[:rows].to(dst_emb.dtype)
-            metrics.emit({"event": "embedding_loaded", "source": source_repo, "rows": int(rows)})
+        dst_param = model.get_input_embeddings().weight
+
+        gather = contextlib.nullcontext()
+        if ds_active:
+            import deepspeed
+            gather = deepspeed.zero.GatheredParameters([dst_param], modifier_rank=0)
+        with gather:
+            dst_emb = dst_param.data
+            if src_emb.shape[1] != dst_emb.shape[1]:
+                metrics.emit({"event": "embedding_warn",
+                              "message": f"hidden_size mismatch ({src_emb.shape[1]} vs "
+                                         f"{dst_emb.shape[1]}); keeping random embedding."})
+            else:
+                rows = min(src_emb.shape[0], dst_emb.shape[0])
+                dst_emb[:rows] = src_emb[:rows].to(dst_emb.dtype)
+                metrics.emit({"event": "embedding_loaded", "source": source_repo,
+                              "rows": int(rows)})
         del src
         _free_gpu()
     except Exception as exc:  # noqa: BLE001
@@ -273,7 +339,8 @@ def load_corpus(cfg: dict[str, Any], tokenizer, metrics: MetricsWriter):
 
 
 # ── training ──────────────────────────────────────────────────────────────────
-def build_trainer(cfg: dict[str, Any], model, tokenizer, dataset, metrics: MetricsWriter):
+def build_trainer(cfg: dict[str, Any], model, tokenizer, dataset, metrics: MetricsWriter,
+                  ds_config_path: str | None = None):
     from transformers import (DataCollatorForLanguageModeling, Trainer,
                               TrainerCallback, TrainingArguments)
 
@@ -298,6 +365,10 @@ def build_trainer(cfg: dict[str, Any], model, tokenizer, dataset, metrics: Metri
                 **gpu_mem(),
             })
 
+    # Under DeepSpeed, let HF/DeepSpeed own the optimizer (it substitutes the
+    # offloaded DeepSpeedCPUAdam for ZeRO-Infinity); the bnb paged optimizer is
+    # only for the non-DeepSpeed fallback path.
+    optim = "adamw_torch" if ds_config_path else cfg.get("optim", "paged_adamw_8bit")
     args = TrainingArguments(
         output_dir=cfg["output_dir"],
         num_train_epochs=float(cfg.get("epochs", 1)),
@@ -308,7 +379,8 @@ def build_trainer(cfg: dict[str, Any], model, tokenizer, dataset, metrics: Metri
         warmup_ratio=float(cfg.get("warmup_ratio", 0.02)),
         weight_decay=float(cfg.get("weight_decay", 0.1)),
         bf16=bool(cfg.get("bf16", True)),
-        optim=cfg.get("optim", "paged_adamw_8bit"),
+        optim=optim,
+        deepspeed=ds_config_path,
         logging_steps=1,
         save_strategy="no",
         report_to=[],
@@ -323,17 +395,38 @@ def build_trainer(cfg: dict[str, Any], model, tokenizer, dataset, metrics: Metri
 
 def _one_attempt(cfg: dict[str, Any], metrics: MetricsWriter) -> dict[str, Any]:
     model = tokenizer = trainer = None
+    # ZeRO-Infinity: the real "train bigger than VRAM to completion" path. Build
+    # the config + HfDeepSpeedConfig BEFORE the model so ZeRO-3 partitions at init.
+    want_paged = bool(cfg.get("paged_training"))
+    ds_config = ds_config_path = dschf = None
+    backend = "from_scratch"
+    if want_paged and _deepspeed_ok():
+        ds_config = build_ds_config(cfg)
+        run_dir = Path(cfg["metrics_path"]).parent
+        ds_config_path = str(run_dir / "ds_config.json")
+        Path(ds_config_path).write_text(json.dumps(ds_config, ensure_ascii=False, indent=2))
+        from transformers.integrations import HfDeepSpeedConfig
+        dschf = HfDeepSpeedConfig(ds_config)   # must stay alive through model build
+        backend = "zero_infinity"
+        metrics.emit({"event": "zero_infinity",
+                      "offload_target": ds_config["zero_optimization"]["offload_param"]["device"]})
+    elif want_paged:
+        metrics.emit({"event": "notice", "message":
+                      "DeepSpeed not available — falling back to single-GPU placement. "
+                      "A model larger than VRAM may not finish without DeepSpeed."})
     try:
         tokenizer, tok_repo = load_tokenizer(cfg)
         metrics.emit({"event": "tokenizer", "repo": tok_repo, "vocab_size": len(tokenizer)})
-        model = build_model(cfg, tokenizer, metrics)
+        model = build_model(cfg, tokenizer, metrics, ds_config=ds_config)
         if bool(cfg.get("gradient_checkpointing", True)):
             model.gradient_checkpointing_enable()
             model.config.use_cache = False
-        model = place_model(cfg, model, metrics)
+        if ds_config is None:
+            model = place_model(cfg, model, metrics)
 
         dataset = load_corpus(cfg, tokenizer, metrics)
-        trainer = build_trainer(cfg, model, tokenizer, dataset, metrics)
+        trainer = build_trainer(cfg, model, tokenizer, dataset, metrics,
+                                ds_config_path=ds_config_path)
         result = trainer.train()
 
         out = cfg["output_dir"]
@@ -343,12 +436,12 @@ def _one_attempt(cfg: dict[str, Any], metrics: MetricsWriter) -> dict[str, Any]:
         return {
             "adapter_path": out,          # full checkpoint dir (reuses the field name)
             "train_loss": float(result.training_loss) if result and result.training_loss else None,
-            "backend": "from_scratch",
+            "backend": backend,
             "max_seq_len": int(cfg.get("max_seq_len", 1024)),
             **gpu_mem(),
         }
     finally:
-        del trainer, model, tokenizer
+        del trainer, model, tokenizer, dschf
         _free_gpu()
 
 

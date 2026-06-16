@@ -59,8 +59,18 @@ class MemoryVerdict(BaseModel):
     activation_gb: float
     total_gb: float
     gpu_vram_gb: int
-    verdict: Literal["fits", "needs_paging", "extreme"]
+    # Off-GPU footprint when training with ZeRO-Infinity offload: params + grads +
+    # fp32 master + Adam states held in host RAM (or NVMe). This is the binding
+    # constraint once paging is on — not VRAM.
+    host_ram_gb: float
+    # fits_vram      → trains entirely on the GPU.
+    # cpu_offload    → too big for VRAM but the offloaded state fits host RAM.
+    # nvme_offload   → exceeds RAM too; spills to NVMe (slowest, still finishes).
+    # exceeds_disk   → implausible even with disk offload.
+    verdict: Literal["fits_vram", "cpu_offload", "nvme_offload", "exceeds_disk"]
     paging_required: bool
+    # True for every verdict except exceeds_disk: the run will complete (slowly).
+    will_finish: bool
 
 
 class FeasibilityEstimate(BaseModel):

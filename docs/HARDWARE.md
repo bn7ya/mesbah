@@ -59,6 +59,27 @@ offload) for resume runs or when Unsloth can't load.
 - Alternative to the `nvidia-*-cu13` wheels:
   `export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-13.2/lib64`.
 
+## Training a model larger than VRAM (from-scratch / ZeRO-Infinity)
+
+QLoRA fits an 8–14B base in 16 GB. **From-scratch full training** (kind=`scratch`)
+trains *every* parameter, so for anything non-trivial it relies on **DeepSpeed
+ZeRO-Infinity** (`scripts/train_scratch.py`, enabled by `paged_training`): params +
+gradients + optimizer state are offloaded to the **128 GB host RAM**, then **NVMe**,
+and only the layer being computed sits on the GPU. Peak VRAM ≈ one layer +
+activations — independent of model size — so a model far larger than 16 GB **trains
+to completion**, bounded by RAM/PCIe/NVMe bandwidth (slow), not VRAM.
+
+- `offload_target`: `auto` (RAM, then NVMe for very large) · `cpu` · `nvme`.
+- NVMe offload needs **libaio** (`sudo pacman -S libaio` / `apt install libaio-dev`);
+  `DeepSpeedCPUAdam` + aio ops JIT-compile on first run. Without libaio the trainer
+  uses CPU-only offload.
+- The run launches single-process (the manager sets `RANK/LOCAL_RANK/WORLD_SIZE/
+  MASTER_ADDR/MASTER_PORT`); no `deepspeed` CLI launcher needed.
+- Honesty: offload fixes *memory* so the run finishes — it does not supply the
+  compute/data a real pretraining run needs. The architecture estimator
+  (`/api/architect/estimate`) reports the RAM/NVMe footprint and a
+  fits_vram/cpu_offload/nvme_offload/exceeds_disk verdict.
+
 ## Inference vs training share one GPU
 
 On 16 GB you cannot comfortably hold a chat model **and** train at once. The

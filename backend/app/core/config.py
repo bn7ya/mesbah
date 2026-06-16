@@ -47,6 +47,9 @@ class Settings(BaseSettings):
 
     # ── Hardware budget (RTX 5080 / 16 GB) ──
     gpu_vram_gb: int = 16
+    # Host RAM available for ZeRO-Infinity CPU offload (see docs/HARDWARE.md: 128 GB).
+    # Drives the cpu-vs-nvme offload decision for from-scratch full training.
+    host_ram_gb: int = 128
     # Hard ceiling the UI warns past; QLoRA defaults are tuned for this card.
     max_train_seq_len: int = 4096
 

@@ -29,6 +29,12 @@ const FAMILIES = [
   { label: 'Mixtral (experts)', value: 'mixtral' },
 ];
 
+const OFFLOAD_TARGETS = [
+  { label: 'auto (RAM، ثم NVMe للضخم)', value: 'auto' },
+  { label: 'cpu (RAM فقط — أسرع)', value: 'cpu' },
+  { label: 'nvme (قرص — للأكبر من RAM)', value: 'nvme' },
+];
+
 function freshSpec(): ArchitectureSpec {
   return {
     family: 'qwen3', num_hidden_layers: 12, hidden_size: 768,
@@ -164,14 +170,14 @@ function freshSpec(): ArchitectureSpec {
               }
             </div>
 
-            <div class="est glass" [class.warn]="estimate()?.memory?.verdict !== 'fits'">
+            <div class="est glass" [class.warn]="estimate()?.memory?.verdict !== 'fits_vram'">
               @if (estimating()) { <span class="muted">…تقدير الحجم</span> }
               @else if (estimate(); as e) {
                 <div class="est-row">
                   <span>الحجم: <strong class="ltr">{{ e.params.total_params_human }}</strong> param</span>
                   @if (isMoe()) { <span class="dim ltr">active {{ e.params.active_params_human }}</span> }
                   <p-tag [value]="verdictAr(e.memory.verdict)" [severity]="verdictSev(e.memory.verdict)" />
-                  <span class="dim ltr">~{{ e.memory.total_gb }}GB total · VRAM {{ e.memory.gpu_vram_gb }}GB</span>
+                  <span class="dim ltr">offload ~{{ e.memory.host_ram_gb }}GB (RAM/NVMe) · VRAM {{ e.memory.gpu_vram_gb }}GB</span>
                 </div>
                 @for (w of e.warnings; track w) { <p class="warn-line">⚠ {{ w }}</p> }
               }
@@ -232,23 +238,26 @@ function freshSpec(): ArchitectureSpec {
           </div>
         }
 
-        <!-- ── SCRATCH step 4: GPU paged training ── -->
+        <!-- ── SCRATCH step 4: ZeRO-Infinity offload ── -->
         @if (step() === 4 && kind() === 'scratch') {
           <div class="form">
-            <label class="radio"><p-checkbox [(ngModel)]="paged" [binary]="true" /> <span>تدريب مُجزّأ على الذاكرة <code class="ltr">paged training</code> (GPU→CPU→disk)</span></label>
-            <p class="muted small">يُتيح ملاءمة نماذج أكبر من الـ VRAM بتدفّق الأوزان للذاكرة/القرص. أبطأ بكثير لكل خطوة — لكنه يُناسب النماذج الكبيرة.</p>
+            <label class="radio"><p-checkbox [(ngModel)]="paged" [binary]="true" /> <span>تدريب بالإزاحة <code class="ltr">ZeRO-Infinity</code> (GPU→RAM→NVMe)</span></label>
+            <p class="muted small">يبثّ الأوزان والـ optimizer إلى الـ RAM ثم الـ NVMe، ويبقي طبقة واحدة فقط على الـ GPU. يجعل نموذجًا أكبر من الـ VRAM <strong>يُكمل التدريب</strong> — أبطأ بكثير، لكنه ينتهي.</p>
             <div class="row2">
+              <div>
+                <label class="lbl ltr">offload target</label>
+                <p-select [options]="offloadTargets" optionLabel="label" optionValue="value" [(ngModel)]="offloadTarget" appendTo="body" styleClass="w-full" />
+              </div>
               <div>
                 <label class="lbl ltr">gpu_budget_gb: {{ gpuBudget() }}</label>
                 <p-slider [(ngModel)]="gpuBudgetModel" [min]="1" [max]="vram()" [step]="1" styleClass="w-full" />
               </div>
-              <div>
-                <label class="lbl ltr">cpu_offload_gb</label>
-                <p-inputNumber [(ngModel)]="cpuOffload" [min]="0" [max]="1024" [step]="8" [showButtons]="true" />
-              </div>
             </div>
+            @if (estimate(); as e) {
+              <p class="muted small">حجم الإزاحة المتوقّع: <code class="ltr">~{{ e.memory.host_ram_gb }}GB</code> (RAM ثم NVMe). الحالة: <strong>{{ verdictAr(e.memory.verdict) }}</strong>.</p>
+            }
             <div class="est glass warn">
-              <p class="warn-line">⚠ التدريب من الصفر على GPU واحدة محدود بالحوسبة لا الذاكرة فقط: لن يصل نموذج بحجم حقيقي إلى تقارب جيد. اعتبره تجريبيًا.</p>
+              <p class="warn-line">⚠ الإزاحة تحلّ مشكلة الذاكرة فيكتمل التدريب — لكنها لا توفّر الحوسبة/البيانات التي يحتاجها نموذج حقيقي من الصفر. توقّع نموذجًا تجريبيًا وزمنًا طويلًا جدًا.</p>
             </div>
           </div>
         }
@@ -325,6 +334,8 @@ export class ProjectsPage implements OnInit {
   private toast = inject(MessageService);
 
   readonly families = FAMILIES;
+  readonly offloadTargets = OFFLOAD_TARGETS;
+  offloadTarget = 'auto';
   readonly projects = signal<Project[]>([]);
   readonly models = signal<CuratedModel[]>([]);
   readonly loading = signal(true);
@@ -402,7 +413,7 @@ export class ProjectsPage implements OnInit {
     this.estimate.set(null);
     this.embMode = 'new'; this.embSource.set(''); this.embArch.set(null); this.embResults.set([]); this.embQuery = '';
     this.dsRepo.set(''); this.dsResults.set([]); this.dsColumns.set([]); this.dsQuery = ''; this.textField = 'text';
-    this.paged = true; this.cpuOffload = 96;
+    this.paged = true; this.cpuOffload = 96; this.offloadTarget = 'auto';
     this.dialog.set(true);
   }
 
@@ -437,8 +448,15 @@ export class ProjectsPage implements OnInit {
       error: () => this.estimating.set(false),
     });
   }
-  verdictAr(v: string): string { return v === 'fits' ? 'يناسب VRAM' : v === 'needs_paging' ? 'يحتاج paging' : 'ضخم جدًا'; }
-  verdictSev(v: string): 'success' | 'warn' | 'danger' { return v === 'fits' ? 'success' : v === 'needs_paging' ? 'warn' : 'danger'; }
+  verdictAr(v: string): string {
+    return v === 'fits_vram' ? 'يناسب VRAM'
+      : v === 'cpu_offload' ? 'إزاحة إلى RAM (سينتهي)'
+      : v === 'nvme_offload' ? 'إزاحة إلى NVMe (بطيء، سينتهي)'
+      : 'ضخم جدًا (حتى مع القرص)';
+  }
+  verdictSev(v: string): 'success' | 'warn' | 'danger' {
+    return v === 'fits_vram' ? 'success' : v === 'exceeds_disk' ? 'danger' : 'warn';
+  }
 
   // ── embedding ──
   onEmbModeChange(): void { if (this.embMode === 'new') { this.embSource.set(''); this.embArch.set(null); } }
@@ -519,6 +537,7 @@ export class ProjectsPage implements OnInit {
         text_field: this.textField || 'text',
         max_seq_len: Math.min(spec.max_position_embeddings, 1024),
         paged_training: this.paged,
+        offload_target: this.offloadTarget,
         gpu_budget_gb: this.gpuBudget(),
         cpu_offload_gb: this.cpuOffload,
         epochs: 1,

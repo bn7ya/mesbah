@@ -49,7 +49,9 @@ export interface FeasibilityEstimate {
   memory: {
     weights_gb: number; gradients_gb: number; optimizer_gb: number;
     activation_gb: number; total_gb: number; gpu_vram_gb: number;
-    verdict: 'fits' | 'needs_paging' | 'extreme'; paging_required: boolean;
+    host_ram_gb: number;
+    verdict: 'fits_vram' | 'cpu_offload' | 'nvme_offload' | 'exceeds_disk';
+    paging_required: boolean; will_finish: boolean;
   };
   warnings: string[];
   suggested_gpu_budget_gb: number;

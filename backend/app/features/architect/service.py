@@ -101,21 +101,30 @@ def estimate_memory(spec: ArchitectureSpec, params: ParamBreakdown,
     act_gb = activation / gb
     total_gb = weights_gb + grad_gb + opt_gb + act_gb
 
+    # ZeRO-Infinity off-GPU footprint: bf16 params + bf16 grads + fp32 master copy
+    # + Adam m/v (fp32). ≈ params × (2 + 2 + 4 + 8) = 16 bytes/param held in host
+    # RAM (or NVMe). This is the real binding constraint once offload is on.
+    host_ram_gb = (p * 16) / gb
+
     vram = settings.gpu_vram_gb
-    # Resident-on-GPU need if NOT paging is roughly weights+grads+activations
-    # (optimizer is paged to CPU). Fits only if that comfortably clears VRAM.
+    ram = settings.host_ram_gb
+    # Resident-on-GPU need WITHOUT offload ≈ weights + grads + activations.
     resident = weights_gb + grad_gb + act_gb
     if resident <= vram * 0.8:
-        verdict = "fits"
-    elif total_gb <= vram * 40:                           # plausibly pageable to CPU/disk
-        verdict = "needs_paging"
+        verdict = "fits_vram"
+    elif host_ram_gb <= ram * 0.85:                       # offloaded state fits host RAM
+        verdict = "cpu_offload"
+    elif host_ram_gb <= ram + 8000:                       # spill to NVMe (generous SSD)
+        verdict = "nvme_offload"
     else:
-        verdict = "extreme"
+        verdict = "exceeds_disk"
     return MemoryVerdict(
         weights_gb=round(weights_gb, 2), gradients_gb=round(grad_gb, 2),
         optimizer_gb=round(opt_gb, 2), activation_gb=round(act_gb, 2),
-        total_gb=round(total_gb, 2), gpu_vram_gb=vram, verdict=verdict,
-        paging_required=verdict != "fits",
+        total_gb=round(total_gb, 2), gpu_vram_gb=vram,
+        host_ram_gb=round(host_ram_gb, 2), verdict=verdict,
+        paging_required=verdict != "fits_vram",
+        will_finish=verdict != "exceeds_disk",
     )
 
 
@@ -137,17 +146,26 @@ def estimate(spec: ArchitectureSpec) -> FeasibilityEstimate:
     if spec.is_moe and spec.num_experts_per_tok > spec.num_experts:
         warnings.append("num_experts_per_tok cannot exceed num_experts.")
 
-    if mem.verdict == "needs_paging":
+    if mem.verdict == "cpu_offload":
         warnings.append(
-            "This model exceeds VRAM and will require paged training (weights/optimizer "
-            "streamed to CPU/disk). Steps will be much slower."
+            f"Exceeds the {mem.gpu_vram_gb} GB GPU but fits with ZeRO-Infinity CPU offload "
+            f"(~{mem.host_ram_gb:.0f} GB host RAM). The run WILL finish, just slowly."
         )
-    if mem.verdict == "extreme" or params.total_params >= 1_000_000_000:
+    elif mem.verdict == "nvme_offload":
         warnings.append(
-            "⚠ Training a model this size FROM SCRATCH on a single GPU is not feasible to "
-            "converge: it needs many billions of tokens and very long wall-clock time. "
-            "Paging fits it in memory but cannot fix the compute/data requirement. "
-            "Expect an experimental, undertrained model."
+            f"Too big for host RAM (~{mem.host_ram_gb:.0f} GB needed); ZeRO-Infinity will "
+            "spill to NVMe. The run will finish but each step is very slow (NVMe-bound)."
+        )
+    elif mem.verdict == "exceeds_disk":
+        warnings.append(
+            f"~{mem.host_ram_gb:.0f} GB of offload state is implausible even with NVMe. "
+            "Reduce parameters/experts/context."
+        )
+    if params.total_params >= 1_000_000_000:
+        warnings.append(
+            "⚠ Note: offload fixes MEMORY so the run completes — it does not supply the "
+            "compute/data a real from-scratch model needs. Expect an undertrained, "
+            "experimental model and a very long wall-clock time."
         )
     if spec.max_position_embeddings > 8192:
         warnings.append(

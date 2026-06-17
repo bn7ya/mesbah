@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .core.config import settings
 from .core.db import init_db
+from .features.architect.router import router as architect_router
 from .features.auto_enhance.router import router as auto_enhance_router
 from .features.inference.engine import engine
 from .features.inference.router import router as inference_router
@@ -59,7 +60,8 @@ app.add_middleware(
 )
 
 for r in (projects_router, tasks_router, sessions_router, models_router,
-          inference_router, training_router, versioning_router, auto_enhance_router):
+          inference_router, training_router, versioning_router, auto_enhance_router,
+          architect_router):
     app.include_router(r)
 
 

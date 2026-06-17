@@ -210,4 +210,105 @@ def search(query: str, limit: int = 20) -> list[dict[str, Any]]:
         ]
 
 
+def search_datasets(query: str, limit: int = 20) -> list[dict[str, Any]]:
+    """Search the HuggingFace dataset hub (the training "corpus" picker).
+
+    Mirrors :func:`search`; offline-friendly (returns a single echo row on error
+    so the UI degrades gracefully instead of throwing). No torch import.
+    """
+    try:
+        from huggingface_hub import HfApi
+        api = HfApi(token=settings.hf_token)
+        ds = api.list_datasets(search=query, limit=limit, sort="downloads", direction=-1)
+        return [{
+            "repo_id": d.id,
+            "downloads": getattr(d, "downloads", None),
+            "likes": getattr(d, "likes", None),
+            "tags": getattr(d, "tags", []) or [],
+        } for d in ds]
+    except Exception as exc:  # pragma: no cover
+        return [{"repo_id": query, "downloads": None, "likes": None, "tags": [], "note": str(exc)}]
+
+
+def inspect_model(repo_id: str) -> dict[str, Any]:
+    """Read a model's ``config.json`` from the Hub and normalize the fields the
+    UI needs (architecture facts + MoE block). Used to validate a pretrained
+    *embedding source* (hidden_size/vocab must match the new model) and to show
+    architecture in the fine-tune path.
+
+    Lightweight: downloads only the small config file via ``hf_hub_download`` —
+    **no model instantiation, no torch**. Raises ``FileNotFoundError`` /
+    ``PermissionError``-style exceptions which the router maps to clean HTTP codes.
+    """
+    import json as _json
+
+    from huggingface_hub import hf_hub_download
+    path = hf_hub_download(repo_id, "config.json", token=settings.hf_token,
+                           cache_dir=str(settings.hf_home))
+    cfg = _json.loads(Path(path).read_text(encoding="utf-8"))
+
+    def g(*keys, default=None):
+        for k in keys:
+            if k in cfg and cfg[k] is not None:
+                return cfg[k]
+        return default
+
+    num_experts = g("num_experts", "num_local_experts")
+    is_moe = num_experts is not None or g("num_experts_per_tok") is not None
+    return {
+        "repo_id": repo_id,
+        "model_type": g("model_type"),
+        "architectures": g("architectures", default=[]),
+        "num_hidden_layers": g("num_hidden_layers", "n_layer"),
+        "hidden_size": g("hidden_size", "n_embd", "d_model"),
+        "num_attention_heads": g("num_attention_heads", "n_head"),
+        "num_key_value_heads": g("num_key_value_heads"),
+        "intermediate_size": g("intermediate_size"),
+        "vocab_size": g("vocab_size"),
+        "max_position_embeddings": g("max_position_embeddings", "n_positions",
+                                     "max_sequence_length"),
+        "rope_theta": g("rope_theta"),
+        "rope_scaling": g("rope_scaling"),
+        "tie_word_embeddings": g("tie_word_embeddings", default=False),
+        "torch_dtype": g("torch_dtype"),
+        "quantization_config_present": "quantization_config" in cfg,
+        "is_moe": is_moe,
+        "num_experts": num_experts,
+        "num_experts_per_tok": g("num_experts_per_tok"),
+    }
+
+
+def dataset_preview(repo_id: str, config: str | None = None,
+                    split: str | None = None) -> dict[str, Any]:
+    """Best-effort column/feature listing for a dataset so the UI can let the
+    user pick a text field. Uses the public datasets-server HTTP API (no torch,
+    no full download). Falls back to an empty column list with a note on error.
+    """
+    import urllib.parse
+    import urllib.request
+    import json as _json
+    try:
+        url = "https://datasets-server.huggingface.co/info?" + urllib.parse.urlencode(
+            {"dataset": repo_id})
+        headers = {}
+        if settings.hf_token:
+            headers["Authorization"] = f"Bearer {settings.hf_token}"
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310
+            info = _json.loads(resp.read().decode("utf-8"))
+        configs = info.get("dataset_info", {})
+        chosen = config or next(iter(configs), None)
+        features = (configs.get(chosen, {}) or {}).get("features", {}) if chosen else {}
+        columns = list(features.keys())
+        text_fields = [c for c in columns
+                       if str(features[c].get("dtype", "")).startswith("string")
+                       or c.lower() in ("text", "content", "document", "input", "prompt")]
+        return {"repo_id": repo_id, "configs": list(configs.keys()),
+                "config": chosen, "columns": columns,
+                "text_field_candidates": text_fields or columns}
+    except Exception as exc:  # pragma: no cover - network dependent
+        return {"repo_id": repo_id, "configs": [], "config": None,
+                "columns": [], "text_field_candidates": [], "note": str(exc)}
+
+
 manager = DownloadManager()

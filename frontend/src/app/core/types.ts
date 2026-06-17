@@ -10,6 +10,7 @@ export interface Project {
   id: string;
   name: string;
   description: string;
+  kind: string;                 // "finetune" | "scratch"
   base_model_repo: string;
   base_model_local_path: string | null;
   active_version_id: string | null;
@@ -20,6 +21,64 @@ export interface Project {
   session_count: number;
   task_count: number;
   version_count: number;
+}
+
+/** A from-scratch decoder architecture (mirrors features/architect/schemas). */
+export interface ArchitectureSpec {
+  family: 'llama' | 'qwen3' | 'mistral' | 'qwen3_moe' | 'mixtral';
+  num_hidden_layers: number;
+  hidden_size: number;
+  num_attention_heads: number;
+  num_key_value_heads?: number | null;
+  intermediate_size?: number | null;
+  vocab_size: number;
+  max_position_embeddings: number;
+  tie_word_embeddings: boolean;
+  num_experts: number;
+  num_experts_per_tok: number;
+  moe_intermediate_size?: number | null;
+}
+
+export interface FeasibilityEstimate {
+  spec: ArchitectureSpec;
+  params: {
+    embeddings: number; attention: number; mlp: number; other: number;
+    total_params: number; active_params: number;
+    total_params_human: string; active_params_human: string;
+  };
+  memory: {
+    weights_gb: number; gradients_gb: number; optimizer_gb: number;
+    activation_gb: number; total_gb: number; gpu_vram_gb: number;
+    host_ram_gb: number;
+    verdict: 'fits_vram' | 'cpu_offload' | 'nvme_offload' | 'exceeds_disk';
+    paging_required: boolean; will_finish: boolean;
+  };
+  warnings: string[];
+  suggested_gpu_budget_gb: number;
+}
+
+export interface DatasetHit {
+  repo_id: string;
+  downloads?: number | null;
+  likes?: number | null;
+  tags?: string[];
+  note?: string;
+}
+
+/** Architecture facts read from a model's config.json (e.g. an embedding source). */
+export interface ModelArchitecture {
+  repo_id: string;
+  model_type: string | null;
+  architectures: string[];
+  num_hidden_layers: number | null;
+  hidden_size: number | null;
+  num_attention_heads: number | null;
+  num_key_value_heads: number | null;
+  vocab_size: number | null;
+  max_position_embeddings: number | null;
+  is_moe: boolean;
+  num_experts: number | null;
+  num_experts_per_tok: number | null;
 }
 
 export interface Task {

@@ -7,10 +7,31 @@ streams live metrics, and appends a `ModelVersion` on success.
 - `dataset.py` — `collect_examples` turns every approved assistant turn into an SFT
   example with its preceding context → `{messages:[…]}` JSONL.
 - `manager.py` — `TrainingManager` (`manager`): `prepare()` (dataset + config.json),
-  `launch()` (unload inference → spawn `scripts/train_qlora.py`), `_monitor()`
-  (finalize DB + create version), `cancel()`.
+  `launch()` (unload inference → spawn the trainer), `_monitor()` (finalize DB +
+  create version), `cancel()`.
 - `router.py` — REST + the **live WebSocket** `/api/training/runs/{id}/ws`.
-- (the trainer itself lives at `backend/scripts/train_qlora.py`)
+- trainers: `scripts/train_qlora.py` (finetune) and `scripts/train_scratch.py`
+  (from-scratch full training). `launch()` picks by `cfg["kind"]`.
+
+## Two kinds (by `project.kind`)
+- **finetune** — `prepare()` builds the dataset from approved chat turns (as
+  before), now written under `projects/<pid>/data/`; QLoRA via `train_qlora.py`.
+- **scratch** — no chat dataset; the config carries an `architecture` spec, an
+  `embedding_mode` (`new`/`pretrained`, always trainable), a `dataset_repo`
+  corpus, and offload knobs. `train_scratch.py` builds the model from config
+  (random init), ingests the HF dataset, and full-trains. Checkpoints land in
+  `projects/<pid>/versions/<run_id>/`.
+
+## ZeRO-Infinity (scratch + paged_training)
+To train a model larger than 16 GB **to completion**, the scratch trainer uses
+**DeepSpeed ZeRO-3 / ZeRO-Infinity**: params+grads+optimizer offload to host RAM
+then NVMe (`deepspeed_config.build_ds_config`; `offload_target` auto/cpu/nvme,
+`est_host_ram_gb` + `nvme_path` injected by `prepare()`). The trainer builds
+`HfDeepSpeedConfig` before the model (ZeRO-3 partitions at init), passes
+`deepspeed=ds_config.json` to the HF `Trainer`, and `launch()` sets the
+single-process distributed env (`RANK/WORLD_SIZE/MASTER_*`). Falls back to
+single-GPU placement (with a warning) if DeepSpeed isn't installed. Slow but
+finishes — it does not fix the compute/data need (see docs/HARDWARE.md).
 
 ## Subprocess contract
 The child reads `runs/<id>/config.json`, appends one JSON point per log step to

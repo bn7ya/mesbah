@@ -39,10 +39,19 @@ from ..versioning import service as versioning
 from . import dataset
 
 TRAIN_SCRIPT = BACKEND_DIR / "scripts" / "train_qlora.py"
+SCRATCH_SCRIPT = BACKEND_DIR / "scripts" / "train_scratch.py"
 
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _free_port() -> int:
+    """An ephemeral free TCP port for the single-process DeepSpeed rendezvous."""
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
 
 
 def _pid_alive(pid: Optional[int]) -> bool:
@@ -79,31 +88,71 @@ class TrainingManager:
 
     # ── lifecycle ──
     def prepare(self, db: DBSession, run: TrainingRun) -> TrainingRun:
-        """Build the dataset + config.json. Returns the run with paths filled in."""
+        """Build the dataset + config.json. Returns the run with paths filled in.
+
+        Two flavours, by ``project.kind``:
+          * ``finetune`` — QLoRA on a pretrained base; dataset = approved chat
+            turns, written to the project's data folder.
+          * ``scratch`` — full training of a custom architecture; the corpus is
+            an HF dataset ingested by the subprocess, so there's no local JSONL to
+            build here. The architecture spec rides along in default_train_config.
+        """
         project = db.get(Project, run.project_id)
         if not project:
             raise ValueError("Project not found")
+        is_scratch = project.kind == "scratch"
 
-        examples = dataset.collect_examples(
-            db, run.project_id,
-            session_ids=run.config.get("session_ids"),
-            task_id=run.config.get("task_id"),
-            only_corrected=run.config.get("only_corrected", False),
-        )
-        ds_path = settings.datasets_dir / f"{run.id}.jsonl"
-        n = dataset.write_jsonl(examples, ds_path)
-
-        parent_adapter = None
-        if run.parent_version_id:
-            parent = db.get(ModelVersion, run.parent_version_id)
-            if parent and not parent.is_base:
-                parent_adapter = parent.adapter_path
-
+        settings.ensure_project_dirs(project.id)
         run_dir = self.run_dir(run.id)
-        out_dir = settings.adapters_dir / run.id
+        out_dir = settings.project_versions_dir(project.id) / run.id
+        ds_path = settings.project_data_dir(project.id) / f"{run.id}.jsonl"
+
+        # Merge project defaults + per-run overrides; injected paths win last.
+        merged: dict[str, Any] = {
+            **project.default_train_config,
+            **(run.config.get("hyperparams") or {}),
+        }
+        merged.setdefault("cpu_offload_gb", 96)
+
+        if is_scratch:
+            # No chat dataset; the trainer pulls dataset_repo from the config.
+            n = int(merged.get("max_train_samples") or 0)
+            base_model = project.base_model_repo
+            parent_adapter = None
+            # ZeRO-Infinity offload knobs: estimate the off-GPU (host RAM) footprint
+            # so "auto" can choose cpu vs nvme, and point NVMe spill at the run's
+            # project offload dir.
+            merged.setdefault("offload_target", "auto")
+            merged["nvme_path"] = str(settings.project_offload_dir(project.id) / run.id)
+            try:
+                from ..architect import service as architect
+                from ..architect.schemas import ArchitectureSpec
+                spec = ArchitectureSpec(**(merged.get("architecture") or {}))
+                merged.setdefault("est_host_ram_gb",
+                                  architect.estimate(spec).memory.host_ram_gb)
+            except Exception:
+                pass
+        else:
+            examples = dataset.collect_examples(
+                db, run.project_id,
+                session_ids=run.config.get("session_ids"),
+                task_id=run.config.get("task_id"),
+                only_corrected=run.config.get("only_corrected", False),
+            )
+            n = dataset.write_jsonl(examples, ds_path)
+            base_model = project.base_model_local_path or project.base_model_repo
+            parent_adapter = None
+            if run.parent_version_id:
+                parent = db.get(ModelVersion, run.parent_version_id)
+                if parent and not parent.is_base:
+                    parent_adapter = parent.adapter_path
+
         cfg = {
+            **merged,
+            # ── authoritative, never overridable by config ──
             "run_id": run.id,
-            "base_model": project.base_model_local_path or project.base_model_repo,
+            "kind": project.kind,
+            "base_model": base_model,
             "resume_adapter_path": parent_adapter,
             "dataset_path": str(ds_path),
             "output_dir": str(out_dir),
@@ -111,13 +160,8 @@ class TrainingManager:
             "status_path": str(self.status_path(run.id)),
             "log_path": str(run_dir / "train.log"),
             "hf_cache": str(settings.hf_home),
-            # Disk spillover dir + how much CPU RAM the offload fallback may use
-            # (the box has 128 GB → generous default).
-            "offload_folder": str(settings.offload_dir / run.id),
-            "cpu_offload_gb": 96,
+            "offload_folder": str(settings.project_offload_dir(project.id) / run.id),
             "num_examples": n,
-            **project.default_train_config,
-            **(run.config.get("hyperparams") or {}),
         }
         (run_dir / "config.json").write_text(json.dumps(cfg, ensure_ascii=False, indent=2))
 
@@ -154,11 +198,30 @@ class TrainingManager:
 
         run_dir = self.run_dir(run_id)
         cfg_path = run_dir / "config.json"
+        # Pick the trainer by project kind (recorded in config.json): full
+        # from-scratch training vs QLoRA fine-tuning.
+        script = TRAIN_SCRIPT
+        scratch_paged = False
+        try:
+            run_cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+            if run_cfg.get("kind") == "scratch":
+                script = SCRATCH_SCRIPT
+                scratch_paged = bool(run_cfg.get("paged_training"))
+        except (OSError, json.JSONDecodeError):
+            pass
         log_file = open(run_dir / "train.log", "a", encoding="utf-8")
         env = {"HF_HOME": str(settings.hf_home), "TOKENIZERS_PARALLELISM": "false"}
+        # ZeRO-Infinity (from-scratch paged) runs as a single-process distributed
+        # job; set the env DeepSpeed/HF Trainer need so no `deepspeed` CLI launcher
+        # is required. (Alternative: `deepspeed --num_gpus=1 scripts/train_scratch.py`.)
+        if scratch_paged:
+            env.update({
+                "RANK": "0", "LOCAL_RANK": "0", "WORLD_SIZE": "1",
+                "MASTER_ADDR": "127.0.0.1", "MASTER_PORT": str(_free_port()),
+            })
         import os
         proc = subprocess.Popen(
-            [sys.executable, str(TRAIN_SCRIPT), "--config", str(cfg_path)],
+            [sys.executable, str(script), "--config", str(cfg_path)],
             cwd=str(BACKEND_DIR),
             stdout=log_file,
             stderr=subprocess.STDOUT,

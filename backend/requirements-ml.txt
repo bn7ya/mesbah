@@ -31,6 +31,17 @@ datasets>=4.8.5
 sentencepiece>=0.2.0
 protobuf>=4.25.0
 
+# ── DeepSpeed ZeRO-Infinity (from-scratch FULL training that FINISHES on 16 GB) ─
+# Streams parameters + gradients + optimizer state to CPU RAM, then NVMe, holding
+# only the layer being computed on the GPU. Lets a model far larger than VRAM
+# train to completion (slowly) instead of OOM-ing. Used by scripts/train_scratch.py
+# when paged_training is on.
+#   * NVMe offload needs libaio:   sudo pacman -S libaio   (or apt install libaio-dev)
+#   * DeepSpeedCPUAdam + aio ops JIT-compile on first run (need a C++ toolchain).
+#     If libaio is absent the trainer falls back to CPU-only offload automatically.
+#   * Must match the resident torch (2.10+cu128 after Unsloth, or 2.11+cu130).
+deepspeed>=0.15.0
+
 # ── Unsloth (preferred path; INSTALLED & verified on this box) ────────────────
 # ~2x faster, ~50-70% less VRAM, async activation offload to RAM. The trainer
 # auto-detects Unsloth and uses it for fresh (from-base) runs; the HF path is the

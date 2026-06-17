@@ -7,7 +7,7 @@ import { TagModule } from 'primeng/tag';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { MessageService } from 'primeng/api';
 import { Api } from '../../core/api';
-import { CuratedModel } from '../../core/types';
+import { CuratedModel, DatasetHit } from '../../core/types';
 
 interface DownloadState { status: string; bytes_done: number; local_path?: string | null; error?: string | null; }
 
@@ -47,6 +47,33 @@ interface DownloadState { status: string; bytes_done: number; local_path?: strin
           </div>
         </div>
       }
+
+      <!-- dataset search (corpus browser) -->
+      <div class="block">
+        <h3 class="h">مجموعات البيانات <code class="ltr">datasets</code></h3>
+        <p class="muted dim small">ابحث في كوربوس <code class="ltr">HuggingFace</code>. تُستخدم لتدريب نموذج من الصفر (اخترها داخل معالج الإنشاء).</p>
+        <div class="search glass">
+          <i class="pi pi-search"></i>
+          <input pInputText [(ngModel)]="dsQuery" (keydown.enter)="searchDatasets()" placeholder="ابحث: wikitext, arabic, oscar …" class="grow ltr" />
+          <p-button label="بحث" icon="pi pi-search" [loading]="dsSearching()" (onClick)="searchDatasets()" />
+        </div>
+        @if (dsResults().length) {
+          <div class="rows">
+            @for (d of dsResults(); track d.repo_id) {
+              <div class="row glass">
+                <div class="info">
+                  <span class="ltr repo">{{ d.repo_id }}</span>
+                  <span class="meta dim ltr">
+                    @if (d.downloads != null) { <span><i class="pi pi-download"></i> {{ d.downloads | number }}</span> }
+                    @if (d.likes != null) { <span><i class="pi pi-heart"></i> {{ d.likes }}</span> }
+                  </span>
+                </div>
+                <a class="ltr small" [href]="'https://huggingface.co/datasets/' + d.repo_id" target="_blank" rel="noopener">HuggingFace ↗</a>
+              </div>
+            }
+          </div>
+        }
+      </div>
 
       <!-- curated -->
       <div class="block">
@@ -134,6 +161,9 @@ export class ModelsPage implements OnInit {
   readonly curated = signal<CuratedModel[]>([]);
   readonly local = signal<any[]>([]);
   readonly searching = signal(false);
+  readonly dsResults = signal<DatasetHit[]>([]);
+  readonly dsSearching = signal(false);
+  dsQuery = '';
   private downloads = signal<Record<string, DownloadState>>({});
   query = '';
   private timers: Record<string, any> = {};
@@ -151,6 +181,15 @@ export class ModelsPage implements OnInit {
     this.api.searchModels(this.query.trim()).subscribe({
       next: (r) => { this.results.set(r); this.searching.set(false); },
       error: () => { this.searching.set(false); this.toast.add({ severity: 'error', summary: 'تعذّر البحث' }); },
+    });
+  }
+
+  searchDatasets(): void {
+    if (!this.dsQuery.trim()) return;
+    this.dsSearching.set(true);
+    this.api.searchDatasets(this.dsQuery.trim()).subscribe({
+      next: (r) => { this.dsResults.set(r); this.dsSearching.set(false); },
+      error: () => { this.dsSearching.set(false); this.toast.add({ severity: 'error', summary: 'تعذّر البحث' }); },
     });
   }
 

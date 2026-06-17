@@ -6,6 +6,8 @@ set active by default. Everything the user trains later hangs off this root.
 """
 from __future__ import annotations
 
+import json
+import shutil
 from datetime import datetime, timezone
 
 from sqlalchemy import text
@@ -23,17 +25,27 @@ def _now() -> datetime:
 
 
 def create_project(db: Session, data: ProjectCreate) -> Project:
-    config = data.default_train_config or _default_train_config()
-    # If the model is already downloaded locally, point at it so chat/training
-    # never hit the network (see features/models download layout).
+    is_scratch = data.kind == "scratch"
+    config = dict(data.default_train_config or {})
+    if not config:
+        config = _default_scratch_config() if is_scratch else _default_train_config()
+    # Carry the architecture spec inside the train config so the trainer can read
+    # it back (and so it round-trips on GET /projects/{id}).
+    if data.architecture:
+        config["architecture"] = data.architecture
+
+    # A from-scratch project has no pretrained weights to download; only a real
+    # fine-tune base gets the local-cache shortcut.
     local_path = data.base_model_local_path
-    if not local_path:
+    if not is_scratch and not local_path:
         candidate = settings.models_dir / data.base_model_repo.replace("/", "__")
         if candidate.exists() and any(candidate.iterdir()):
             local_path = str(candidate)
+
     project = Project(
         name=data.name,
         description=data.description,
+        kind=data.kind,
         base_model_repo=data.base_model_repo,
         base_model_local_path=local_path,
         language=data.language,
@@ -42,12 +54,15 @@ def create_project(db: Session, data: ProjectCreate) -> Project:
     db.add(project)
     db.flush()  # assign project.id
 
-    # Seed the version-tree root node (the base model itself).
+    # Seed the version-tree root node. For scratch this represents the randomly
+    # initialized model (no adapter yet); for finetune it's the base model.
+    root_label = "Init · نموذج مُهيّأ من الصفر" if is_scratch else "Base · النموذج الأساسي"
     root = ModelVersion(
         project_id=project.id,
         parent_id=None,
-        label="Base · النموذج الأساسي",
-        notes=f"Base model: {project.base_model_repo}",
+        label=root_label,
+        notes=(f"From-scratch architecture: {data.base_model_repo}" if is_scratch
+               else f"Base model: {project.base_model_repo}"),
         is_base=True,
         is_active=True,
         depth=0,
@@ -58,7 +73,35 @@ def create_project(db: Session, data: ProjectCreate) -> Project:
     db.add(project)
     db.commit()
     db.refresh(project)
+
+    # Build the project's on-disk home and write its metadata.json.
+    _init_project_storage(project)
     return project
+
+
+def _init_project_storage(project: Project) -> None:
+    """Create ``projects/<id>/{versions,data}`` and write ``metadata.json``.
+
+    Best-effort: a filesystem hiccup must not fail project creation (the DB row
+    is the source of truth; the folder is recreated lazily by the trainer).
+    """
+    try:
+        settings.ensure_project_dirs(project.id)
+        meta = {
+            "id": project.id,
+            "name": project.name,
+            "kind": project.kind,
+            "base_model_repo": project.base_model_repo,
+            "language": project.language,
+            "architecture": project.default_train_config.get("architecture"),
+            "train_config": {k: v for k, v in project.default_train_config.items()
+                             if k != "architecture"},
+            "created_at": project.created_at.isoformat(),
+        }
+        settings.project_metadata_path(project.id).write_text(
+            json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    except OSError:
+        pass
 
 
 def get_project(db: Session, project_id: str) -> Project | None:
@@ -104,6 +147,13 @@ def delete_project(db: Session, project: Project) -> None:
     db.delete(project)
     db.commit()
 
+    # Remove the project's on-disk home (checkpoints, corpus, metadata). Best-
+    # effort — the DB delete already succeeded, so a stale folder is harmless.
+    try:
+        shutil.rmtree(settings.project_dir(project.id), ignore_errors=True)
+    except OSError:
+        pass
+
 
 def _default_train_config() -> dict:
     """QLoRA defaults tuned for an 8–14B model on a 16 GB RTX 5080.
@@ -138,4 +188,44 @@ def _default_train_config() -> dict:
         # min_seq_len, up to oom_max_retries times.
         "oom_max_retries": 4,
         "min_seq_len": 256,
+    }
+
+
+def _default_scratch_config() -> dict:
+    """Defaults for FULL training of a from-scratch model on a 16 GB card.
+
+    Unlike QLoRA this trains *every* parameter, so it leans on paged training
+    (weights/optimizer/activations streamed GPU→CPU→disk) by default and a paged
+    8-bit optimizer to keep optimizer state off the GPU. See
+    ``backend/scripts/train_scratch.py``.
+    """
+    return {
+        "epochs": 1,
+        "learning_rate": 3e-4,
+        "lr_scheduler_type": "cosine",
+        "warmup_ratio": 0.02,
+        "weight_decay": 0.1,
+        "max_seq_len": 1024,
+        "per_device_batch_size": 1,
+        "grad_accum_steps": 16,
+        "optim": "paged_adamw_8bit",
+        "gradient_checkpointing": True,
+        "bf16": True,
+        "seed": 42,
+        # ── embedding layer ──
+        "embedding_mode": "new",            # "new" | "pretrained"
+        "embedding_source_repo": None,      # HF repo to load embed weights from
+        # embeddings are always trainable in from-scratch (full training).
+        # ── corpus (HF dataset ingested as training text) ──
+        "dataset_repo": None,
+        "dataset_config": None,
+        "dataset_split": "train",
+        "text_field": "text",
+        "max_train_samples": 5000,          # cap so a first run is tractable
+        # ── GPU paged training ──
+        "paged_training": True,
+        "gpu_budget_gb": max(1, settings.gpu_vram_gb - 1),
+        "cpu_offload_gb": 96,
+        "oom_max_retries": 3,
+        "min_seq_len": 128,
     }

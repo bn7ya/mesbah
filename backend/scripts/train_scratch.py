@@ -35,6 +35,41 @@ from pathlib import Path
 from typing import Any
 
 
+def _disable_httpx_brotli() -> None:
+    """Stop huggingface_hub's httpx client from negotiating brotli.
+
+    huggingface_hub 1.x downloads via httpx, whose brotli decoder is buggy and
+    raises mid-stream (``DecodingError: brotli: ... can_accept_more_data() is
+    False``) on some dataset/model files. Registering a client factory that
+    advertises only gzip/deflate makes the Hub serve a non-brotli encoding, so the
+    broken decoder is never used. Fully guarded — a no-op on older hub (requests).
+    """
+    try:
+        import httpx
+        from huggingface_hub.utils import _http as hf_http
+    except Exception:
+        return
+    if not hasattr(hf_http, "set_client_factory"):
+        return
+
+    def _factory() -> "httpx.Client":
+        hooks = []
+        base = getattr(hf_http, "hf_request_event_hook", None)
+        if base is not None:
+            hooks.append(base)
+
+        def _no_brotli(request):  # drop 'br' so httpx never invokes brotlicffi
+            request.headers["accept-encoding"] = "gzip, deflate"
+        hooks.append(_no_brotli)
+        return httpx.Client(event_hooks={"request": hooks},
+                            follow_redirects=True, timeout=None)
+
+    try:
+        hf_http.set_client_factory(_factory)
+    except Exception:
+        pass
+
+
 # ── config / io helpers (same contract as train_qlora.py) ──────────────────────
 def load_config(path: str) -> dict[str, Any]:
     return json.loads(Path(path).read_text(encoding="utf-8"))
@@ -309,32 +344,94 @@ def _no_split(model) -> list[str]:
 
 
 # ── data ────────────────────────────────────────────────────────────────────────
-def load_corpus(cfg: dict[str, Any], tokenizer, metrics: MetricsWriter):
-    from datasets import load_dataset
+def _dataset_specs(cfg: dict[str, Any]) -> list[dict[str, Any]]:
+    """Normalize the config into a list of corpus specs (multi-dataset aware).
+
+    Prefers ``cfg["datasets"]`` (a list of ``{repo, config, split, text_field,
+    max_samples}``); falls back to the legacy single ``dataset_repo`` fields so
+    older projects keep working.
+    """
+    out: list[dict[str, Any]] = []
+    for d in (cfg.get("datasets") or []):
+        repo = (d or {}).get("repo")
+        if not repo:
+            continue
+        out.append({
+            "repo": repo,
+            "config": d.get("config") or None,
+            "split": d.get("split") or "train",
+            "text_field": d.get("text_field") or "text",
+            "max_samples": int(d.get("max_samples") or 0),
+        })
+    if out:
+        return out
     repo = cfg.get("dataset_repo")
-    if not repo:
-        raise ValueError("From-scratch training needs a corpus: set dataset_repo "
-                         "(search HuggingFace datasets in the wizard).")
-    ds = load_dataset(repo, cfg.get("dataset_config") or None,
-                      split=cfg.get("dataset_split") or "train",
-                      cache_dir=cfg.get("hf_cache"))
-    field = cfg.get("text_field") or "text"
-    if field not in ds.column_names:
-        # fall back to the first column that looks like text
-        field = next((c for c in ds.column_names), None)
-        if field is None:
-            raise ValueError(f"Dataset {repo} has no columns to train on.")
+    if repo:
+        return [{
+            "repo": repo, "config": cfg.get("dataset_config") or None,
+            "split": cfg.get("dataset_split") or "train",
+            "text_field": cfg.get("text_field") or "text", "max_samples": 0,
+        }]
+    return []
+
+
+def load_corpus(cfg: dict[str, Any], tokenizer, metrics: MetricsWriter):
+    from datasets import concatenate_datasets, load_dataset
+    specs = _dataset_specs(cfg)
+    if not specs:
+        raise ValueError("From-scratch training needs at least one corpus: set "
+                         "datasets (search HuggingFace datasets in the wizard).")
+    seq = int(cfg.get("max_seq_len", 1024))
+
+    parts = []
+    failures: list[tuple[str, str]] = []
+    for spec in specs:
+        # One bad corpus (typo, private/gated, removed, network) must NOT kill the
+        # whole run — skip it with a loud metric and train on what loaded.
+        try:
+            ds = load_dataset(spec["repo"], spec["config"], split=spec["split"],
+                              cache_dir=cfg.get("hf_cache"))
+            field = spec["text_field"]
+            if field not in ds.column_names:
+                # fall back to the first column that looks like text
+                field = next((c for c in ds.column_names), None)
+                if field is None:
+                    raise ValueError("dataset has no columns to train on")
+            if spec["max_samples"] and len(ds) > spec["max_samples"]:
+                ds = ds.select(range(spec["max_samples"]))
+
+            # ``_field`` default-arg pins the loop var so each map closes over its own.
+            def _tok(batch, _field=field):
+                return tokenizer([str(t) for t in batch[_field]], truncation=True, max_length=seq)
+
+            ds = ds.map(_tok, batched=True, remove_columns=ds.column_names)
+            parts.append(ds)
+            metrics.emit({"event": "dataset", "repo": spec["repo"], "text_field": field,
+                          "num_examples": len(ds)})
+        except Exception as exc:  # noqa: BLE001 — resilience over strictness
+            msg = (str(exc).strip().splitlines() or [""])[0][:200] or type(exc).__name__
+            failures.append((spec["repo"], msg))
+            metrics.emit({"event": "dataset_error", "repo": spec["repo"], "error": msg})
+
+    if not parts:
+        detail = "; ".join(f"{r} ({m})" for r, m in failures) or "unknown error"
+        raise ValueError(
+            f"No dataset could be loaded — check the repo ids / your connection. "
+            f"Failed: {detail}")
+    if failures:
+        metrics.emit({"event": "notice", "message":
+                      f"Skipped {len(failures)} dataset(s) that failed to load: "
+                      + ", ".join(r for r, _ in failures)})
+
+    # Concatenate every corpus, shuffle so they interleave, then apply the global
+    # cap (max_train_samples) over the combined set.
+    ds = parts[0] if len(parts) == 1 else concatenate_datasets(parts)
+    ds = ds.shuffle(seed=int(cfg.get("seed", 42)))
     cap = int(cfg.get("max_train_samples") or 0)
     if cap and len(ds) > cap:
         ds = ds.select(range(cap))
-    seq = int(cfg.get("max_seq_len", 1024))
-
-    def _tok(batch):
-        return tokenizer([str(t) for t in batch[field]], truncation=True, max_length=seq)
-
-    ds = ds.map(_tok, batched=True, remove_columns=ds.column_names)
-    metrics.emit({"event": "dataset", "repo": repo, "text_field": field,
-                  "num_examples": len(ds)})
+    metrics.emit({"event": "dataset_total", "num_datasets": len(parts),
+                  "num_skipped": len(failures), "num_examples": len(ds)})
     return ds
 
 
@@ -450,6 +547,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", required=True)
     cfg = load_config(ap.parse_args().config)
+
+    _disable_httpx_brotli()   # avoid the httpx/brotli download crash (hub 1.x)
 
     metrics = MetricsWriter(cfg["metrics_path"])
     print(f"[train_scratch] starting run {cfg.get('run_id')} arch={cfg.get('architecture')}",

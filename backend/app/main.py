@@ -32,6 +32,11 @@ from .features.versioning.router import router as versioning_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    # Work around the huggingface_hub 1.x httpx/brotli download crash so model
+    # and dataset downloads (and training subprocesses, which set it themselves)
+    # don't fail mid-stream. Best-effort; see core/hf_http.py.
+    from .core.hf_http import disable_httpx_brotli
+    disable_httpx_brotli()
     # Recover any training run orphaned by a previous worker (uvicorn --reload
     # swap or a crash): its monitor thread died, so the run is stuck "running"
     # even though the subprocess finished. Re-adopt + finalize from status.json.

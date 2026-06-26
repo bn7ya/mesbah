@@ -15,20 +15,40 @@ from ...core.models import Session as ChatSession
 from .engine import engine
 
 
-def resolve_weights(db: Session, project: Project, version_id: Optional[str]) -> tuple[str, Optional[str]]:
-    """Return ``(base_id, adapter_path)`` for the requested version.
+def resolve_weights(
+    db: Session, project: Project, version_id: Optional[str]
+) -> tuple[str, Optional[str], bool]:
+    """Return ``(model_id, adapter_path, load_in_4bit)`` for the requested version.
 
-    ``version_id`` falls back to the project's active version, then to the base
-    model with no adapter.
+    ``version_id`` falls back to the project's active version.
+
+    Two kinds, by ``project.kind``:
+      * **finetune** — ``model_id`` is the pretrained base (local path preferred),
+        loaded 4-bit; a non-base version contributes its LoRA ``adapter_path``.
+      * **scratch** — there is no real base repo (``base_model_repo`` is a synthetic
+        tag like ``scratch/qwen3_moe``). A trained version's ``adapter_path`` is a
+        **full standalone checkpoint** (config + weights + tokenizer), so we load it
+        directly as the model — no adapter, no 4-bit quant. An untrained scratch
+        project (only the base node) has no weights → raise a clear error.
     """
-    base_id = project.base_model_local_path or project.base_model_repo
     vid = version_id or project.active_version_id
+
+    if project.kind == "scratch":
+        version = db.get(ModelVersion, vid) if vid else None
+        if not version or version.is_base or not version.adapter_path:
+            raise ValueError(
+                "This from-scratch model has not been trained yet — run a training "
+                "job to produce a checkpoint before chatting."
+            )
+        return version.adapter_path, None, False
+
+    base_id = project.base_model_local_path or project.base_model_repo
     adapter_path: Optional[str] = None
     if vid:
         version = db.get(ModelVersion, vid)
         if version and not version.is_base:
             adapter_path = version.adapter_path
-    return base_id, adapter_path
+    return base_id, adapter_path, True
 
 
 def build_messages(session: ChatSession, history: list[Message], user_text: str) -> list[dict[str, str]]:
@@ -72,8 +92,8 @@ def generate_reply(
     user_text: str,
     **gen_kwargs: Any,
 ) -> str:
-    base_id, adapter_path = resolve_weights(db, project, session.model_version_id)
-    engine.ensure_loaded(base_id, adapter_path)
+    base_id, adapter_path, load_in_4bit = resolve_weights(db, project, session.model_version_id)
+    engine.ensure_loaded(base_id, adapter_path, load_in_4bit=load_in_4bit)
     messages = build_messages(session, history, user_text)
     return engine.generate(messages, **gen_kwargs)
 
@@ -86,8 +106,8 @@ def stream_reply(
     user_text: str,
     **gen_kwargs: Any,
 ) -> Iterator[str]:
-    base_id, adapter_path = resolve_weights(db, project, session.model_version_id)
-    engine.ensure_loaded(base_id, adapter_path)
+    base_id, adapter_path, load_in_4bit = resolve_weights(db, project, session.model_version_id)
+    engine.ensure_loaded(base_id, adapter_path, load_in_4bit=load_in_4bit)
     messages = build_messages(session, history, user_text)
     yield from engine.stream(messages, **gen_kwargs)
 
@@ -103,7 +123,7 @@ def stream_correction(
     **gen_kwargs: Any,
 ) -> Iterator[str]:
     """Stream a self-correction of ``draft`` using the SAME model as the chat."""
-    base_id, adapter_path = resolve_weights(db, project, session.model_version_id)
-    engine.ensure_loaded(base_id, adapter_path)
+    base_id, adapter_path, load_in_4bit = resolve_weights(db, project, session.model_version_id)
+    engine.ensure_loaded(base_id, adapter_path, load_in_4bit=load_in_4bit)
     messages = build_correction_messages(correction_prompt, prior, draft, trigger)
     yield from engine.stream(messages, **gen_kwargs)

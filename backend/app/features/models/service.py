@@ -7,6 +7,7 @@ fill smoothly).
 """
 from __future__ import annotations
 
+import os
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -191,6 +192,85 @@ def list_local() -> list[dict[str, Any]]:
     return out
 
 
+# ── HuggingFace access token ──────────────────────────────────────────────────
+# The token lets us search/download gated or private repos. It can come from the
+# environment (MISBAH_HF_TOKEN / .env) or be set at runtime from the GUI, in which
+# case we persist it to a file under data/ and re-apply it on every boot. A
+# UI-set file token takes precedence over the env value.
+
+def _hf_token_path() -> Path:
+    return settings.data_dir / "hf_token"
+
+
+def _apply_token_runtime(token: Optional[str]) -> None:
+    """Make ``token`` the effective one for this process (settings + HF env)."""
+    settings.hf_token = token or None
+    for var in ("HF_TOKEN", "HUGGING_FACE_HUB_TOKEN"):
+        if token:
+            os.environ[var] = token
+        else:
+            os.environ.pop(var, None)
+
+
+def apply_persisted_token() -> None:
+    """Load a previously GUI-set token from disk and apply it. Best-effort; called
+    at import so the very first request already has the token."""
+    try:
+        path = _hf_token_path()
+        if path.exists():
+            tok = path.read_text(encoding="utf-8").strip()
+            if tok:
+                _apply_token_runtime(tok)
+    except OSError:
+        pass
+
+
+def whoami(token: Optional[str] = None) -> dict[str, Any]:
+    """Validate a token against the Hub. Raises on an invalid/missing token."""
+    from huggingface_hub import HfApi
+    return HfApi(token=token or settings.hf_token).whoami()
+
+
+def hf_token_status() -> dict[str, Any]:
+    """Report whether a token is configured (no network call, no secret leak)."""
+    tok = settings.hf_token
+    source = "file" if _hf_token_path().exists() else ("env" if tok else None)
+    return {
+        "configured": bool(tok),
+        "source": source,
+        # A short, non-sensitive hint so the user can tell which token is set.
+        "hint": (tok[:3] + "…" + tok[-4:]) if tok and len(tok) > 8 else None,
+    }
+
+
+def set_hf_token(token: str) -> dict[str, Any]:
+    """Validate, persist and apply a HuggingFace token. Returns the username."""
+    token = (token or "").strip()
+    if not token:
+        raise ValueError("Empty token.")
+    info = whoami(token)                       # raises if the token is invalid
+    settings.data_dir.mkdir(parents=True, exist_ok=True)
+    path = _hf_token_path()
+    path.write_text(token, encoding="utf-8")
+    try:
+        os.chmod(path, 0o600)                  # best-effort: keep the secret private
+    except OSError:
+        pass
+    _apply_token_runtime(token)
+    return {"ok": True, "username": info.get("name") or info.get("fullname")}
+
+
+def clear_hf_token() -> dict[str, Any]:
+    """Remove a GUI-set token (reverts to the env value if any)."""
+    try:
+        _hf_token_path().unlink(missing_ok=True)
+    except OSError:
+        pass
+    # Re-apply whatever the environment provides (None clears it entirely).
+    _apply_token_runtime(os.environ.get("MISBAH_HF_TOKEN"))
+    return {"ok": True}
+
+
 def search(query: str, limit: int = 20) -> list[dict[str, Any]]:
     try:
         from huggingface_hub import HfApi
@@ -302,15 +382,26 @@ def dataset_preview(repo_id: str, config: str | None = None,
         chosen = config or next(iter(configs), None)
         features = (configs.get(chosen, {}) or {}).get("features", {}) if chosen else {}
         columns = list(features.keys())
-        text_fields = [c for c in columns
-                       if str(features[c].get("dtype", "")).startswith("string")
-                       or c.lower() in ("text", "content", "document", "input", "prompt")]
+        string_cols = [c for c in columns
+                       if str(features[c].get("dtype", "")).startswith("string")]
+        # Rank string columns so the UI's auto-pick lands on the real body text,
+        # not a short metadata column (author, title, dynasty, label, …). Known
+        # body-text names first (by preference order), then any other string col.
+        preferred = ("text", "content", "document", "body", "article", "passage",
+                     "sentence", "verse_text", "poem", "story", "review",
+                     "output", "completion", "response", "answer",
+                     "prompt", "instruction", "input", "question")
+        ranked = [c for name in preferred for c in string_cols if c.lower() == name]
+        ranked += [c for c in string_cols if c not in ranked]
         return {"repo_id": repo_id, "configs": list(configs.keys()),
                 "config": chosen, "columns": columns,
-                "text_field_candidates": text_fields or columns}
+                "text_field_candidates": ranked or columns}
     except Exception as exc:  # pragma: no cover - network dependent
         return {"repo_id": repo_id, "configs": [], "config": None,
                 "columns": [], "text_field_candidates": [], "note": str(exc)}
 
 
 manager = DownloadManager()
+
+# Re-apply a GUI-set token (if any) so the first search/download is authenticated.
+apply_persisted_token()

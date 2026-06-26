@@ -146,6 +146,8 @@ def chat(session_id: str, req: ChatRequest, db: Session = Depends(get_session)):
         )
     except ModelRuntimeUnavailable as exc:
         raise HTTPException(503, str(exc)) from exc
+    except ValueError as exc:  # e.g. untrained from-scratch model
+        raise HTTPException(409, str(exc)) from exc
     assistant_msg = service.add_message(db, session_id, MessageRole.assistant, reply)
     service.touch_session(db, s)
     return [MessageRead(**user_msg.model_dump()), MessageRead(**assistant_msg.model_dump())]
@@ -214,6 +216,8 @@ def regenerate(session_id: str, db: Session = Depends(get_session)):
         reply = inference_service.generate_reply(db, project, s, hist, last_user.content)
     except ModelRuntimeUnavailable as exc:
         raise HTTPException(503, str(exc)) from exc
+    except ValueError as exc:  # e.g. untrained from-scratch model
+        raise HTTPException(409, str(exc)) from exc
     msg = service.add_message(db, session_id, MessageRole.assistant, reply)
     return MessageRead(**msg.model_dump())
 

@@ -216,24 +216,35 @@ function freshSpec(): ArchitectureSpec {
           </div>
         }
 
-        <!-- ── SCRATCH step 3: corpus ── -->
+        <!-- ── SCRATCH step 3: corpus (one or more datasets) ── -->
         @if (step() === 3 && kind() === 'scratch') {
           <div class="form">
-            <label class="lbl">مجموعة بيانات التدريب <code class="ltr">corpus</code> من <code class="ltr">HuggingFace</code></label>
+            <label class="lbl">مجموعات بيانات التدريب <code class="ltr">corpora</code> من <code class="ltr">HuggingFace</code> <span class="dim">(يمكن اختيار أكثر من واحدة)</span></label>
             <div class="search glass">
               <i class="pi pi-search"></i>
               <input pInputText class="grow ltr" [(ngModel)]="dsQuery" (keydown.enter)="searchDs()" placeholder="ابحث: wikitext, arabic, oscar…" />
               <p-button label="بحث" [loading]="dsSearching()" (onClick)="searchDs()" />
             </div>
             @for (r of dsResults(); track r.repo_id) {
-              <button class="hit glass" [class.sel]="dsRepo() === r.repo_id" type="button" (click)="pickDs(r.repo_id)">
+              <button class="hit glass" [class.sel]="hasDs(r.repo_id)" type="button" (click)="addDs(r.repo_id)">
                 <span class="ltr repo">{{ r.repo_id }}</span>
-                @if (r.downloads) { <span class="dim ltr small">↓ {{ r.downloads }}</span> }
+                <span class="dim ltr small">
+                  @if (r.downloads) { ↓ {{ r.downloads }} }
+                  {{ hasDs(r.repo_id) ? '· مضافة ✓' : '· + إضافة' }}
+                </span>
               </button>
             }
-            @if (dsRepo()) {
-              <label class="lbl ltr">text field</label>
-              <p-select [options]="dsColumns()" [(ngModel)]="textField" [editable]="true" appendTo="body" styleClass="w-full" placeholder="text" />
+            @if (dsSelected().length) {
+              <label class="lbl">المختارة <span class="dim">({{ dsSelected().length }})</span></label>
+              @for (d of dsSelected(); track d.repo) {
+                <div class="dsel glass">
+                  <span class="ltr repo grow">{{ d.repo }}</span>
+                  <input pInputText class="ltr tf" [(ngModel)]="d.text_field" placeholder="text field" title="text field" />
+                  <button class="x" type="button" (click)="removeDs(d.repo)" title="إزالة"><i class="pi pi-times"></i></button>
+                </div>
+              }
+            } @else {
+              <p class="muted small">ابحث ثم اضغط على مجموعة لإضافتها. عند اختيار عدّة مجموعات تُدمج وتُخلط قبل التدريب (حدّ <code class="ltr">max_train_samples</code> يُطبَّق على المجموع).</p>
             }
           </div>
         }
@@ -322,6 +333,11 @@ function freshSpec(): ArchitectureSpec {
     .hit { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; padding: 0.55rem 0.7rem; cursor: pointer; border: 1px solid var(--glass-border); }
     .hit:hover { border-color: var(--accent); }
     .hit.sel { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 40%, transparent); }
+    .dsel { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.6rem; border: 1px solid var(--glass-border); }
+    .dsel .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dsel .tf { width: 130px; font-size: 0.78rem; }
+    .dsel .x { background: none; border: none; color: var(--err); cursor: pointer; padding: 0.2rem; display: inline-flex; }
+    .dsel .x:hover { color: var(--text-1); }
     .radios { display: flex; flex-direction: column; gap: 0.5rem; }
     .radio { display: flex; align-items: center; gap: 0.5rem; }
     .small { font-size: 0.78rem; }
@@ -367,13 +383,11 @@ export class ProjectsPage implements OnInit {
   readonly embSource = signal('');
   readonly embArch = signal<{ hidden_size: number | null; vocab_size: number | null } | null>(null);
 
-  // scratch — corpus
+  // scratch — corpus (one or more datasets)
   dsQuery = '';
   readonly dsResults = signal<DatasetHit[]>([]);
   readonly dsSearching = signal(false);
-  readonly dsRepo = signal('');
-  readonly dsColumns = signal<string[]>([]);
-  textField = 'text';
+  readonly dsSelected = signal<{ repo: string; text_field: string }[]>([]);
 
   // scratch — gpu
   paged = true;
@@ -417,7 +431,7 @@ export class ProjectsPage implements OnInit {
     this.spec.set(freshSpec());
     this.estimate.set(null);
     this.embMode = 'new'; this.embSource.set(''); this.embArch.set(null); this.embResults.set([]); this.embQuery = '';
-    this.dsRepo.set(''); this.dsResults.set([]); this.dsColumns.set([]); this.dsQuery = ''; this.textField = 'text';
+    this.dsSelected.set([]); this.dsResults.set([]); this.dsQuery = '';
     this.paged = true; this.cpuOffload = 96; this.offloadTarget = 'auto';
     this.dialog.set(true);
   }
@@ -441,8 +455,8 @@ export class ProjectsPage implements OnInit {
   canCreate(): boolean {
     if (!this.form.name.trim() && this.kind() === 'finetune') return false;
     if (this.kind() === 'finetune') return !!this.form.base_model_repo;
-    // scratch: name + a corpus chosen
-    return !!this.form.name.trim() && !!this.dsRepo();
+    // scratch: name + at least one corpus chosen
+    return !!this.form.name.trim() && this.dsSelected().length > 0;
   }
 
   // ── architecture estimate ──
@@ -495,14 +509,25 @@ export class ProjectsPage implements OnInit {
       error: () => this.dsSearching.set(false),
     });
   }
-  pickDs(repo: string): void {
-    this.dsRepo.set(repo);
+  hasDs(repo: string): boolean { return this.dsSelected().some((d) => d.repo === repo); }
+  removeDs(repo: string): void { this.dsSelected.update((l) => l.filter((d) => d.repo !== repo)); }
+  addDs(repo: string): void {
+    if (this.hasDs(repo)) { this.removeDs(repo); return; }   // toggle off if re-clicked
+    this.dsSelected.update((l) => [...l, { repo, text_field: 'text' }]);
+    // Suggest a real text field for this dataset (best-effort).
     this.api.datasetColumns(repo).subscribe({
       next: (c) => {
-        this.dsColumns.set(c.text_field_candidates?.length ? c.text_field_candidates : c.columns);
-        if (this.dsColumns().length) this.textField = this.dsColumns()[0];
+        const cand = (c.text_field_candidates?.length ? c.text_field_candidates : c.columns) ?? [];
+        if (cand.length) {
+          this.dsSelected.update((l) =>
+            l.map((d) => (d.repo === repo && d.text_field === 'text'
+              ? { ...d, text_field: cand[0] } : d)));
+        } else {
+          this.toast.add({ severity: 'warn', summary: 'تعذّر قراءة أعمدة المجموعة',
+            detail: `${repo} — تأكّد من صحة المعرّف.`, life: 7000 });
+        }
       },
-      error: () => this.dsColumns.set([]),
+      error: () => {},
     });
   }
 
@@ -527,6 +552,10 @@ export class ProjectsPage implements OnInit {
 
   private scratchBody() {
     const spec = this.spec();
+    const datasets = this.dsSelected().map((d) => ({
+      repo: d.repo, config: null, split: 'train', text_field: d.text_field || 'text',
+    }));
+    const first = datasets[0];
     return {
       name: this.form.name,
       description: this.form.description,
@@ -537,9 +566,11 @@ export class ProjectsPage implements OnInit {
         architecture: spec,
         embedding_mode: this.embMode,
         embedding_source_repo: this.embMode === 'pretrained' ? this.embSource() : null,
-        dataset_repo: this.dsRepo(),
+        // Multi-dataset corpus; legacy single fields mirror the first for back-compat.
+        datasets,
+        dataset_repo: first?.repo ?? '',
         dataset_split: 'train',
-        text_field: this.textField || 'text',
+        text_field: first?.text_field ?? 'text',
         max_seq_len: Math.min(spec.max_position_embeddings, 1024),
         paged_training: this.paged,
         offload_target: this.offloadTarget,

@@ -17,10 +17,16 @@ streams live metrics, and appends a `ModelVersion` on success.
 - **finetune** — `prepare()` builds the dataset from approved chat turns (as
   before), now written under `projects/<pid>/data/`; QLoRA via `train_qlora.py`.
 - **scratch** — no chat dataset; the config carries an `architecture` spec, an
-  `embedding_mode` (`new`/`pretrained`, always trainable), a `dataset_repo`
-  corpus, and offload knobs. `train_scratch.py` builds the model from config
-  (random init), ingests the HF dataset, and full-trains. Checkpoints land in
+  `embedding_mode` (`new`/`pretrained`, always trainable), a **`datasets`** corpus
+  list, and offload knobs. `train_scratch.py` builds the model from config (random
+  init), ingests the corpora, and full-trains. Checkpoints land in
   `projects/<pid>/versions/<run_id>/`.
+  - **Multiple datasets:** `default_train_config["datasets"]` is a list of
+    `{repo, config, split, text_field, max_samples?}`. `load_corpus` loads +
+    tokenizes each (per-dataset `max_samples` cap), `concatenate_datasets`,
+    shuffles (seed), then applies the global `max_train_samples` cap. The legacy
+    single `dataset_repo`/`text_field` fields still work (fallback in
+    `_dataset_specs`) and are mirrored from the first entry by the UI.
 
 ## ZeRO-Infinity (scratch + paged_training)
 To train a model larger than 16 GB **to completion**, the scratch trainer uses

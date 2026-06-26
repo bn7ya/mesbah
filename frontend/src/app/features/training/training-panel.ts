@@ -1,9 +1,10 @@
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { InputNumberModule } from 'primeng/inputnumber';
+import { SelectModule } from 'primeng/select';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ChartModule } from 'primeng/chart';
 import { ProgressBarModule } from 'primeng/progressbar';
@@ -11,7 +12,7 @@ import { TagModule } from 'primeng/tag';
 import { DialogModule } from 'primeng/dialog';
 import { MessageService } from 'primeng/api';
 import { Api } from '../../core/api';
-import { MetricPoint, RunStatus, TrainingRun } from '../../core/types';
+import { ArchitectureSpec, FeasibilityEstimate, MetricPoint, RunStatus, TrainingRun } from '../../core/types';
 
 const STATUS_SEV: Record<RunStatus, 'secondary' | 'info' | 'success' | 'danger' | 'warn'> = {
   pending: 'secondary', preparing: 'info', running: 'info',
@@ -22,43 +23,144 @@ const STATUS_AR: Record<RunStatus, string> = {
   completed: 'مكتمل', failed: 'فشل', cancelled: 'أُلغي',
 };
 
+const FAMILIES = [
+  { label: 'Qwen3 (dense)', value: 'qwen3' },
+  { label: 'Llama (dense)', value: 'llama' },
+  { label: 'Mistral (dense)', value: 'mistral' },
+  { label: 'Qwen3-MoE (experts)', value: 'qwen3_moe' },
+  { label: 'Mixtral (experts)', value: 'mixtral' },
+];
+const VERDICT_AR: Record<string, string> = {
+  fits_vram: 'يسع الـ VRAM', cpu_offload: 'إزاحة إلى RAM', nvme_offload: 'إزاحة إلى NVMe',
+  exceeds_disk: 'يتجاوز القرص',
+};
+const VERDICT_SEV: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
+  fits_vram: 'success', cpu_offload: 'info', nvme_offload: 'warn', exceeds_disk: 'danger',
+};
+
 @Component({
   selector: 'app-training-panel',
-  imports: [DatePipe, DecimalPipe, FormsModule, ButtonModule, InputTextModule, InputNumberModule, CheckboxModule, ChartModule, ProgressBarModule, TagModule, DialogModule],
+  imports: [DatePipe, DecimalPipe, FormsModule, ButtonModule, InputTextModule, InputNumberModule, SelectModule, CheckboxModule, ChartModule, ProgressBarModule, TagModule, DialogModule],
   template: `
     <div class="grid">
       <!-- left: launcher + runs -->
       <div class="left">
-        <div class="launch glass">
-          <h3 class="h">جلسة تدريب جديدة</h3>
-          <p class="muted sub">يبني مجموعة بيانات من الردود المعتمدة ثم يضبط النموذج بـ <code class="ltr">QLoRA</code> انطلاقًا من الإصدار النشط.</p>
-          <div class="ds">
-            <i class="pi pi-database"></i>
-            <span>{{ preview() }} مثال جاهز للتدريب</span>
-            <button class="link" (click)="openPreview()" type="button">معاينة</button>
-          </div>
-          <input pInputText [(ngModel)]="runName" placeholder="اسم الإصدار، مثال: v1 — تحسين اللهجة" class="full" />
-          <label class="chk"><p-checkbox [(ngModel)]="onlyCorrected" [binary]="true" /> الأمثلة المُصحّحة فقط</label>
+        @if (isScratch()) {
+          <!-- ── from-scratch full-training launcher ── -->
+          <div class="launch glass">
+            <h3 class="h">تدريب النموذج من الصفر</h3>
+            <p class="muted sub">تدريب <strong>كامل</strong> لكل المعاملات من أوزان عشوائية على كوربوس من <code class="ltr">HuggingFace</code> — لا يعتمد على الردود المعتمدة. أول تدريب يُنتج الإصدار الأول.</p>
 
-          <button class="adv-toggle" (click)="showAdvanced.set(!showAdvanced())" type="button">
-            <i class="pi" [class.pi-chevron-down]="showAdvanced()" [class.pi-chevron-left]="!showAdvanced()"></i>
-            إعدادات <code class="ltr">QLoRA</code> المتقدمة
-          </button>
-          @if (showAdvanced()) {
-            <div class="adv">
-              <div class="f"><label>epochs</label><p-inputNumber [(ngModel)]="hyper.epochs" [min]="1" [max]="20" [showButtons]="true" /></div>
-              <div class="f"><label>learning_rate</label><p-inputNumber [(ngModel)]="hyper.learning_rate" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="6" [step]="0.00005" /></div>
-              <div class="f"><label>lora_r</label><p-inputNumber [(ngModel)]="hyper.lora_r" [min]="4" [max]="128" [step]="4" [showButtons]="true" /></div>
-              <div class="f"><label>lora_alpha</label><p-inputNumber [(ngModel)]="hyper.lora_alpha" [min]="4" [max]="256" [step]="4" [showButtons]="true" /></div>
-              <div class="f"><label>max_seq_len</label><p-inputNumber [(ngModel)]="hyper.max_seq_len" [min]="512" [max]="32768" [step]="512" /></div>
-              <div class="f"><label>grad_accum_steps</label><p-inputNumber [(ngModel)]="hyper.grad_accum_steps" [min]="1" [max]="64" [showButtons]="true" /></div>
-              <p class="adv-note dim small">القيم الافتراضية مضبوطة لـ <code class="ltr">RTX 5080 / 16 GB</code>. ارفع <code class="ltr">max_seq_len</code> بحذر.</p>
+            <!-- datasets (one or more) -->
+            <div class="ds-block">
+              <div class="search glass">
+                <i class="pi pi-search"></i>
+                <input pInputText class="grow ltr" [(ngModel)]="dsQuery" (keydown.enter)="searchDs()" placeholder="أضف مجموعة بيانات: wikitext, arabic…" />
+                <p-button label="بحث" [loading]="dsSearching()" (onClick)="searchDs()" />
+              </div>
+              @for (r of dsResults(); track r.repo_id) {
+                <button class="hit glass" [class.sel]="hasDs(r.repo_id)" type="button" (click)="addDs(r.repo_id)">
+                  <span class="ltr repo">{{ r.repo_id }}</span>
+                  <span class="dim ltr small">{{ hasDs(r.repo_id) ? '✓ مضافة' : '+ إضافة' }}</span>
+                </button>
+              }
+              @for (d of datasets(); track d.repo) {
+                <div class="dsel glass">
+                  <span class="ltr repo grow">{{ d.repo }}</span>
+                  <input pInputText class="ltr tf" [(ngModel)]="d.text_field" placeholder="text field" title="text field" />
+                  <button class="x" type="button" (click)="removeDs(d.repo)" title="إزالة"><i class="pi pi-times"></i></button>
+                </div>
+              }
+              @if (datasets().length) {
+                <span class="dim small">{{ datasets().length }} مجموعة · حتى {{ scratchHyper.max_train_samples }} عيّنة (إجمالي بعد الدمج والخلط)</span>
+              } @else {
+                <span class="warn-x small">لم تُختَر مجموعة بيانات — أضف واحدة على الأقل.</span>
+              }
             </div>
-          }
 
-          <p-button label="ابدأ التدريب" icon="pi pi-bolt" [disabled]="preview() === 0 || starting()" [loading]="starting()" (onClick)="start()" styleClass="full" />
-          @if (preview() === 0) { <p class="warn-t"><i class="pi pi-info-circle"></i> صحّح واعتمد بعض الردود أولًا.</p> }
-        </div>
+            <input pInputText [(ngModel)]="runName" placeholder="اسم الإصدار، مثال: v1 — التدريب الأولي" class="full" />
+
+            <!-- feasibility readout -->
+            <div class="est" [class.bad]="!archValid()">
+              @if (estimating()) { <span class="muted small">…تقدير الحجم</span> }
+              @else if (estimate(); as e) {
+                <div class="est-row">
+                  <span class="small">الحجم: <strong class="ltr">{{ e.params.total_params_human }}</strong></span>
+                  @if (isMoe()) { <span class="dim ltr small">active {{ e.params.active_params_human }}</span> }
+                  <p-tag [value]="verdictAr(e.memory.verdict)" [severity]="verdictSev(e.memory.verdict)" />
+                </div>
+              }
+              @for (w of archErrors(); track w) { <p class="warn-line">⛔ {{ w }}</p> }
+            </div>
+
+            <button class="adv-toggle" (click)="showAdvanced.set(!showAdvanced())" type="button">
+              <i class="pi" [class.pi-chevron-down]="showAdvanced()" [class.pi-chevron-left]="!showAdvanced()"></i>
+              المعمارية وإعدادات التدريب
+            </button>
+            @if (showAdvanced()) {
+              <div class="adv">
+                @if (spec(); as s) {
+                  <div class="f"><label class="ltr">family</label>
+                    <p-select [options]="families" optionLabel="label" optionValue="value"
+                              [(ngModel)]="s.family" (ngModelChange)="onArchChange()" appendTo="body" styleClass="sel" /></div>
+                  <div class="f"><label class="ltr">layers</label><p-inputNumber [(ngModel)]="s.num_hidden_layers" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" /></div>
+                  <div class="f"><label class="ltr">hidden_size</label><p-inputNumber [(ngModel)]="s.hidden_size" (ngModelChange)="onArchChange()" [min]="8" [step]="64" [showButtons]="true" /></div>
+                  <div class="f"><label class="ltr">attn heads</label><p-inputNumber [(ngModel)]="s.num_attention_heads" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" /></div>
+                  <div class="f"><label class="ltr">kv heads</label><p-inputNumber [(ngModel)]="s.num_key_value_heads" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" /></div>
+                  <div class="f"><label class="ltr">vocab_size</label><p-inputNumber [(ngModel)]="s.vocab_size" (ngModelChange)="onArchChange()" [min]="1" [step]="1000" /></div>
+                  <div class="f"><label class="ltr">context</label><p-inputNumber [(ngModel)]="s.max_position_embeddings" (ngModelChange)="onArchChange()" [min]="8" [step]="512" /></div>
+                  @if (isMoe()) {
+                    <div class="f"><label class="ltr">num_experts</label><p-inputNumber [(ngModel)]="s.num_experts" (ngModelChange)="onArchChange()" [min]="1" [max]="1024" [showButtons]="true" /></div>
+                    <div class="f"><label class="ltr">experts/token</label><p-inputNumber [(ngModel)]="s.num_experts_per_tok" (ngModelChange)="onArchChange()" [min]="1" [max]="1024" [showButtons]="true" /></div>
+                  }
+                }
+                <div class="sep"></div>
+                <div class="f"><label class="ltr">epochs</label><p-inputNumber [(ngModel)]="scratchHyper.epochs" [min]="1" [max]="50" [showButtons]="true" /></div>
+                <div class="f"><label class="ltr">learning_rate</label><p-inputNumber [(ngModel)]="scratchHyper.learning_rate" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="6" [step]="0.00005" /></div>
+                <div class="f"><label class="ltr">max_seq_len</label><p-inputNumber [(ngModel)]="scratchHyper.max_seq_len" [min]="128" [max]="32768" [step]="128" /></div>
+                <div class="f"><label class="ltr">max_train_samples</label><p-inputNumber [(ngModel)]="scratchHyper.max_train_samples" [min]="1" [step]="500" /></div>
+                <div class="f"><label class="ltr">grad_accum_steps</label><p-inputNumber [(ngModel)]="scratchHyper.grad_accum_steps" [min]="1" [max]="64" [showButtons]="true" /></div>
+              </div>
+            }
+
+            <p-button label="ابدأ التدريب" icon="pi pi-bolt" [disabled]="!canStartScratch()" [loading]="starting()" (onClick)="startScratch()" styleClass="full" />
+            @if (!datasets().length) { <p class="warn-t"><i class="pi pi-info-circle"></i> أضف مجموعة بيانات واحدة على الأقل أعلاه.</p> }
+            @else if (!archValid()) { <p class="warn-t"><i class="pi pi-info-circle"></i> صحّح المعمارية أعلاه قبل بدء التدريب.</p> }
+            <p class="adv-note dim small">⚠ الإزاحة <code class="ltr">ZeRO-Infinity</code> تُكمل التدريب رغم محدودية الذاكرة، لكنها لا توفّر الحوسبة/البيانات التي يحتاجها نموذج حقيقي — توقّع نموذجًا تجريبيًا وزمنًا طويلًا.</p>
+          </div>
+        } @else {
+          <!-- ── QLoRA fine-tune launcher ── -->
+          <div class="launch glass">
+            <h3 class="h">جلسة تدريب جديدة</h3>
+            <p class="muted sub">يبني مجموعة بيانات من الردود المعتمدة ثم يضبط النموذج بـ <code class="ltr">QLoRA</code> انطلاقًا من الإصدار النشط.</p>
+            <div class="ds">
+              <i class="pi pi-database"></i>
+              <span>{{ preview() }} مثال جاهز للتدريب</span>
+              <button class="link" (click)="openPreview()" type="button">معاينة</button>
+            </div>
+            <input pInputText [(ngModel)]="runName" placeholder="اسم الإصدار، مثال: v1 — تحسين اللهجة" class="full" />
+            <label class="chk"><p-checkbox [(ngModel)]="onlyCorrected" [binary]="true" /> الأمثلة المُصحّحة فقط</label>
+
+            <button class="adv-toggle" (click)="showAdvanced.set(!showAdvanced())" type="button">
+              <i class="pi" [class.pi-chevron-down]="showAdvanced()" [class.pi-chevron-left]="!showAdvanced()"></i>
+              إعدادات <code class="ltr">QLoRA</code> المتقدمة
+            </button>
+            @if (showAdvanced()) {
+              <div class="adv">
+                <div class="f"><label>epochs</label><p-inputNumber [(ngModel)]="hyper.epochs" [min]="1" [max]="20" [showButtons]="true" /></div>
+                <div class="f"><label>learning_rate</label><p-inputNumber [(ngModel)]="hyper.learning_rate" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="6" [step]="0.00005" /></div>
+                <div class="f"><label>lora_r</label><p-inputNumber [(ngModel)]="hyper.lora_r" [min]="4" [max]="128" [step]="4" [showButtons]="true" /></div>
+                <div class="f"><label>lora_alpha</label><p-inputNumber [(ngModel)]="hyper.lora_alpha" [min]="4" [max]="256" [step]="4" [showButtons]="true" /></div>
+                <div class="f"><label>max_seq_len</label><p-inputNumber [(ngModel)]="hyper.max_seq_len" [min]="512" [max]="32768" [step]="512" /></div>
+                <div class="f"><label>grad_accum_steps</label><p-inputNumber [(ngModel)]="hyper.grad_accum_steps" [min]="1" [max]="64" [showButtons]="true" /></div>
+                <p class="adv-note dim small">القيم الافتراضية مضبوطة لـ <code class="ltr">RTX 5080 / 16 GB</code>. ارفع <code class="ltr">max_seq_len</code> بحذر.</p>
+              </div>
+            }
+
+            <p-button label="ابدأ التدريب" icon="pi pi-bolt" [disabled]="preview() === 0 || starting()" [loading]="starting()" (onClick)="start()" styleClass="full" />
+            @if (preview() === 0) { <p class="warn-t"><i class="pi pi-info-circle"></i> صحّح واعتمد بعض الردود أولًا.</p> }
+          </div>
+        }
 
         <div class="runs glass">
           <h3 class="h">السجلّ</h3>
@@ -143,7 +245,26 @@ const STATUS_AR: Record<RunStatus, string> = {
     .adv .f { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
     .adv .f label { font-family: var(--font-mono); font-size: 0.76rem; color: var(--text-2); }
     .adv .f :host ::ng-deep .p-inputnumber-input, .adv .f ::ng-deep input { width: 120px; }
+    .adv .sep { height: 1px; background: var(--glass-border); margin: 0.2rem 0; }
+    :host ::ng-deep .adv .f .sel { width: 150px; min-width: 0; }
     .adv-note { margin: 0.2rem 0 0; }
+    .est { padding: 0.55rem 0.7rem; border-radius: 10px; background: var(--glass-bg); border: 1px solid var(--glass-border); margin-bottom: 0.7rem; display: flex; flex-direction: column; gap: 0.35rem; }
+    .est.bad { border-color: color-mix(in srgb, var(--err) 55%, transparent); background: rgba(251,113,133,0.06); }
+    .est-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+    .warn-line { font-size: 0.76rem; margin: 0; color: var(--err); }
+    .warn-x { color: var(--warn); }
+    .ds-block { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.7rem; }
+    .ds-block .search { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.6rem; }
+    .ds-block .search .grow { flex: 1; border: none; background: transparent; min-width: 0; }
+    .hit { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; padding: 0.45rem 0.6rem; cursor: pointer; border: 1px solid var(--glass-border); border-radius: 10px; background: transparent; color: var(--text-1); }
+    .hit:hover { border-color: var(--accent); }
+    .hit.sel { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 40%, transparent); }
+    .hit .repo, .dsel .repo { font-weight: 700; font-size: 0.82rem; }
+    .dsel { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.6rem; border: 1px solid var(--glass-border); border-radius: 10px; }
+    .dsel .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dsel .tf { width: 120px; font-size: 0.76rem; }
+    .dsel .x { background: none; border: none; color: var(--err); cursor: pointer; padding: 0.2rem; display: inline-flex; }
+    .dsel .x:hover { color: var(--text-1); }
     .ex { padding: 0.6rem 0.8rem; margin-bottom: 0.6rem; display: flex; flex-direction: column; gap: 0.35rem; }
     .ex-msg { display: flex; gap: 0.5rem; font-size: 0.82rem; }
     .ex-msg.t { border-top: 1px dashed var(--glass-border); padding-top: 0.35rem; }
@@ -196,9 +317,48 @@ export class TrainingPanel implements OnInit, OnDestroy {
     epochs: 3, learning_rate: 0.0002, lora_r: 16, lora_alpha: 32,
     max_seq_len: 4096, grad_accum_steps: 16,
   };
+
+  // ── from-scratch state (kind === 'scratch') ──
+  readonly families = FAMILIES;
+  readonly isScratch = signal(false);
+  readonly spec = signal<ArchitectureSpec | null>(null);
+  readonly datasets = signal<{ repo: string; text_field: string }[]>([]);
+  dsQuery = '';
+  readonly dsResults = signal<any[]>([]);
+  readonly dsSearching = signal(false);
+  readonly estimate = signal<FeasibilityEstimate | null>(null);
+  readonly estimating = signal(false);
+  private projectConfig: Record<string, any> = {};   // full default_train_config (round-tripped on save)
+  scratchHyper: { epochs: number; learning_rate: number; max_seq_len: number; max_train_samples: number; grad_accum_steps: number } = {
+    epochs: 1, learning_rate: 0.0003, max_seq_len: 1024, max_train_samples: 5000, grad_accum_steps: 16,
+  };
+  readonly isMoe = computed(() => ['qwen3_moe', 'mixtral'].includes(this.spec()?.family ?? ''));
+  /** Structural checks the trainer enforces; each failure blocks the run. */
+  readonly archErrors = computed<string[]>(() => {
+    const s = this.spec();
+    if (!s) return [];
+    const errs: string[] = [];
+    const kv = s.num_key_value_heads || s.num_attention_heads;
+    if (s.num_attention_heads && s.hidden_size % s.num_attention_heads) {
+      errs.push(`hidden_size (${s.hidden_size}) غير قابل للقسمة على attn heads (${s.num_attention_heads}).`);
+    }
+    if (kv && s.num_attention_heads % kv) {
+      errs.push(`attn heads (${s.num_attention_heads}) يجب أن يكون مضاعفًا لـ kv heads (${kv}).`);
+    }
+    if (this.isMoe() && s.num_experts_per_tok > s.num_experts) {
+      errs.push(`experts/token (${s.num_experts_per_tok}) لا يمكن أن يتجاوز num_experts (${s.num_experts}).`);
+    }
+    return errs;
+  });
+  readonly archValid = computed(() => this.archErrors().length === 0);
+  readonly canStartScratch = computed(
+    () => this.isScratch() && this.datasets().length > 0 && this.archValid() && !this.starting(),
+  );
+
   private socket: WebSocket | null = null;
   private steps: number[] = [];
   private losses: number[] = [];
+  private estTimer: any = null;
 
   chartOptions = {
     responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
@@ -211,15 +371,126 @@ export class TrainingPanel implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadRuns();
-    this.loadPreview();
-    // Prefill the advanced editor from the project's tuned defaults.
     this.api.getProject(this.projectId).subscribe((p) => {
-      const c = (p.default_train_config ?? {}) as Record<string, number>;
-      const h = this.hyper as unknown as Record<string, number>;
-      for (const k of Object.keys(h)) if (c[k] != null) h[k] = c[k];
+      const c = (p.default_train_config ?? {}) as Record<string, any>;
+      this.projectConfig = c;
+      if (p.kind === 'scratch') {
+        this.isScratch.set(true);
+        if (c['architecture']) this.spec.set({ ...(c['architecture'] as ArchitectureSpec) });
+        this.datasets.set(this.readDatasets(c));
+        const sh = this.scratchHyper as unknown as Record<string, number>;
+        for (const k of Object.keys(sh)) if (c[k] != null) sh[k] = c[k];
+        this.onArchChange();
+      } else {
+        this.loadPreview();
+        const h = this.hyper as unknown as Record<string, number>;
+        for (const k of Object.keys(h)) if (c[k] != null) h[k] = c[k];
+      }
     });
   }
-  ngOnDestroy(): void { this.socket?.close(); }
+  ngOnDestroy(): void { this.socket?.close(); clearTimeout(this.estTimer); }
+
+  verdictAr(v: string): string { return VERDICT_AR[v] ?? v; }
+  verdictSev(v: string) { return VERDICT_SEV[v] ?? 'info'; }
+
+  /** Read the corpus list from a config, falling back to the legacy single repo. */
+  private readDatasets(c: Record<string, any>): { repo: string; text_field: string }[] {
+    const list = Array.isArray(c['datasets']) ? c['datasets'] : [];
+    const out = list
+      .filter((d: any) => d && d.repo)
+      .map((d: any) => ({ repo: d.repo, text_field: d.text_field || 'text' }));
+    if (out.length) return out;
+    if (c['dataset_repo']) return [{ repo: c['dataset_repo'], text_field: (c['text_field'] as string) || 'text' }];
+    return [];
+  }
+
+  hasDs(repo: string): boolean { return this.datasets().some((d) => d.repo === repo); }
+  removeDs(repo: string): void { this.datasets.update((l) => l.filter((d) => d.repo !== repo)); }
+  addDs(repo: string): void {
+    if (this.hasDs(repo)) { this.removeDs(repo); return; }   // toggle off if re-clicked
+    this.datasets.update((l) => [...l, { repo, text_field: 'text' }]);
+    this.api.datasetColumns(repo).subscribe({
+      next: (col) => {
+        const cand = (col.text_field_candidates?.length ? col.text_field_candidates : col.columns) ?? [];
+        if (cand.length) {
+          this.datasets.update((l) =>
+            l.map((d) => (d.repo === repo && d.text_field === 'text' ? { ...d, text_field: cand[0] } : d)));
+        } else {
+          this.toast.add({ severity: 'warn', summary: 'تعذّر قراءة أعمدة المجموعة',
+            detail: `${repo} — تأكّد من صحة المعرّف؛ قد تُتخطّى أثناء التدريب.`, life: 7000 });
+        }
+      },
+      error: () => {},
+    });
+  }
+  searchDs(): void {
+    if (!this.dsQuery.trim()) return;
+    this.dsSearching.set(true);
+    this.api.searchDatasets(this.dsQuery.trim()).subscribe({
+      next: (r) => { this.dsResults.set(r); this.dsSearching.set(false); },
+      error: () => { this.dsSearching.set(false); this.toast.add({ severity: 'error', summary: 'تعذّر البحث' }); },
+    });
+  }
+
+  /** Debounced architecture feasibility estimate (params + memory verdict). */
+  onArchChange(): void {
+    const cur = this.spec();
+    if (!cur) return;
+    // ngModel mutates the spec object in place; re-set the signal with a fresh
+    // reference so the archErrors/isMoe/archValid computeds recompute.
+    const s = { ...cur };
+    this.spec.set(s);
+    clearTimeout(this.estTimer);
+    this.estimating.set(true);
+    this.estTimer = setTimeout(() => {
+      this.api.estimateArchitecture(s).subscribe({
+        next: (e) => { this.estimate.set(e); this.estimating.set(false); },
+        error: () => this.estimating.set(false),
+      });
+    }, 350);
+  }
+
+  /** Persist the (possibly edited) architecture + knobs, then launch a full run. */
+  startScratch(): void {
+    if (!this.canStartScratch()) return;
+    this.starting.set(true);
+    const datasets = this.datasets().map((d) => ({
+      repo: d.repo, config: null, split: 'train', text_field: d.text_field || 'text',
+    }));
+    const first = datasets[0];
+    const merged = {
+      ...this.projectConfig,
+      architecture: this.spec(),
+      // Multi-dataset corpus; legacy single fields mirror the first for back-compat.
+      datasets,
+      dataset_repo: first?.repo ?? '',
+      text_field: first?.text_field ?? 'text',
+      epochs: this.scratchHyper.epochs,
+      learning_rate: this.scratchHyper.learning_rate,
+      max_seq_len: this.scratchHyper.max_seq_len,
+      max_train_samples: this.scratchHyper.max_train_samples,
+      grad_accum_steps: this.scratchHyper.grad_accum_steps,
+    };
+    this.api.updateProject(this.projectId, { default_train_config: merged }).subscribe({
+      next: () => {
+        this.projectConfig = merged;
+        const name = this.runName.trim() || `run-${this.runs().length + 1}`;
+        this.api.createRun(this.projectId, { name, autostart: true, hyperparams: {} }).subscribe({
+          next: (r) => {
+            this.starting.set(false);
+            this.runName = '';
+            this.loadRuns();
+            if (r.status === 'failed') {
+              this.toast.add({ severity: 'error', summary: 'تعذّر بدء التدريب', detail: r.error ?? '', life: 7000 });
+            }
+            this.watch(r);
+          },
+          error: (e) => { this.starting.set(false); this.toast.add({ severity: 'error', summary: 'خطأ', detail: String(e?.error?.detail ?? e.message) }); },
+        });
+      },
+      error: (e) => { this.starting.set(false); this.toast.add({ severity: 'error', summary: 'تعذّر حفظ المعمارية', detail: String(e?.error?.detail ?? e.message) }); },
+    });
+  }
 
   loadPreview(): void { this.api.datasetPreview(this.projectId).subscribe((p) => this.preview.set(p.count)); }
   loadRuns(): void {
@@ -288,6 +559,16 @@ export class TrainingPanel implements OnInit, OnDestroy {
   }
 
   private onMetric(p: MetricPoint): void {
+    if (p.event === 'dataset_error') {
+      // A single corpus failed to load (typo / private / removed) — the run
+      // continues on the rest. Surface which one so the user can fix it.
+      this.toast.add({
+        severity: 'warn', summary: 'تم تخطّي مجموعة بيانات',
+        detail: `${(p as any).repo}: ${(p as any).error ?? ''}`,
+        life: 8000,
+      });
+      return;
+    }
     if (p.event === 'oom_retry') {
       // GPU ran out of memory → backend halved seq_len and is retrying. Reset
       // the curve so the new attempt draws cleanly.

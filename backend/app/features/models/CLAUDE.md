@@ -4,10 +4,20 @@ Discover, curate, and download base models.
 
 ## Files
 - `router.py` — `/api/models/curated|search|local|download|download/status`, plus
-  `datasets/search`, `datasets/preview`, and `inspect`.
+  `datasets/search`, `datasets/preview`, `inspect`, and `hf-token` (GET/POST/DELETE).
 - `service.py` — curated list, HF model+dataset search, local registry, background
   downloads, `inspect_model` (reads a repo's `config.json`), `dataset_preview`
-  (columns via the datasets-server HTTP API).
+  (columns via the datasets-server HTTP API), and HF-token persistence.
+
+## HuggingFace token (GUI-settable)
+- `GET /hf-token` → `{configured, source: env|file|null, hint}` (never the secret).
+- `POST /hf-token {token}` → validates via `whoami` (400 if invalid), persists to
+  `data/hf_token` (chmod 600), applies to `settings.hf_token` + `HF_TOKEN`/
+  `HUGGING_FACE_HUB_TOKEN` env so search/download authenticate immediately.
+- `DELETE /hf-token` → removes the file, reverts to the env value.
+- `apply_persisted_token()` runs at import so the first request is authenticated.
+  A UI-set file token takes precedence over `MISBAH_HF_TOKEN`. **Search still uses
+  the new `huggingface_hub` 1.x API — `sort="downloads"`, no `direction` arg.**
 
 ## New discovery endpoints
 - `GET /datasets/search?query=` — HF dataset search (the training-corpus picker).
@@ -32,3 +42,9 @@ Discover, curate, and download base models.
 - Local models live in `data/models/<repo__with__double__underscore>`; the path
   encoding (`/` → `__`) is shared between `start` and `status`.
 - All heavy imports are lazy; the endpoints work before `requirements-ml.txt`.
+- **httpx/brotli download crash:** huggingface_hub 1.x downloads via httpx, whose
+  brotli decoder raises mid-stream (`DecodingError: brotli … can_accept_more_data()
+  is False`). `core/hf_http.py::disable_httpx_brotli()` (called in `main.py`
+  lifespan; the trainers register the same factory in their `main()`) makes the
+  client advertise only `gzip, deflate` so the Hub never serves brotli. Don't
+  re-enable brotli. `HF_HUB_ENABLE_HF_TRANSFER` is **dead** in hub 1.x (warns only).

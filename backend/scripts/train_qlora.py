@@ -30,6 +30,36 @@ from pathlib import Path
 from typing import Any
 
 
+def _disable_httpx_brotli() -> None:
+    """Avoid the huggingface_hub 1.x httpx/brotli download crash (see
+    ``app/core/hf_http.py``): advertise only gzip/deflate so the Hub never serves
+    a brotli body to httpx's buggy decoder. Fully guarded; no-op on older hub."""
+    try:
+        import httpx
+        from huggingface_hub.utils import _http as hf_http
+    except Exception:
+        return
+    if not hasattr(hf_http, "set_client_factory"):
+        return
+
+    def _factory():
+        hooks = []
+        base = getattr(hf_http, "hf_request_event_hook", None)
+        if base is not None:
+            hooks.append(base)
+
+        def _no_brotli(request):
+            request.headers["accept-encoding"] = "gzip, deflate"
+        hooks.append(_no_brotli)
+        return httpx.Client(event_hooks={"request": hooks},
+                            follow_redirects=True, timeout=None)
+
+    try:
+        hf_http.set_client_factory(_factory)
+    except Exception:
+        pass
+
+
 # ── config / io helpers ───────────────────────────────────────────────────────
 def load_config(path: str) -> dict[str, Any]:
     return json.loads(Path(path).read_text(encoding="utf-8"))
@@ -366,6 +396,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", required=True)
     cfg = load_config(ap.parse_args().config)
+
+    _disable_httpx_brotli()   # avoid the httpx/brotli download crash (hub 1.x)
 
     metrics = MetricsWriter(cfg["metrics_path"])
     print(f"[train_qlora] starting run {cfg.get('run_id')} base={cfg['base_model']}", flush=True)

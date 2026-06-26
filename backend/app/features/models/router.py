@@ -13,6 +13,34 @@ class DownloadRequest(BaseModel):
     repo_id: str
 
 
+class HfTokenRequest(BaseModel):
+    token: str
+
+
+@router.get("/hf-token")
+def hf_token_status():
+    """Whether a HuggingFace token is configured (never returns the secret)."""
+    return service.hf_token_status()
+
+
+@router.post("/hf-token")
+def set_hf_token(req: HfTokenRequest):
+    """Validate against the Hub, then persist + apply the token. 400 if invalid."""
+    try:
+        return service.set_hf_token(req.token)
+    except Exception as exc:  # noqa: BLE001 — surface a clean validation error
+        msg = str(exc)
+        if "401" in msg or "invalid" in msg.lower() or "unauthorized" in msg.lower():
+            raise HTTPException(400, "Invalid HuggingFace token — check it and retry.")
+        raise HTTPException(400, f"Could not set token: {msg}")
+
+
+@router.delete("/hf-token")
+def clear_hf_token():
+    """Remove a GUI-set token (reverts to the environment value, if any)."""
+    return service.clear_hf_token()
+
+
 @router.get("/curated")
 def curated():
     """Recommended base models for the new-project picker."""

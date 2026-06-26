@@ -50,6 +50,12 @@ export class Api {
   localModels(): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/models/local`); }
   downloadModel(repo_id: string): Observable<any> { return this.http.post(`${API_BASE}/models/download`, { repo_id }); }
   downloadStatus(repo_id: string): Observable<any> { return this.http.get(`${API_BASE}/models/download/status`, { params: { repo_id } }); }
+  // HuggingFace access token (never returns the secret; status reports config only)
+  hfTokenStatus(): Observable<{ configured: boolean; source: string | null; hint: string | null }> {
+    return this.http.get<any>(`${API_BASE}/models/hf-token`);
+  }
+  setHfToken(token: string): Observable<{ ok: boolean; username: string }> { return this.http.post<any>(`${API_BASE}/models/hf-token`, { token }); }
+  clearHfToken(): Observable<{ ok: boolean }> { return this.http.delete<any>(`${API_BASE}/models/hf-token`); }
 
   // ── architect (from-scratch model design) ──
   estimateArchitecture(spec: ArchitectureSpec): Observable<FeasibilityEstimate> {

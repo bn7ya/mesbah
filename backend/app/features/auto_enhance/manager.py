@@ -166,11 +166,11 @@ class AutoEnhanceManager:
                 with DBSession(db_engine, expire_on_commit=False) as db:
                     loop = db.get(AutoEnhanceLoop, loop_id)
                     project = db.get(Project, loop.project_id)
-                    base_id, adapter_path = resolve_weights(db, project, None)
+                    base_id, adapter_path, load_in_4bit = resolve_weights(db, project, None)
                     loop_session = service.create_loop_session(db, project, g)
                     session_id = loop_session.id
 
-                self._ensure_loaded_when_ready(base_id, adapter_path)
+                self._ensure_loaded_when_ready(base_id, adapter_path, load_in_4bit)
 
                 summary = {"generation": g, "approved": 0, "total": 0, "score_sums": {}}
                 for t in range(1, turns + 1):
@@ -365,7 +365,8 @@ class AutoEnhanceManager:
         training_manager.cancel(run_id)
         return None
 
-    def _ensure_loaded_when_ready(self, base_id: str, adapter_path: Optional[str]) -> None:
+    def _ensure_loaded_when_ready(self, base_id: str, adapter_path: Optional[str],
+                                  load_in_4bit: bool = True) -> None:
         """Load the model, waiting out a lingering training freeze (race-safe).
 
         After a generation's training run, the monitor thread sets the run
@@ -376,7 +377,7 @@ class AutoEnhanceManager:
         deadline = time.time() + 60
         while not self._cancelled():
             try:
-                inference_engine.ensure_loaded(base_id, adapter_path)
+                inference_engine.ensure_loaded(base_id, adapter_path, load_in_4bit=load_in_4bit)
                 return
             except ModelRuntimeUnavailable:
                 if not inference_engine.frozen or time.time() > deadline:

@@ -31,6 +31,9 @@ class LoadedModel:
     adapter_path: Optional[str]
     model: Any
     tokenizer: Any
+    # 4-bit (NF4) for big pretrained bases; False for small from-scratch
+    # checkpoints, which we load as full bf16 models.
+    quantized: bool = True
 
 
 class InferenceEngine:
@@ -125,19 +128,21 @@ class InferenceEngine:
         return self._frozen
 
     # ── load / unload ───────────────────────────────────────────────────────────
-    def ensure_loaded(self, base_id: str, adapter_path: Optional[str] = None) -> LoadedModel:
+    def ensure_loaded(self, base_id: str, adapter_path: Optional[str] = None,
+                      load_in_4bit: bool = True) -> LoadedModel:
         with self._lock:
             if self._frozen:
                 raise ModelRuntimeUnavailable(
                     "Inference is paused while a training run is using the GPU."
                 )
-            if self._loaded and self._loaded.base_id == base_id:
+            if (self._loaded and self._loaded.base_id == base_id
+                    and self._loaded.quantized == load_in_4bit):
                 if self._loaded.adapter_path != adapter_path:
                     self._swap_adapter(adapter_path)
                 return self._loaded
             self.unload()
             try:
-                self._loaded = self._load(base_id, adapter_path)
+                self._loaded = self._load(base_id, adapter_path, load_in_4bit)
             except BaseException:
                 # A failed/partial load can leave tensors on the GPU — free them
                 # so VRAM isn't leaked (otherwise the next attempt OOMs).
@@ -166,7 +171,8 @@ class InferenceEngine:
         except Exception:
             pass
 
-    def _load(self, base_id: str, adapter_path: Optional[str]) -> LoadedModel:
+    def _load(self, base_id: str, adapter_path: Optional[str],
+              load_in_4bit: bool = True) -> LoadedModel:
         try:
             torch, AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig = self._import_ml()
         except Exception as exc:  # pragma: no cover - env dependent
@@ -180,23 +186,23 @@ class InferenceEngine:
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
-        quant = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_compute_dtype=torch.bfloat16,
-        )
-        # Pin the whole 4-bit model on one GPU — "auto" can offload to CPU/disk,
-        # which bitsandbytes 4-bit rejects. Single-GPU box → force GPU 0.
+        # Pin the whole model on one GPU — "auto" can offload to CPU/disk, which
+        # bitsandbytes 4-bit rejects. Single-GPU box → force GPU 0.
         device_map = {"": torch.cuda.current_device()} if torch.cuda.is_available() else "cpu"
-        model = AutoModelForCausalLM.from_pretrained(
-            base_id,
-            quantization_config=quant,
-            dtype=torch.bfloat16,
-            device_map=device_map,
-            attn_implementation="sdpa",
-            trust_remote_code=True,
+        load_kwargs: dict[str, Any] = dict(
+            dtype=torch.bfloat16, device_map=device_map,
+            attn_implementation="sdpa", trust_remote_code=True,
         )
+        if load_in_4bit:
+            # Big pretrained base: 4-bit NF4 keeps a 14B near ~9–10 GB.
+            load_kwargs["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_compute_dtype=torch.bfloat16,
+            )
+        # else: small from-scratch checkpoint → load full bf16 (no quant, no adapter).
+        model = AutoModelForCausalLM.from_pretrained(base_id, **load_kwargs)
         model.eval()
 
         if adapter_path:
@@ -204,7 +210,8 @@ class InferenceEngine:
             model = PeftModel.from_pretrained(model, adapter_path)
             model.eval()
 
-        return LoadedModel(base_id=base_id, adapter_path=adapter_path, model=model, tokenizer=tokenizer)
+        return LoadedModel(base_id=base_id, adapter_path=adapter_path, model=model,
+                           tokenizer=tokenizer, quantized=load_in_4bit)
 
     def _swap_adapter(self, adapter_path: Optional[str]) -> None:
         """Detach the current adapter and attach a new one without reloading base."""
@@ -230,9 +237,23 @@ class InferenceEngine:
             self._loaded = self._load(base_id, adapter_path)
 
     # ── generation ──────────────────────────────────────────────────────────────
+    @staticmethod
+    def _plain_prompt(messages: list[dict[str, str]]) -> str:
+        """Flatten a conversation to raw text for a base LM with no chat template.
+
+        From-scratch models trained on a raw corpus (e.g. wikitext) have no
+        notion of user/assistant roles — they only continue text. We join the
+        message contents so the model has context to continue from.
+        """
+        return "\n\n".join(m.get("content", "") for m in messages if m.get("content"))
+
     def _build_inputs(self, messages: list[dict[str, str]], enable_thinking: Optional[bool] = None):
         assert self._loaded is not None
         tok = self._loaded.tokenizer
+        # Base LM (no chat template) → plain text continuation, no role formatting.
+        if not getattr(tok, "chat_template", None):
+            text = self._plain_prompt(messages)
+            return tok(text, return_tensors="pt").to(self._loaded.model.device)
         kwargs: dict[str, Any] = {"tokenize": False, "add_generation_prompt": True}
         # Hybrid-reasoning models (e.g. Qwen3) emit <think>…</think> before the
         # answer. Callers that need clean/structured output (the auto-enhance

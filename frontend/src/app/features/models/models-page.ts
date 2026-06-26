@@ -21,6 +21,34 @@ interface DownloadState { status: string; bytes_done: number; local_path?: strin
         <p class="muted sub">ابحث في <code class="ltr">HuggingFace</code>، نزّل النموذج الأساسي محليًا، وتابع التقدّم.</p>
       </div>
 
+      <!-- HuggingFace token -->
+      <div class="token glass">
+        <div class="token-top">
+          <div class="token-info">
+            <i class="pi pi-key"></i>
+            <span class="tlabel">رمز <code class="ltr">HuggingFace</code> <span class="dim small">(للنماذج/المجموعات الخاصة والمحمية)</span></span>
+            @if (tokenStatus(); as st) {
+              @if (st.configured) {
+                <p-tag [value]="(st.source === 'env' ? 'من البيئة' : 'مضبوط') + (st.hint ? ' · ' + st.hint : '')" severity="success" icon="pi pi-check" />
+              } @else {
+                <p-tag value="غير مضبوط" severity="warn" />
+              }
+            }
+          </div>
+          <a class="ltr small open-hf" href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener">
+            افتح صفحة الرموز ↗
+          </a>
+        </div>
+        <div class="token-row">
+          <input pInputText type="password" class="grow ltr" [(ngModel)]="token" placeholder="hf_xxx… الصق الرمز هنا" (keydown.enter)="saveToken()" />
+          <p-button label="حفظ" icon="pi pi-save" [loading]="savingToken()" [disabled]="!token.trim()" (onClick)="saveToken()" />
+          @if (tokenStatus()?.configured) {
+            <p-button label="مسح" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="clearToken()" />
+          }
+        </div>
+        <p class="muted small token-help">سجّل الدخول في <code class="ltr">HuggingFace</code> عبر الزر أعلاه، أنشئ رمزًا بصلاحية <code class="ltr">read</code>، ثم الصقه هنا. يُحفظ محليًا على جهازك ويُستخدم في البحث والتنزيل.</p>
+      </div>
+
       <!-- search -->
       <div class="search glass">
         <i class="pi pi-search"></i>
@@ -135,6 +163,15 @@ interface DownloadState { status: string; bytes_done: number; local_path?: strin
     .page { max-width: 1000px; margin: 0 auto; padding: 0.4rem 0.6rem; }
     .title { font-size: 1.9rem; margin: 0 0 0.2rem; }
     .sub { margin: 0 0 1.2rem; font-size: 0.9rem; }
+    .token { padding: 0.8rem 1rem; margin-bottom: 1.3rem; display: flex; flex-direction: column; gap: 0.6rem; }
+    .token-top { display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; flex-wrap: wrap; }
+    .token-info { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .token-info .tlabel { font-weight: 600; }
+    .token-row { display: flex; align-items: center; gap: 0.6rem; }
+    .token-row .grow { flex: 1; min-width: 0; }
+    .open-hf { color: var(--accent); text-decoration: none; white-space: nowrap; }
+    .open-hf:hover { text-decoration: underline; }
+    .token-help { margin: 0; }
     .search { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.9rem; margin-bottom: 1.3rem; }
     .search .grow { flex: 1; }
     .block { margin-bottom: 1.5rem; }
@@ -168,9 +205,42 @@ export class ModelsPage implements OnInit {
   query = '';
   private timers: Record<string, any> = {};
 
+  // HuggingFace token
+  readonly tokenStatus = signal<{ configured: boolean; source: string | null; hint: string | null } | null>(null);
+  readonly savingToken = signal(false);
+  token = '';
+
   ngOnInit(): void {
     this.api.curatedModels().subscribe((m) => this.curated.set(m));
     this.refreshLocal();
+    this.refreshToken();
+  }
+
+  refreshToken(): void { this.api.hfTokenStatus().subscribe((s) => this.tokenStatus.set(s)); }
+
+  saveToken(): void {
+    const t = this.token.trim();
+    if (!t) return;
+    this.savingToken.set(true);
+    this.api.setHfToken(t).subscribe({
+      next: (r) => {
+        this.savingToken.set(false);
+        this.token = '';
+        this.refreshToken();
+        this.toast.add({ severity: 'success', summary: 'تم حفظ الرمز', detail: r.username ? `مرحبًا ${r.username}` : '' });
+      },
+      error: (e) => {
+        this.savingToken.set(false);
+        this.toast.add({ severity: 'error', summary: 'رمز غير صالح', detail: String(e?.error?.detail ?? e.message), life: 7000 });
+      },
+    });
+  }
+
+  clearToken(): void {
+    this.api.clearHfToken().subscribe(() => {
+      this.refreshToken();
+      this.toast.add({ severity: 'info', summary: 'تم مسح الرمز' });
+    });
   }
 
   refreshLocal(): void { this.api.localModels().subscribe((l) => this.local.set(l)); }

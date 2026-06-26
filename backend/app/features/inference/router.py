@@ -65,14 +65,20 @@ def warmup(req: WarmupRequest, db: Session = Depends(get_session)):
         return {"warming": False, "reason": "training_in_progress"}
     if not engine.status().get("runtime_available"):
         return {"warming": False, "reason": "runtime_unavailable"}
-    if not project.base_model_local_path or not os.path.isdir(project.base_model_local_path):
-        return {"warming": False, "reason": "model_not_local"}
 
-    base_id, adapter_path = resolve_weights(db, project, req.version_id)
+    # Resolve the weights for this (project, version). For an untrained scratch
+    # project there is nothing to load yet.
+    try:
+        base_id, adapter_path, load_in_4bit = resolve_weights(db, project, req.version_id)
+    except ValueError:
+        return {"warming": False, "reason": "not_trained"}
+    # Only warm from local weights — never trigger a multi-GB HuggingFace download.
+    if not os.path.isdir(base_id):
+        return {"warming": False, "reason": "model_not_local"}
 
     def _load():
         try:
-            engine.ensure_loaded(base_id, adapter_path)
+            engine.ensure_loaded(base_id, adapter_path, load_in_4bit=load_in_4bit)
         except Exception:
             pass
 
@@ -85,13 +91,16 @@ def generate(req: GenerateRequest, db: Session = Depends(get_session)):
     project = db.get(Project, req.project_id)
     if not project:
         raise HTTPException(404, "Project not found")
-    base_id, adapter_path = resolve_weights(db, project, req.version_id)
+    try:
+        base_id, adapter_path, load_in_4bit = resolve_weights(db, project, req.version_id)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from exc
     messages = []
     if req.system_prompt:
         messages.append({"role": "system", "content": req.system_prompt})
     messages.append({"role": "user", "content": req.prompt})
     try:
-        engine.ensure_loaded(base_id, adapter_path)
+        engine.ensure_loaded(base_id, adapter_path, load_in_4bit=load_in_4bit)
         text = engine.generate(
             messages,
             max_new_tokens=req.max_new_tokens,

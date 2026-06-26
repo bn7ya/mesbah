@@ -195,7 +195,9 @@ def search(query: str, limit: int = 20) -> list[dict[str, Any]]:
     try:
         from huggingface_hub import HfApi
         api = HfApi(token=settings.hf_token)
-        models = api.list_models(search=query, limit=limit, sort="downloads", direction=-1)
+        # huggingface_hub 1.x dropped the ``direction`` arg; sort="downloads"
+        # already returns most-downloaded first.
+        models = api.list_models(search=query, limit=limit, sort="downloads")
         return [{
             "repo_id": m.id,
             "downloads": getattr(m, "downloads", None),
@@ -219,7 +221,7 @@ def search_datasets(query: str, limit: int = 20) -> list[dict[str, Any]]:
     try:
         from huggingface_hub import HfApi
         api = HfApi(token=settings.hf_token)
-        ds = api.list_datasets(search=query, limit=limit, sort="downloads", direction=-1)
+        ds = api.list_datasets(search=query, limit=limit, sort="downloads")
         return [{
             "repo_id": d.id,
             "downloads": getattr(d, "downloads", None),

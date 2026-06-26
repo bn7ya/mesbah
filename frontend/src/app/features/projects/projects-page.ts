@@ -291,12 +291,17 @@ function freshSpec(): ArchitectureSpec {
     .stats { display: flex; gap: 0.9rem; font-size: 0.8rem; color: var(--text-2); flex-wrap: wrap; }
     .foot { font-size: 0.72rem; margin-top: auto; }
 
-    .wiz { min-height: 280px; }
+    .wiz { min-height: 280px; overflow-x: hidden; }
     .form { display: flex; flex-direction: column; gap: 0.55rem; }
     .lbl { font-weight: 600; margin-top: 0.4rem; display: block; }
-    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
-    .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; margin-top: 0.4rem; }
-    .grid4 :is(p-inputnumber, p-select) { width: 100%; }
+    /* minmax(0,1fr) lets columns shrink below their content's intrinsic width —
+       PrimeNG inputNumber/select otherwise overflow the dialog (horizontal scroll). */
+    .row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7rem; }
+    .grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; margin-top: 0.4rem; }
+    .grid4 :is(p-inputnumber, p-select), .row2 :is(p-inputnumber, p-select) { width: 100%; min-width: 0; }
+    :host ::ng-deep :is(.grid4, .row2) :is(.p-inputnumber, .p-select, .p-inputnumber-input, .p-select-label) {
+      width: 100%; min-width: 0; max-width: 100%;
+    }
     .kinds { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
     .kind { text-align: start; padding: 1.2rem; cursor: pointer; border: 1px solid var(--glass-border); display: flex; flex-direction: column; gap: 0.4rem; transition: all 0.15s ease; }
     .kind:hover { border-color: var(--accent); }

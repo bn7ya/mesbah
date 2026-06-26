@@ -31,20 +31,37 @@ def _set_sqlite_pragma(dbapi_conn, _record):  # pragma: no cover - infra glue
     cur.close()
 
 
-def _ensure_columns() -> None:
-    """Add columns that were introduced after a DB was first created.
+# Columns introduced *after* a table's first release. ``create_all`` only
+# creates missing *tables* — it never alters an existing one, and we have no
+# migration framework (single-user local studio). Each entry is
+# ``(table, column, DDL fragment)``; the fragment must carry a DEFAULT because
+# SQLite cannot add a NOT NULL column to a table that already has rows without
+# one. Append a line here whenever you add a column to ``core/models.py``.
+_ADDED_COLUMNS: list[tuple[str, str, str]] = [
+    ("sessions", "correction_prompt", "TEXT NOT NULL DEFAULT ''"),
+    ("projects", "kind", "TEXT NOT NULL DEFAULT 'finetune'"),
+]
 
-    ``create_all`` only creates *missing tables* — it never alters an existing
-    one, and we have no migration framework (single-user local studio). This
-    guard keeps an existing ``misbah.db`` usable without the user dropping data.
+
+def _ensure_columns() -> None:
+    """Bring an existing ``misbah.db`` up to the current model shape.
+
+    Adds any column from :data:`_ADDED_COLUMNS` that a pre-existing table is
+    missing, so an older DB keeps working without the user dropping data.
     """
     with engine.connect() as conn:
-        cols = {row[1] for row in conn.exec_driver_sql("PRAGMA table_info(sessions)")}
-        if "correction_prompt" not in cols:
-            conn.exec_driver_sql(
-                "ALTER TABLE sessions ADD COLUMN correction_prompt TEXT NOT NULL DEFAULT ''"
-            )
-            conn.commit()
+        for table, column, ddl in _ADDED_COLUMNS:
+            existing = {row[1] for row in
+                        conn.exec_driver_sql(f"PRAGMA table_info({table})")}
+            if not existing:
+                continue  # table doesn't exist yet — create_all will make it
+            if column not in existing:
+                conn.exec_driver_sql(
+                    f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
+        # Index for the (post-hoc) projects.kind column; harmless if it exists.
+        conn.exec_driver_sql(
+            "CREATE INDEX IF NOT EXISTS ix_projects_kind ON projects (kind)")
+        conn.commit()
 
 
 def init_db() -> None:

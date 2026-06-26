@@ -70,6 +70,23 @@ def _pid_alive(pid: Optional[int]) -> bool:
     return True
 
 
+class TrainingBusyError(RuntimeError):
+    """Raised when a run is asked to launch while another already owns the GPU.
+
+    A single-GPU box can only train one model at a time (CLAUDE.md: "one model
+    resident at a time"). Without this, two trainer subprocesses co-reside and
+    fight over VRAM until one OOMs — the failure this guard prevents.
+    """
+
+    def __init__(self, active_run_id: str) -> None:
+        self.active_run_id = active_run_id
+        super().__init__(
+            f"Another training run ({active_run_id}) is already using the GPU. "
+            "Only one run can train at a time on a single-GPU machine — wait for it "
+            "to finish or cancel it first."
+        )
+
+
 class TrainingManager:
     def __init__(self) -> None:
         self._procs: dict[str, subprocess.Popen] = {}
@@ -195,10 +212,19 @@ class TrainingManager:
         return per_epoch * epochs
 
     def launch(self, run_id: str) -> None:
-        """Free VRAM, spawn the trainer, and start the monitor thread."""
+        """Free VRAM, spawn the trainer, and start the monitor thread.
+
+        Raises :class:`TrainingBusyError` if another run already owns the GPU.
+        """
         with self._lock:
             if run_id in self._procs and self._procs[run_id].poll() is None:
                 return  # already running
+        # One GPU → one trainer. Refuse to start while another run is resident,
+        # otherwise the two co-resident trainers fight over VRAM and OOM (the exact
+        # failure mode this guards against).
+        busy = self.active_run_id(exclude=run_id)
+        if busy:
+            raise TrainingBusyError(busy)
         # Give the whole GPU to training: unload AND freeze so a warmup/chat
         # can't re-load a model mid-run and steal VRAM (which causes bitsandbytes
         # "Some modules are dispatched on the CPU or the disk").
@@ -375,6 +401,28 @@ class TrainingManager:
         with self._lock:
             proc = self._procs.get(run_id)
             return bool(proc and proc.poll() is None)
+
+    def active_run_id(self, exclude: Optional[str] = None) -> Optional[str]:
+        """The run_id of any training run currently occupying the GPU, else None.
+
+        Two sources, so a second trainer can never co-resident-OOM the card:
+          * a live subprocess this worker owns (``self._procs``);
+          * an orphan from a previous worker — a DB run still ``running``/
+            ``preparing`` whose recorded PID is still alive (this is exactly how a
+            stale run can keep holding VRAM after a ``uvicorn --reload``).
+        """
+        with self._lock:
+            for rid, proc in self._procs.items():
+                if rid != exclude and proc.poll() is None:
+                    return rid
+        with DBSession(db_engine) as db:
+            stmt = select(TrainingRun).where(
+                TrainingRun.status.in_([RunStatus.running, RunStatus.preparing])
+            )
+            for run in db.exec(stmt).all():
+                if run.id != exclude and _pid_alive(run.pid):
+                    return run.id
+        return None
 
 
 manager = TrainingManager()

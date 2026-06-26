@@ -20,7 +20,7 @@ from ...core.db import engine as db_engine
 from ...core.db import get_session
 from ...core.models import Project, RunStatus, TrainingRun
 from . import dataset
-from .manager import manager
+from .manager import TrainingBusyError, manager
 
 router = APIRouter(prefix="/api", tags=["training"])
 
@@ -82,7 +82,16 @@ def create_run(project_id: str, data: RunCreate, db: Session = Depends(get_sessi
         return run
 
     if data.autostart:
-        manager.launch(run.id)
+        try:
+            manager.launch(run.id)
+        except TrainingBusyError as exc:
+            # GPU is busy: keep the prepared run as 'pending' so it can be started
+            # later via /start, and tell the caller why (409) instead of spawning a
+            # second trainer that would OOM both.
+            run.status = RunStatus.pending
+            db.add(run)
+            db.commit()
+            raise HTTPException(409, str(exc))
         db.refresh(run)
     return run
 
@@ -102,7 +111,10 @@ def start_run(run_id: str, db: Session = Depends(get_session)):
         raise HTTPException(404, "Run not found")
     if run.status in TERMINAL:
         raise HTTPException(400, f"Run already {run.status.value}")
-    manager.launch(run_id)
+    try:
+        manager.launch(run_id)
+    except TrainingBusyError as exc:
+        raise HTTPException(409, str(exc))
     db.refresh(run)
     return run
 

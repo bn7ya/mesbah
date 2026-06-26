@@ -147,6 +147,21 @@ def try_load_unsloth(cfg: dict[str, Any]):
     return model, tokenizer
 
 
+def _exc_chain(exc: BaseException):
+    """Yield ``exc`` and every exception linked through ``__cause__``/``__context__``.
+
+    transformers 5.x re-raises a CUDA OOM hit during 4-bit weight conversion as a
+    generic ``RuntimeError("...issues during automatic conversion of the weights...")``,
+    so the underlying ``torch.OutOfMemoryError`` is only reachable by walking the
+    chain — string-sniffing the top message alone misses it."""
+    seen: set[int] = set()
+    cur: BaseException | None = exc
+    while cur is not None and id(cur) not in seen:
+        seen.add(id(cur))
+        yield cur
+        cur = cur.__cause__ or cur.__context__
+
+
 def load_with_offload_fallback(cfg: dict[str, Any], load_fn):
     """Load the 4-bit model on the GPU; if VRAM is exhausted, spill to CPU RAM
     then disk.
@@ -168,8 +183,10 @@ def load_with_offload_fallback(cfg: dict[str, Any], load_fn):
     try:
         return load_fn({"": dev})
     except (torch.cuda.OutOfMemoryError, RuntimeError, ValueError) as exc:
-        msg = str(exc).lower()
-        if "out of memory" not in msg and "dispatched" not in msg and "memory" not in msg:
+        # Sniff the whole __cause__/__context__ chain: a real OOM is often wrapped
+        # in a generic RuntimeError by transformers 5.x (see _exc_chain).
+        msg = " ".join(str(e).lower() for e in _exc_chain(exc))
+        if not (_is_oom(exc) or "dispatched" in msg or "memory" in msg):
             raise
         gc.collect()
         torch.cuda.empty_cache()
@@ -334,15 +351,23 @@ def _make_sftconfig(SFTConfig, base: dict[str, Any], optional: dict[str, Any]):
 
 # ── OOM handling ──────────────────────────────────────────────────────────────
 def _is_oom(exc: BaseException) -> bool:
-    """True for a CUDA out-of-memory error (class or message)."""
+    """True for a CUDA out-of-memory error anywhere in the exception chain.
+
+    Walks ``__cause__``/``__context__`` so a ``torch.OutOfMemoryError`` wrapped in a
+    generic ``RuntimeError`` (transformers 5.x 4-bit conversion) is still recognized
+    — otherwise the OOM retry ladder in ``main`` mis-classifies it and gives up."""
     try:
         import torch
-        if isinstance(exc, torch.cuda.OutOfMemoryError):
-            return True
+        oom_cls: tuple = (torch.cuda.OutOfMemoryError,)
     except Exception:
-        pass
-    text = str(exc).lower()
-    return "out of memory" in text or "cuda oom" in text or "alloc" in text and "memory" in text
+        oom_cls = ()
+    for e in _exc_chain(exc):
+        if oom_cls and isinstance(e, oom_cls):
+            return True
+        text = str(e).lower()
+        if "out of memory" in text or "cuda oom" in text or ("alloc" in text and "memory" in text):
+            return True
+    return False
 
 
 def _free_gpu() -> None:

@@ -106,8 +106,8 @@ def estimate_memory(spec: ArchitectureSpec, params: ParamBreakdown,
     # RAM (or NVMe). This is the real binding constraint once offload is on.
     host_ram_gb = (p * 16) / gb
 
-    vram = settings.gpu_vram_gb
-    ram = settings.host_ram_gb
+    vram = settings.resolved_vram_gb()
+    ram = settings.resolved_ram_gb()
     # Resident-on-GPU need WITHOUT offload ≈ weights + grads + activations.
     resident = weights_gb + grad_gb + act_gb
     if resident <= vram * 0.8:
@@ -121,7 +121,7 @@ def estimate_memory(spec: ArchitectureSpec, params: ParamBreakdown,
     return MemoryVerdict(
         weights_gb=round(weights_gb, 2), gradients_gb=round(grad_gb, 2),
         optimizer_gb=round(opt_gb, 2), activation_gb=round(act_gb, 2),
-        total_gb=round(total_gb, 2), gpu_vram_gb=vram,
+        total_gb=round(total_gb, 2), gpu_vram_gb=int(round(vram)),
         host_ram_gb=round(host_ram_gb, 2), verdict=verdict,
         paging_required=verdict != "fits_vram",
         will_finish=verdict != "exceeds_disk",
@@ -173,7 +173,7 @@ def estimate(spec: ArchitectureSpec) -> FeasibilityEstimate:
             "consider training at a smaller context first."
         )
 
-    suggested_budget = max(1, settings.gpu_vram_gb - 1)
+    suggested_budget = max(1, int(round(settings.resolved_vram_gb())) - 1)
     return FeasibilityEstimate(
         spec=spec, params=params, memory=mem, warnings=warnings,
         suggested_gpu_budget_gb=suggested_budget,

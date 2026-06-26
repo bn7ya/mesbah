@@ -11,11 +11,14 @@ work for setup/authoring before any GPU work happens.
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
-from .core.config import settings
+from .core.config import BACKEND_DIR, settings
 from .core.db import init_db
 from .features.architect.router import router as architect_router
 from .features.auto_enhance.router import router as auto_enhance_router
@@ -24,6 +27,7 @@ from .features.inference.router import router as inference_router
 from .features.models.router import router as models_router
 from .features.projects.router import router as projects_router
 from .features.sessions.router import router as sessions_router
+from .features.settings.router import router as settings_router
 from .features.tasks.router import router as tasks_router
 from .features.training.router import router as training_router
 from .features.versioning.router import router as versioning_router
@@ -66,7 +70,7 @@ app.add_middleware(
 
 for r in (projects_router, tasks_router, sessions_router, models_router,
           inference_router, training_router, versioning_router, auto_enhance_router,
-          architect_router):
+          architect_router, settings_router):
     app.include_router(r)
 
 
@@ -77,10 +81,41 @@ def health():
 
 @app.get("/api/system")
 def system():
-    """Hardware + runtime snapshot for the GUI's status bar."""
+    """Hardware + runtime snapshot for the GUI's status bar and first-run setup."""
+    from .core import hardware
+    from .features.settings import service as settings_store
     return {
-        "gpu_vram_gb": settings.gpu_vram_gb,
+        **hardware.snapshot(),   # gpus, selected_gpu, gpu_vram_gb, system_ram_gb, cuda_available
         "default_base_model": settings.default_base_model,
-        "max_train_seq_len": settings.max_train_seq_len,
+        "max_train_seq_len": (settings.max_train_seq_len
+                              or hardware.train_defaults("finetune")["max_seq_len"]),
+        "onboarded": settings_store.is_onboarded(),
         "engine": engine.status(),
     }
+
+
+# ── Serve the built Angular SPA (desktop / production) ────────────────────────
+# In dev the Angular dev server (:4200) proxies /api here, so this does nothing.
+# When a production build exists, FastAPI serves it same-origin so `/api` stays
+# relative and the Tauri shell can just point the window at this server.
+def _frontend_dist() -> Optional[Path]:
+    base = BACKEND_DIR.parent / "frontend" / "dist"
+    for candidate in (*sorted(base.glob("*/browser")), base / "browser", base):
+        if (candidate / "index.html").is_file():
+            return candidate
+    return None
+
+
+_DIST = _frontend_dist()
+if _DIST is not None:
+    _INDEX = _DIST / "index.html"
+
+    @app.get("/{full_path:path}")
+    def spa(full_path: str):
+        """Serve built static files; fall back to index.html for SPA client routes."""
+        if full_path.startswith("api/"):
+            raise HTTPException(404, "Not found")
+        candidate = (_DIST / full_path).resolve()
+        if candidate.is_file() and str(candidate).startswith(str(_DIST.resolve())):
+            return FileResponse(candidate)
+        return FileResponse(_INDEX)

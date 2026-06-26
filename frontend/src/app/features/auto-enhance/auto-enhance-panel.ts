@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject, signal } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -28,10 +28,10 @@ const PHASE_AR: Record<string, string> = {
   evaluating: 'يُقيّم', training: 'يتدرّب',
 };
 const DIMS = [
-  { key: 'logic', label: 'المنطق', color: '#cf7d5c' },
-  { key: 'language', label: 'اللغة', color: '#6ea8a0' },
-  { key: 'context', label: 'السياق', color: '#b08acf' },
-  { key: 'factuality', label: 'الهلوسة', color: '#e6a981' },
+  { key: 'logic', label: 'المنطق', color: '#3b82f6' },
+  { key: 'language', label: 'اللغة', color: '#10b981' },
+  { key: 'context', label: 'السياق', color: '#8b5cf6' },
+  { key: 'factuality', label: 'الهلوسة', color: '#f59e0b' },
 ] as const;
 
 interface TItem {
@@ -49,72 +49,74 @@ interface TItem {
     MarkdownPipe,
   ],
   template: `
-    <div class="grid">
+    <div class="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4">
       <!-- left: launcher + history -->
-      <div class="left">
-        <div class="launch glass">
-          <h3 class="h">حلقة تحسين تلقائي جديدة</h3>
-          <p class="muted sub">النموذج يحاور نفسه: يسأل، يُجيب، يُقيّم إجابته (منطق، لغة، سياق، هلوسة)، يُصحّحها حتى تجتاز، ثم يتدرّب على ما اجتاز وينشئ إصدارًا جديدًا — ويُعيد الكرّة.</p>
+      <div class="flex flex-col gap-4">
+        <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
+          <h3 class="m-0 mb-1 text-base font-semibold">حلقة تحسين تلقائي جديدة</h3>
+          <p class="text-sm text-neutral-500 mb-3">النموذج يحاور نفسه: يسأل، يُجيب، يُقيّم إجابته (منطق، لغة، سياق، هلوسة)، يُصحّحها حتى تجتاز، ثم يتدرّب على ما اجتاز وينشئ إصدارًا جديدًا — ويُعيد الكرّة.</p>
 
-          <input pInputText [(ngModel)]="loopName" placeholder="اسم الحلقة، مثال: تحسين المنطق" class="full" />
+          <input pInputText [(ngModel)]="loopName" placeholder="اسم الحلقة، مثال: تحسين المنطق" class="w-full mb-3" />
 
-          <div class="row2">
-            <div class="f"><label>الأجيال <code class="ltr">generations</code></label><p-inputNumber [(ngModel)]="generations" [min]="1" [max]="10" [showButtons]="true" /></div>
-            <div class="f"><label>أدوار/جيل</label><p-inputNumber [(ngModel)]="turnsPerGeneration" [min]="1" [max]="50" [showButtons]="true" /></div>
+          <div class="grid grid-cols-2 gap-3 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 mb-3">
+            <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">الأجيال <code class="ltr">generations</code></label><p-inputNumber [(ngModel)]="generations" [min]="1" [max]="10" [showButtons]="true" styleClass="w-full" /></div>
+            <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">أدوار/جيل</label><p-inputNumber [(ngModel)]="turnsPerGeneration" [min]="1" [max]="50" [showButtons]="true" styleClass="w-full" /></div>
           </div>
-          <div class="f"><label>أقصى جولات تصحيح</label><p-inputNumber [(ngModel)]="maxRounds" [min]="0" [max]="10" [showButtons]="true" /></div>
+          <div class="flex flex-col gap-1 mb-3"><label class="ltr text-xs text-neutral-500">أقصى جولات تصحيح</label><p-inputNumber [(ngModel)]="maxRounds" [min]="0" [max]="10" [showButtons]="true" styleClass="w-full" /></div>
 
-          <div class="thresh">
-            <span class="lbl">حدود الاجتياز (0–10)</span>
+          <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 p-3 mb-3">
+            <span class="block text-sm font-semibold mb-2">حدود الاجتياز (0–10)</span>
             @for (d of dims; track d.key) {
-              <div class="th">
-                <span class="th-l" [style.color]="d.color">{{ d.label }}</span>
-                <p-slider [(ngModel)]="thresholds[d.key]" [min]="0" [max]="10" [step]="1" styleClass="th-s" />
-                <span class="th-v ltr">{{ thresholds[d.key] }}</span>
+              <div class="flex items-center gap-3 mb-2">
+                <span class="min-w-[52px] text-sm" [style.color]="d.color">{{ d.label }}</span>
+                <p-slider [(ngModel)]="thresholds[d.key]" [min]="0" [max]="10" [step]="1" styleClass="flex-1" />
+                <span class="text-sm font-bold w-5 text-center ltr">{{ thresholds[d.key] }}</span>
               </div>
             }
           </div>
 
-          <label class="chk"><p-checkbox [(ngModel)]="useTasks" [binary]="true" /> اشتقّ المواضيع من مهام المشروع</label>
+          <label class="flex items-center gap-2 text-sm mb-3 cursor-pointer"><p-checkbox [(ngModel)]="useTasks" [binary]="true" /> اشتقّ المواضيع من مهام المشروع</label>
 
-          <button class="adv-toggle" (click)="showAdvanced.set(!showAdvanced())" type="button">
+          <button class="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 py-1 mb-1" (click)="showAdvanced.set(!showAdvanced())" type="button">
             <i class="pi" [class.pi-chevron-down]="showAdvanced()" [class.pi-chevron-left]="!showAdvanced()"></i>
             إعدادات <code class="ltr">QLoRA</code> المتقدمة
           </button>
           @if (showAdvanced()) {
-            <div class="adv">
-              <div class="f"><label>epochs</label><p-inputNumber [(ngModel)]="hyper.epochs" [min]="1" [max]="20" [showButtons]="true" /></div>
-              <div class="f"><label>learning_rate</label><p-inputNumber [(ngModel)]="hyper.learning_rate" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="6" [step]="0.00005" /></div>
-              <div class="f"><label>lora_r</label><p-inputNumber [(ngModel)]="hyper.lora_r" [min]="4" [max]="128" [step]="4" [showButtons]="true" /></div>
-              <div class="f"><label>lora_alpha</label><p-inputNumber [(ngModel)]="hyper.lora_alpha" [min]="4" [max]="256" [step]="4" [showButtons]="true" /></div>
-              <div class="f"><label>max_seq_len</label><p-inputNumber [(ngModel)]="hyper.max_seq_len" [min]="512" [max]="32768" [step]="512" /></div>
-              <div class="f"><label>grad_accum_steps</label><p-inputNumber [(ngModel)]="hyper.grad_accum_steps" [min]="1" [max]="64" [showButtons]="true" /></div>
+            <div class="grid grid-cols-2 gap-3 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 mb-3">
+              <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">epochs</label><p-inputNumber [(ngModel)]="hyper.epochs" [min]="1" [max]="20" [showButtons]="true" styleClass="w-full" /></div>
+              <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">learning_rate</label><p-inputNumber [(ngModel)]="hyper.learning_rate" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="6" [step]="0.00005" styleClass="w-full" /></div>
+              <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">lora_r</label><p-inputNumber [(ngModel)]="hyper.lora_r" [min]="4" [max]="128" [step]="4" [showButtons]="true" styleClass="w-full" /></div>
+              <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">lora_alpha</label><p-inputNumber [(ngModel)]="hyper.lora_alpha" [min]="4" [max]="256" [step]="4" [showButtons]="true" styleClass="w-full" /></div>
+              <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">max_seq_len</label><p-inputNumber [(ngModel)]="hyper.max_seq_len" [min]="512" [max]="32768" [step]="512" styleClass="w-full" /></div>
+              <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">grad_accum_steps</label><p-inputNumber [(ngModel)]="hyper.grad_accum_steps" [min]="1" [max]="64" [showButtons]="true" styleClass="w-full" /></div>
             </div>
           }
 
-          <p-button label="ابدأ التحسين التلقائي" icon="pi pi-sync" [disabled]="starting() || running()" [loading]="starting()" (onClick)="start()" styleClass="full" />
-          <p class="warn-t dim small"><i class="pi pi-info-circle"></i> النموذج يتدرّب على مخرجاته الذاتية — راقب اتجاه الدرجات عبر الأجيال، وابقِ عدد الأجيال صغيرًا.</p>
+          <p-button label="ابدأ التحسين التلقائي" icon="pi pi-sync" [disabled]="starting() || running()" [loading]="starting()" (onClick)="start()" styleClass="w-full" />
+          <p class="flex gap-1.5 items-start mt-2 text-neutral-400 text-xs"><i class="pi pi-info-circle"></i> النموذج يتدرّب على مخرجاته الذاتية — راقب اتجاه الدرجات عبر الأجيال، وابقِ عدد الأجيال صغيرًا.</p>
         </div>
 
-        <div class="runs glass">
-          <h3 class="h">السجلّ</h3>
+        <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
+          <h3 class="m-0 mb-1 text-base font-semibold">السجلّ</h3>
           @for (l of loops(); track l.id) {
-            <button class="run" [class.sel]="l.id === selected()?.id" (click)="watch(l)" type="button">
-              <span class="rn">{{ l.name }}</span>
+            <button class="flex items-center gap-2 px-2.5 py-2 rounded-lg border text-start transition-colors"
+              [class]="l.id === selected()?.id ? 'border-neutral-300 dark:border-neutral-600 bg-neutral-100 dark:bg-neutral-800' : 'border-transparent hover:bg-neutral-50 dark:hover:bg-neutral-800/50'"
+              (click)="watch(l)" type="button">
+              <span class="flex-1 text-sm truncate">{{ l.name }}</span>
               <p-tag [value]="statusAr(l.status)" [severity]="sev(l.status)" />
-              <span class="dim ltr small">{{ l.created_at | date:'short' }}</span>
+              <span class="text-neutral-400 ltr text-xs">{{ l.created_at | date:'short' }}</span>
             </button>
           }
-          @if (loops().length === 0) { <p class="muted dim small">لا حلقات بعد.</p> }
+          @if (loops().length === 0) { <p class="text-neutral-500 dark:text-neutral-400 text-xs">لا حلقات بعد.</p> }
         </div>
       </div>
 
       <!-- right: live dashboard -->
-      <div class="dash glass">
+      <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 min-h-[520px] flex flex-col">
         @if (selected(); as l) {
-          <div class="dash-head">
-            <div>
-              <h3 class="h">{{ l.name }}</h3>
+          <div class="flex justify-between items-start mb-4">
+            <div class="flex items-center gap-2.5">
+              <h3 class="m-0 mb-1 text-base font-semibold">{{ l.name }}</h3>
               <p-tag [value]="statusAr(l.status)" [severity]="sev(l.status)" [icon]="l.status === 'running' ? 'pi pi-spin pi-spinner' : ''" />
             </div>
             @if (l.status === 'running' || l.status === 'preparing' || l.status === 'pending') {
@@ -122,147 +124,93 @@ interface TItem {
             }
           </div>
 
-          <div class="kpis">
-            <div class="kpi"><span class="k">الجيل / الدور</span><span class="v ltr">{{ live().generation ?? 0 }}.{{ live().turn ?? 0 }}</span></div>
-            <div class="kpi"><span class="k">الطور</span><span class="v">{{ phaseAr(live().phase) }}</span></div>
-            <div class="kpi"><span class="k">معتمد للتدريب</span><span class="v ltr">{{ approvedCount() }}</span></div>
-            <div class="kpi"><span class="k"><code class="ltr">VRAM</code></span><span class="v ltr">{{ vram() != null ? (vram()! | number:'1.1-1') + ' GB' : '—' }}</span></div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-3">
+            <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/40 px-3 py-2.5 flex flex-col gap-0.5"><span class="text-xs text-neutral-500">الجيل / الدور</span><span class="text-base font-bold ltr">{{ live().generation ?? 0 }}.{{ live().turn ?? 0 }}</span></div>
+            <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/40 px-3 py-2.5 flex flex-col gap-0.5"><span class="text-xs text-neutral-500">الطور</span><span class="text-base font-bold">{{ phaseAr(live().phase) }}</span></div>
+            <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/40 px-3 py-2.5 flex flex-col gap-0.5"><span class="text-xs text-neutral-500">معتمد للتدريب</span><span class="text-base font-bold ltr">{{ approvedCount() }}</span></div>
+            <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/40 px-3 py-2.5 flex flex-col gap-0.5"><span class="text-xs text-neutral-500"><code class="ltr">VRAM</code></span><span class="text-base font-bold ltr">{{ vram() != null ? (vram()! | number:'1.1-1') + ' GB' : '—' }}</span></div>
           </div>
 
-          <div class="scores-now">
+          <div class="flex gap-1.5 flex-wrap mb-3">
             @for (d of dims; track d.key) {
               <p-tag [value]="d.label + ': ' + (live().scores?.[d.key] ?? '—')"
                      [severity]="scoreSev(l, d.key, live().scores?.[d.key])" />
             }
           </div>
 
-          <p-progressBar [value]="progressPct()" [showValue]="true" styleClass="pbar" />
+          <div class="mb-3"><p-progressBar [value]="progressPct()" [showValue]="true" styleClass="w-full" /></div>
 
-          <div class="chart-box">
+          <div class="mb-3">
             <p-chart type="line" [data]="chartData()" [options]="chartOptions" height="200px" />
           </div>
 
           <!-- live transcript -->
-          <div class="stream">
+          <div class="flex-1 overflow-auto max-h-[420px] flex flex-col gap-2 pt-3 border-t border-neutral-200 dark:border-neutral-800">
             @for (it of transcript(); track $index) {
               @switch (it.kind) {
-                @case ('gen') { <div class="divider gen"><i class="pi pi-flag"></i> الجيل {{ it.generation }}</div> }
+                @case ('gen') { <div class="flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"><i class="pi pi-flag"></i> الجيل {{ it.generation }}</div> }
                 @case ('ask') {
-                  <div class="msg user"><div class="avatar">🧑</div><div class="bubble glass"><p class="content">{{ it.text }}</p></div></div>
+                  <div class="flex gap-2 max-w-[92%] flex-row-reverse ms-auto"><div class="text-lg">🧑</div><div class="px-3 py-2 rounded-2xl bg-blue-50 dark:bg-blue-950/40"><p class="m-0 whitespace-pre-wrap leading-relaxed text-sm">{{ it.text }}</p></div></div>
                 }
                 @case ('answer') {
-                  <div class="msg assistant"><div class="avatar">🕯️</div><div class="bubble glass"><div class="content md" [innerHTML]="it.text | markdown"></div></div></div>
+                  <div class="flex gap-2 max-w-[92%]"><div class="text-lg">🕯️</div><div class="px-3 py-2 rounded-2xl bg-neutral-100 dark:bg-neutral-800"><div class="text-sm leading-relaxed [&_h1]:text-base [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:font-bold [&_h1]:mt-2 [&_h2]:mt-2 [&_table]:w-full [&_table]:my-2 [&_table]:border-collapse [&_th]:border [&_td]:border [&_th]:border-neutral-300 [&_td]:border-neutral-300 dark:[&_th]:border-neutral-700 dark:[&_td]:border-neutral-700 [&_th]:p-1 [&_td]:p-1 [&_th]:text-start [&_td]:text-start [&_pre]:bg-neutral-100 dark:[&_pre]:bg-neutral-800 [&_pre]:p-2 [&_pre]:rounded [&_pre]:overflow-auto [&_pre]:ltr [&_pre]:text-left [&_code]:ltr [&_code]:bg-neutral-100 dark:[&_code]:bg-neutral-800 [&_code]:px-1 [&_code]:rounded" [innerHTML]="it.text | markdown"></div></div></div>
                 }
                 @case ('correction') {
-                  <div class="msg assistant"><div class="avatar">✨</div><div class="bubble glass corr"><div class="corr-h dim small">تصحيح · جولة {{ it.round }}</div><div class="content md" [innerHTML]="it.text | markdown"></div></div></div>
+                  <div class="flex gap-2 max-w-[92%]"><div class="text-lg">✨</div><div class="px-3 py-2 rounded-2xl bg-neutral-100 dark:bg-neutral-800 border border-dashed border-neutral-300 dark:border-neutral-600"><div class="text-neutral-400 text-xs mb-1">تصحيح · جولة {{ it.round }}</div><div class="text-sm leading-relaxed [&_h1]:text-base [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:font-bold [&_h1]:mt-2 [&_h2]:mt-2 [&_table]:w-full [&_table]:my-2 [&_table]:border-collapse [&_th]:border [&_td]:border [&_th]:border-neutral-300 [&_td]:border-neutral-300 dark:[&_th]:border-neutral-700 dark:[&_td]:border-neutral-700 [&_th]:p-1 [&_td]:p-1 [&_th]:text-start [&_td]:text-start [&_pre]:bg-neutral-100 dark:[&_pre]:bg-neutral-800 [&_pre]:p-2 [&_pre]:rounded [&_pre]:overflow-auto [&_pre]:ltr [&_pre]:text-left [&_code]:ltr [&_code]:bg-neutral-100 dark:[&_code]:bg-neutral-800 [&_code]:px-1 [&_code]:rounded" [innerHTML]="it.text | markdown"></div></div></div>
                 }
                 @case ('eval') {
-                  <div class="evrow">
+                  <div class="flex gap-1.5 items-center flex-wrap ps-6">
                     @for (d of dims; track d.key) {
                       <p-tag [value]="d.label + ' ' + (it.scores?.[d.key] ?? '—')" [severity]="scoreSev(selected()!, d.key, it.scores?.[d.key])" />
                     }
-                    @if (it.round) { <span class="dim small">بعد جولة {{ it.round }}</span> }
+                    @if (it.round) { <span class="text-neutral-400 text-xs">بعد جولة {{ it.round }}</span> }
                   </div>
                 }
                 @case ('turn') {
-                  <div class="divider turn" [class.ok]="it.approved" [class.no]="!it.approved">
+                  <div class="flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-lg" [class]="it.approved ? 'text-emerald-600 dark:text-emerald-400' : 'text-neutral-500'">
                     <i class="pi" [class.pi-check-circle]="it.approved" [class.pi-times-circle]="!it.approved"></i>
                     الدور {{ it.turn }} — {{ it.approved ? 'اجتاز ✓ (أُضيف للتدريب)' : 'لم يجتز (مستبعد)' }}
                   </div>
                 }
                 @case ('training') {
-                  <div class="divider train">
+                  <div class="flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-lg bg-neutral-100 dark:bg-neutral-800">
                     <i class="pi pi-bolt"></i>
                     @if (it.reason) { تجاوز التدريب: لا أمثلة معتمدة }
                     @else if (it.status) { التدريب: {{ it.status }} }
                     @else { بدء التدريب على {{ it.num_examples }} مثالًا }
                   </div>
                 }
-                @case ('done') { <div class="divider gen"><i class="pi pi-flag-fill"></i> {{ it.text }}</div> }
-                @case ('error') { <pre class="err ltr">{{ it.message }}</pre> }
+                @case ('done') { <div class="flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300"><i class="pi pi-flag-fill"></i> {{ it.text }}</div> }
+                @case ('error') { <pre class="ltr bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 p-2.5 rounded-lg text-xs max-h-40 overflow-auto whitespace-pre-wrap">{{ it.message }}</pre> }
               }
             }
-            @if (transcript().length === 0) { <p class="muted dim small center">بانتظار أول حدث…</p> }
+            @if (transcript().length === 0) { <p class="text-neutral-500 dark:text-neutral-400 text-xs text-center">بانتظار أول حدث…</p> }
           </div>
 
-          @if (l.status === 'failed' && l.error) { <pre class="err ltr">{{ l.error }}</pre> }
+          <div class="mt-3">
+            <button class="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200" (click)="showLogs.set(!showLogs())" type="button">
+              <i class="pi" [class.pi-chevron-down]="showLogs()" [class.pi-chevron-left]="!showLogs()"></i>
+              سجلّ التدريب <code class="ltr">terminal</code>
+              @if (logs().length) { <span class="text-neutral-400">· {{ logs().length }}</span> }
+            </button>
+            @if (showLogs()) {
+              <div #logBox class="ltr mt-2 h-48 overflow-auto rounded-lg bg-neutral-950 text-neutral-200 text-xs leading-relaxed p-3 whitespace-pre-wrap">
+                @for (line of logs(); track $index) { <div>{{ line }}</div> }
+                @if (logs().length === 0) { <div class="text-neutral-500">…لا خرج تدريب بعد (يظهر أثناء مرحلة fine-tune)</div> }
+              </div>
+            }
+          </div>
+
+          @if (l.status === 'failed' && l.error) { <pre class="ltr bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 p-2.5 rounded-lg text-xs max-h-40 overflow-auto whitespace-pre-wrap">{{ l.error }}</pre> }
         } @else {
-          <div class="empty muted">
-            <span class="big">🔁</span>
+          <div class="flex flex-col items-center justify-center gap-2 text-neutral-500 min-h-[460px]">
+            <span class="text-5xl">🔁</span>
             <p>اختر حلقة من السجلّ أو ابدأ حلقة تحسين تلقائي جديدة لمتابعتها مباشرةً.</p>
           </div>
         }
       </div>
     </div>
   `,
-  styles: [`
-    .grid { display: grid; grid-template-columns: 340px 1fr; gap: 1rem; }
-    .left { display: flex; flex-direction: column; gap: 1rem; }
-    .launch, .runs, .dash { padding: 1rem; }
-    .h { margin: 0 0 0.4rem; font-size: 1.05rem; }
-    .sub { font-size: 0.8rem; margin: 0 0 0.7rem; }
-    .full, .pbar { width: 100%; }
-    input.full { margin-bottom: 0.6rem; }
-    .row2 { display: flex; gap: 0.6rem; }
-    .f { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem; }
-    .f label { font-size: 0.8rem; color: var(--text-2); }
-    .f ::ng-deep .p-inputnumber-input, .f ::ng-deep input { width: 110px; }
-    .thresh { border: 1px solid var(--glass-border); border-radius: 12px; padding: 0.6rem 0.7rem; margin-bottom: 0.7rem; }
-    .thresh .lbl { font-weight: 600; font-size: 0.82rem; display: block; margin-bottom: 0.5rem; }
-    .th { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.45rem; }
-    .th-l { font-size: 0.8rem; min-width: 52px; }
-    .th ::ng-deep .th-s { flex: 1; }
-    .th-v { font-size: 0.8rem; min-width: 18px; text-align: center; font-weight: 700; }
-    .chk { display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; margin-bottom: 0.7rem; cursor: pointer; }
-    .adv-toggle { background: none; border: none; color: var(--text-2); cursor: pointer; display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0; font-size: 0.85rem; margin-bottom: 0.4rem; }
-    .adv-toggle:hover { color: var(--text-1); }
-    .adv { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.6rem; border: 1px solid var(--glass-border); border-radius: 12px; margin-bottom: 0.7rem; }
-    .warn-t { display: flex; gap: 0.4rem; align-items: flex-start; margin: 0.4rem 0 0; }
-    .small { font-size: 0.72rem; }
-    .runs { display: flex; flex-direction: column; gap: 0.35rem; }
-    .run { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.6rem; border-radius: 10px; background: transparent; border: 1px solid transparent; cursor: pointer; color: var(--text-1); text-align: start; }
-    .run:hover { background: var(--glass-bg); }
-    .run.sel { background: var(--glass-bg-strong); border-color: var(--glass-border); }
-    .run .rn { flex: 1; font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .dash { min-height: 520px; display: flex; flex-direction: column; }
-    .dash-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.9rem; }
-    .dash-head .h { display: inline-block; margin-inline-end: 0.6rem; }
-    .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; margin-bottom: 0.7rem; }
-    .kpi { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 12px; padding: 0.55rem 0.65rem; display: flex; flex-direction: column; gap: 0.2rem; }
-    .kpi .k { font-size: 0.7rem; color: var(--text-2); }
-    .kpi .v { font-size: 1rem; font-weight: 700; }
-    .scores-now { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.7rem; }
-    .chart-box { margin-bottom: 0.7rem; }
-    .stream { flex: 1; overflow: auto; max-height: 420px; display: flex; flex-direction: column; gap: 0.6rem; padding: 0.3rem; border-top: 1px solid var(--glass-border); padding-top: 0.7rem; }
-    .msg { display: flex; gap: 0.5rem; max-width: 92%; }
-    .msg.user { flex-direction: row-reverse; margin-inline-start: auto; }
-    .avatar { font-size: 1.1rem; }
-    .bubble { padding: 0.55rem 0.75rem; border-radius: 14px; }
-    .msg.user .bubble { background: var(--accent-soft); }
-    .bubble.corr { border: 1px dashed var(--glass-border); }
-    .corr-h { margin-bottom: 0.25rem; }
-    .content { margin: 0; white-space: pre-wrap; line-height: 1.6; font-size: 0.88rem; }
-    .content.md { white-space: normal; }
-    .content.md :first-child { margin-top: 0; }
-    .content.md :last-child { margin-bottom: 0; }
-    .content.md h1, .content.md h2, .content.md h3 { line-height: 1.3; margin: 0.6rem 0 0.3rem; font-weight: 700; font-size: 0.98rem; }
-    .content.md table { direction: rtl; border-collapse: collapse; width: 100%; margin: 0.5rem 0; font-size: 0.84rem; }
-    .content.md th, .content.md td { border: 1px solid var(--glass-border); padding: 0.3rem 0.5rem; text-align: start; }
-    .content.md th { background: var(--glass-bg); font-weight: 700; }
-    .content.md code { font-family: var(--font-mono); direction: ltr; unicode-bidi: embed; background: var(--glass-bg); padding: 0.05em 0.3em; border-radius: 5px; }
-    .content.md pre { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 10px; padding: 0.6rem; overflow: auto; direction: ltr; text-align: left; }
-    .evrow { display: flex; gap: 0.3rem; align-items: center; flex-wrap: wrap; padding-inline-start: 1.6rem; }
-    .divider { display: flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; font-weight: 600; padding: 0.35rem 0.6rem; border-radius: 9px; }
-    .divider.gen { background: var(--accent-soft); color: var(--accent); }
-    .divider.turn.ok { color: var(--ok, #3aa17e); }
-    .divider.turn.no { color: var(--text-2); }
-    .divider.train { background: var(--glass-bg); color: var(--text-1); }
-    .err { background: rgba(251,113,133,0.1); color: var(--err, #d9534f); padding: 0.6rem; border-radius: 10px; font-size: 0.72rem; max-height: 160px; overflow: auto; white-space: pre-wrap; }
-    .center { text-align: center; }
-    .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 460px; gap: 0.5rem; }
-    .empty .big { font-size: 2.6rem; }
-    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } .kpis { grid-template-columns: 1fr 1fr; } }
-  `],
 })
 export class AutoEnhancePanel implements OnInit, OnDestroy {
   @Input() projectId!: string;
@@ -279,6 +227,9 @@ export class AutoEnhancePanel implements OnInit, OnDestroy {
   readonly chartData = signal<any>(this.emptyChart());
   readonly showAdvanced = signal(false);
   readonly vram = signal<number | null>(null);
+  readonly logs = signal<string[]>([]);
+  readonly showLogs = signal(true);
+  @ViewChild('logBox') private logBox?: ElementRef<HTMLDivElement>;
 
   loopName = '';
   generations = 2;
@@ -295,10 +246,10 @@ export class AutoEnhancePanel implements OnInit, OnDestroy {
 
   chartOptions = {
     responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
-    plugins: { legend: { labels: { color: 'rgba(74,56,47,0.75)', boxWidth: 12, font: { size: 10 } } } },
+    plugins: { legend: { labels: { color: 'rgba(120,120,120,0.7)', boxWidth: 12, font: { size: 10 } } } },
     scales: {
-      x: { ticks: { color: 'rgba(74,56,47,0.5)' }, grid: { color: 'rgba(74,56,47,0.08)' } },
-      y: { min: 0, max: 10, ticks: { color: 'rgba(74,56,47,0.5)' }, grid: { color: 'rgba(74,56,47,0.08)' } },
+      x: { ticks: { color: 'rgba(120,120,120,0.7)' }, grid: { color: 'rgba(120,120,120,0.12)' } },
+      y: { min: 0, max: 10, ticks: { color: 'rgba(120,120,120,0.7)' }, grid: { color: 'rgba(120,120,120,0.12)' } },
     },
   };
 
@@ -381,11 +332,20 @@ export class AutoEnhancePanel implements OnInit, OnDestroy {
       const msg = JSON.parse(ev.data);
       if (msg.type === 'event') this.onEvent(msg.data as AutoEnhanceEvent);
       else if (msg.type === 'status') this.onStatus(msg.data);
+      else if (msg.type === 'log') this.onLog(msg.data?.line ?? '');
     };
     sock.onerror = () => {};
   }
 
   private push(it: TItem): void { this.transcript.set([...this.transcript(), it]); }
+
+  private onLog(line: string): void {
+    if (!line) return;
+    const next = [...this.logs(), line];
+    if (next.length > 500) next.splice(0, next.length - 500);
+    this.logs.set(next);
+    queueMicrotask(() => { const el = this.logBox?.nativeElement; if (el) el.scrollTop = el.scrollHeight; });
+  }
 
   private onEvent(e: AutoEnhanceEvent): void {
     switch (e.type) {
@@ -497,6 +457,7 @@ export class AutoEnhancePanel implements OnInit, OnDestroy {
 
   private resetView(): void {
     this.transcript.set([]);
+    this.logs.set([]);
     this.turnLabels = [];
     this.series = { logic: [], language: [], context: [], factuality: [] };
     this.chartData.set(this.emptyChart());

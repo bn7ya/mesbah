@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>مِصباح</title>
+  <style>
+    :root { color-scheme: light dark; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 1rem; height: 100vh;
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: #ffffff; color: #37352f;
+    }
+    @media (prefers-color-scheme: dark) { body { background: #1a1a1a; color: #e6e6e6; } }
+    .lamp { font-size: 3rem; }
+    h1 { font-size: 1.25rem; margin: 0; font-weight: 600; }
+    p { margin: 0; font-size: 0.85rem; opacity: 0.6; }
+    .spinner {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 3px solid rgba(120,120,120,0.25); border-top-color: #2563eb;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #err { display: none; max-width: 420px; text-align: center; line-height: 1.7; font-size: 0.85rem; }
+    code { font-family: ui-monospace, monospace; direction: ltr; background: rgba(120,120,120,0.12); padding: 0.05em 0.35em; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <div class="lamp">🕯️</div>
+  <h1>مِصباح</h1>
+  <div class="spinner" id="spin"></div>
+  <p id="status">…يجري تشغيل الخادم المحلي</p>
+  <div id="err">
+    تعذّر تشغيل الخادم المحلي. تأكّد من تثبيت بيئة <code>Python</code> مع
+    <code>requirements-ml.txt</code>، واضبط <code>MISBAH_PYTHON</code> و<code>MISBAH_BACKEND_DIR</code> إن لزم.
+  </div>
+</body>
+</html>

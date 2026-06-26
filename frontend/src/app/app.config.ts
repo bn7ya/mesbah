@@ -10,13 +10,13 @@ import { definePreset } from '@primeuix/themes';
 
 import { routes } from './app.routes';
 
-/** Misbah preset — Aura tuned to the warm creamy coral accent. */
+/** Misbah preset — Aura tuned to a calm, neutral Notion-like blue accent. */
 const MisbahPreset = definePreset(Aura, {
   semantic: {
     primary: {
-      50: '#fbf1ea', 100: '#f6ddcd', 200: '#efc3a8', 300: '#e7a983',
-      400: '#dd9069', 500: '#cf7d5c', 600: '#bd6a4b', 700: '#9d543b',
-      800: '#7d4330', 900: '#5f3325', 950: '#3a1f16',
+      50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
+      400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
+      800: '#1e40af', 900: '#1e3a8a', 950: '#172554',
     },
   },
 });
@@ -35,8 +35,10 @@ export const appConfig: ApplicationConfig = {
       theme: {
         preset: MisbahPreset,
         options: {
-          darkModeSelector: '.dark',  // we run permanently dark (see app root)
-          cssLayer: { name: 'primeng', order: 'primeng' },
+          darkModeSelector: '.dark',  // class-based dark mode (default light; toggle in the top bar)
+          // Inject PrimeNG into the `primeng` cascade layer; styles.scss declares
+          // the order so Tailwind utilities can override PrimeNG when needed.
+          cssLayer: { name: 'primeng', order: 'theme, base, primeng, components, utilities' },
         },
       },
     }),

@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
-  ArchitectureSpec, AutoEnhanceLoop, ChatMessage, ChatSession, CuratedModel,
+  AppSettings, ArchitectureSpec, AutoEnhanceLoop, ChatMessage, ChatSession, CuratedModel,
   DatasetHit, FeasibilityEstimate, ModelArchitecture, ModelVersion, Project,
   SystemInfo, Task, TrainingRun, VersionNode,
 } from './types';
@@ -23,6 +23,15 @@ export class Api {
 
   // ── system / inference lifecycle ──
   system(): Observable<SystemInfo> { return this.http.get<SystemInfo>(`${API_BASE}/system`); }
+
+  // ── settings (onboarding, GPU choice, theme, API tokens) ──
+  getSettings(): Observable<AppSettings> { return this.http.get<AppSettings>(`${API_BASE}/settings`); }
+  updateSettings(body: Partial<{ selected_gpu_index: number | null; gpu_vram_gb_override: number | null; theme: string; tokens: Record<string, string | null> }>): Observable<AppSettings> {
+    return this.http.patch<AppSettings>(`${API_BASE}/settings`, body);
+  }
+  onboard(selected_gpu_index: number | null): Observable<AppSettings> {
+    return this.http.post<AppSettings>(`${API_BASE}/settings/onboard`, { selected_gpu_index });
+  }
   /** Pre-load the project's active model into VRAM (background, local-only). */
   warmupModel(project_id: string): Observable<any> { return this.http.post(`${API_BASE}/inference/warmup`, { project_id }); }
   /** Free all VRAM (offload the resident model). */
@@ -50,6 +59,8 @@ export class Api {
   localModels(): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/models/local`); }
   downloadModel(repo_id: string): Observable<any> { return this.http.post(`${API_BASE}/models/download`, { repo_id }); }
   downloadStatus(repo_id: string): Observable<any> { return this.http.get(`${API_BASE}/models/download/status`, { params: { repo_id } }); }
+  downloadDataset(repo_id: string): Observable<any> { return this.http.post(`${API_BASE}/models/datasets/download`, { repo_id }); }
+  datasetDownloadStatus(repo_id: string): Observable<any> { return this.http.get(`${API_BASE}/models/datasets/download/status`, { params: { repo_id } }); }
   // HuggingFace access token (never returns the secret; status reports config only)
   hfTokenStatus(): Observable<{ configured: boolean; source: string | null; hint: string | null }> {
     return this.http.get<any>(`${API_BASE}/models/hf-token`);

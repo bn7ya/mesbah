@@ -7,7 +7,7 @@ Design notes
   generation is actually requested, so the FastAPI app boots instantly even on a
   machine where the ML stack is still installing. Missing deps surface as a clean
   ``RuntimeError`` that the router turns into a 503 with guidance.
-* **Single resident model.** On a 16 GB card we keep exactly one model resident.
+* **Single resident model.** On a single GPU we keep exactly one model resident.
   Switching the active version only swaps the lightweight LoRA adapter; switching
   the base model reloads. ``unload()`` frees all VRAM — the training manager calls
   it before a run so the fine-tune gets the whole GPU.

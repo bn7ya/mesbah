@@ -12,42 +12,31 @@ import { Task, TaskStatus } from '../../core/types';
   selector: 'app-tasks-panel',
   imports: [FormsModule, ButtonModule, InputTextModule, TextareaModule, SelectModule, TagModule],
   template: `
-    <div class="wrap">
-      <div class="new glass">
-        <input pInputText [(ngModel)]="title" placeholder="عنوان المهمة (ماذا يجب أن يتقنه النموذج؟)" class="grow" />
-        <input pInputText [(ngModel)]="objective" placeholder="معيار النجاح / objective" class="grow" />
+    <div class="flex flex-col gap-3">
+      <div class="flex flex-wrap items-center gap-2 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-3">
+        <input pInputText [(ngModel)]="title" placeholder="عنوان المهمة (ماذا يجب أن يتقنه النموذج؟)" class="flex-1 min-w-[180px]" />
+        <input pInputText [(ngModel)]="objective" placeholder="معيار النجاح / objective" class="flex-1 min-w-[180px]" />
         <p-button label="إضافة" icon="pi pi-plus" [disabled]="!title.trim()" (onClick)="add()" />
       </div>
 
-      <div class="list">
+      <div class="flex flex-col gap-2">
         @for (t of tasks(); track t.id) {
-          <div class="task glass">
-            <div class="main">
-              <h4 class="t">{{ t.title }}</h4>
-              @if (t.objective) { <p class="muted obj">{{ t.objective }}</p> }
+          <div class="flex items-center gap-3 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-4 py-3">
+            <div class="flex-1">
+              <h4 class="m-0 text-[0.98rem] font-medium">{{ t.title }}</h4>
+              @if (t.objective) { <p class="mt-0.5 mb-0 text-sm text-neutral-500">{{ t.objective }}</p> }
             </div>
             <p-select [options]="statuses" optionLabel="label" optionValue="value"
-                      [ngModel]="t.status" (onChange)="setStatus(t, $event.value)" styleClass="st-sel" />
+                      [ngModel]="t.status" (onChange)="setStatus(t, $event.value)" />
             <p-button icon="pi pi-trash" [text]="true" severity="danger" (onClick)="remove(t)" />
           </div>
         }
         @if (tasks().length === 0) {
-          <p class="muted center">لا مهام بعد. أضف الأهداف التي تريد أن يتعلّمها النموذج.</p>
+          <p class="text-center text-neutral-500 py-8">لا مهام بعد. أضف الأهداف التي تريد أن يتعلّمها النموذج.</p>
         }
       </div>
     </div>
   `,
-  styles: [`
-    .wrap { display: flex; flex-direction: column; gap: 0.9rem; }
-    .new { display: flex; gap: 0.5rem; padding: 0.7rem; align-items: center; flex-wrap: wrap; }
-    .grow { flex: 1; min-width: 180px; }
-    .list { display: flex; flex-direction: column; gap: 0.5rem; }
-    .task { display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem 1rem; }
-    .task .main { flex: 1; }
-    .task .t { margin: 0; font-size: 0.98rem; }
-    .task .obj { margin: 0.2rem 0 0; font-size: 0.82rem; }
-    .center { text-align: center; padding: 2rem; }
-  `],
 })
 export class TasksPanel implements OnInit {
   @Input() projectId!: string;

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Misbah",
+  "version": "0.1.0",
+  "identifier": "com.misbah.studio",
+  "build": {
+    "frontendDist": "splash",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "مِصباح — Misbah",
+        "width": 1280,
+        "height": 860,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "appimage", "nsis", "msi"],
+    "category": "DeveloperTool",
+    "shortDescription": "LLM fine-tuning studio",
+    "longDescription": "Misbah — a local studio for fine-tuning an Arabic long-context LLM via QLoRA. The desktop shell launches the local backend and opens the studio.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

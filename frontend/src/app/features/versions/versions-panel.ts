@@ -12,30 +12,33 @@ interface FlatNode { node: VersionNode; depth: number; isLastChild: boolean; }
   selector: 'app-versions-panel',
   imports: [DatePipe, DecimalPipe, ButtonModule, TagModule],
   template: `
-    <div class="wrap glass">
-      <div class="head">
-        <h3 class="h">شجرة الإصدارات <span class="muted dim small">— حسّن، فرّع، أو ارجع لأي إصدار</span></h3>
+    <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5">
+      <div class="mb-4">
+        <h3 class="m-0 text-base font-semibold">شجرة الإصدارات <span class="text-xs font-normal text-neutral-400">— حسّن، فرّع، أو ارجع لأي إصدار</span></h3>
       </div>
 
-      <div class="tree">
+      <div class="flex flex-col gap-2">
         @for (f of flat(); track f.node.id) {
-          <div class="node" [style.padding-inline-start.px]="f.depth * 26">
-            <span class="rail" [class.root]="f.node.is_base">{{ f.node.is_base ? '●' : '├─' }}</span>
-            <div class="node-card" [class.active]="f.node.is_active" [class.base]="f.node.is_base">
-              <div class="node-main">
-                <div class="line1">
-                  <span class="label">{{ f.node.label }}</span>
+          <div class="flex items-stretch gap-2" [style.padding-inline-start.px]="f.depth * 26">
+            <span class="mono pt-2.5 text-neutral-400" [class.text-blue-500]="f.node.is_base">{{ f.node.is_base ? '●' : '├─' }}</span>
+            <div class="flex-1 flex items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 transition-colors"
+                 [class]="f.node.is_active
+                   ? 'border-blue-400 dark:border-blue-500 ring-1 ring-blue-400/40 bg-blue-50/50 dark:bg-blue-950/20'
+                   : 'border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900'">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold">{{ f.node.label }}</span>
                   @if (f.node.is_base) { <p-tag value="أساسي" severity="contrast" /> }
                   @if (f.node.is_active) { <p-tag value="نشط" severity="success" icon="pi pi-bolt" /> }
                 </div>
-                <div class="line2 muted dim small">
+                <div class="flex flex-wrap gap-1.5 mt-0.5 text-xs text-neutral-400">
                   <span class="ltr">{{ f.node.created_at | date:'short' }}</span>
                   @if (asNum(f.node.metrics['train_loss']); as l) { <span class="ltr">· loss {{ l | number:'1.4-4' }}</span> }
-                  @if (f.node.adapter_path) { <span class="ltr adapter" title="LoRA adapter">· adapter ✓</span> }
+                  @if (f.node.adapter_path) { <span class="ltr text-emerald-600 dark:text-emerald-400" title="LoRA adapter">· adapter ✓</span> }
                 </div>
-                @if (f.node.notes) { <p class="notes muted small">{{ f.node.notes }}</p> }
+                @if (f.node.notes) { <p class="mt-1 mb-0 text-xs text-neutral-500">{{ f.node.notes }}</p> }
               </div>
-              <div class="node-actions">
+              <div class="flex gap-0.5 shrink-0">
                 @if (!f.node.is_active) {
                   <p-button icon="pi pi-bolt" [text]="true" size="small" label="تفعيل" (onClick)="activate(f.node)" />
                 }
@@ -48,33 +51,13 @@ interface FlatNode { node: VersionNode; depth: number; isLastChild: boolean; }
         }
       </div>
 
-      <p class="hint muted small">
-        <i class="pi pi-info-circle"></i>
-        التدريب يضيف عقدة جديدة أسفل الإصدار النشط. «تفعيل» إصدار أقدم يعني الرجوع <code class="ltr">rollback</code>،
-        والتدريب من إصدار وسطي يُنشئ فرعًا جديدًا.
+      <p class="flex items-start gap-1.5 mt-4 text-xs leading-relaxed text-neutral-500">
+        <i class="pi pi-info-circle mt-0.5"></i>
+        <span>التدريب يضيف عقدة جديدة أسفل الإصدار النشط. «تفعيل» إصدار أقدم يعني الرجوع <code class="ltr">rollback</code>،
+        والتدريب من إصدار وسطي يُنشئ فرعًا جديدًا.</span>
       </p>
     </div>
   `,
-  styles: [`
-    .wrap { padding: 1.1rem 1.2rem; }
-    .head { margin-bottom: 0.9rem; }
-    .h { margin: 0; font-size: 1.1rem; }
-    .small { font-size: 0.74rem; }
-    .tree { display: flex; flex-direction: column; gap: 0.5rem; }
-    .node { display: flex; align-items: stretch; gap: 0.4rem; }
-    .rail { color: var(--text-3); font-family: var(--font-mono); padding-top: 0.7rem; }
-    .rail.root { color: var(--accent); }
-    .node-card { flex: 1; display: flex; justify-content: space-between; gap: 0.8rem; align-items: center; padding: 0.7rem 0.9rem; border-radius: 14px; background: var(--glass-bg); border: 1px solid var(--glass-border); transition: all 0.15s ease; }
-    .node-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent); }
-    .node-card.base { background: rgba(150,95,70,0.05); }
-    .line1 { display: flex; align-items: center; gap: 0.5rem; }
-    .label { font-weight: 700; }
-    .line2 { display: flex; gap: 0.5rem; margin-top: 0.2rem; flex-wrap: wrap; }
-    .adapter { color: var(--ok); }
-    .notes { margin: 0.3rem 0 0; }
-    .node-actions { display: flex; gap: 0.2rem; }
-    .hint { margin-top: 1rem; display: flex; gap: 0.4rem; align-items: flex-start; line-height: 1.6; }
-  `],
 })
 export class VersionsPanel implements OnInit {
   @Input() projectId!: string;

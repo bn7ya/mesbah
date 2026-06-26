@@ -92,3 +92,15 @@ def download(req: DownloadRequest):
 @router.get("/download/status")
 def download_status(repo_id: str):
     return service.manager.status(repo_id)
+
+
+@router.post("/datasets/download")
+def download_dataset(req: DownloadRequest):
+    """Pre-download a HuggingFace dataset (shows the same progress bar as models)."""
+    dl = service.manager.start(req.repo_id, repo_type="dataset")
+    return service.manager.status(dl.repo_id, repo_type="dataset")
+
+
+@router.get("/datasets/download/status")
+def dataset_download_status(repo_id: str):
+    return service.manager.status(repo_id, repo_type="dataset")

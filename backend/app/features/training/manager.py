@@ -31,6 +31,7 @@ from typing import Any, Optional
 from sqlmodel import Session as DBSession
 from sqlmodel import select
 
+from ...core import hardware
 from ...core.config import BACKEND_DIR, settings
 from ...core.db import engine as db_engine
 from ...core.models import ModelVersion, Project, RunStatus, TrainingRun
@@ -86,6 +87,9 @@ class TrainingManager:
     def status_path(self, run_id: str) -> Path:
         return self.run_dir(run_id) / "status.json"
 
+    def log_path(self, run_id: str) -> Path:
+        return self.run_dir(run_id) / "train.log"
+
     # ── lifecycle ──
     def prepare(self, db: DBSession, run: TrainingRun) -> TrainingRun:
         """Build the dataset + config.json. Returns the run with paths filled in.
@@ -112,7 +116,9 @@ class TrainingManager:
             **project.default_train_config,
             **(run.config.get("hyperparams") or {}),
         }
-        merged.setdefault("cpu_offload_gb", 96)
+        # Hardware-derived offload budget (detected RAM), not a fixed 96 GB.
+        hw = hardware.train_defaults("scratch" if is_scratch else "finetune")
+        merged.setdefault("cpu_offload_gb", hw["cpu_offload_gb"])
 
         if is_scratch:
             # No chat dataset; the trainer pulls dataset_repo from the config.
@@ -161,6 +167,8 @@ class TrainingManager:
             "log_path": str(run_dir / "train.log"),
             "hf_cache": str(settings.hf_home),
             "offload_folder": str(settings.project_offload_dir(project.id) / run.id),
+            # Real host RAM so the cpu-vs-nvme offload decision isn't a fixed 100 GB.
+            "host_ram_gb": settings.resolved_ram_gb(),
             "num_examples": n,
         }
         (run_dir / "config.json").write_text(json.dumps(cfg, ensure_ascii=False, indent=2))

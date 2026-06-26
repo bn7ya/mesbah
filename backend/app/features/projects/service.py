@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from sqlalchemy import text
 from sqlmodel import Session, select
 
+from ...core import hardware
 from ...core.config import settings
 from ...core.models import (AutoEnhanceLoop, Message, ModelVersion, Project)
 from ...core.models import Session as ChatSession
@@ -156,22 +157,25 @@ def delete_project(db: Session, project: Project) -> None:
 
 
 def _default_train_config() -> dict:
-    """QLoRA defaults tuned for an 8–14B model on a 16 GB RTX 5080.
+    """QLoRA defaults derived from the machine's detected VRAM + RAM.
 
-    See ``backend/scripts/train_qlora.py`` and docs/MODEL_SELECTION.md for the
-    reasoning behind these numbers.
+    ``core/hardware.compute_train_defaults`` picks the sequence length, micro-batch,
+    grad-accum, LoRA rank, and CPU-offload budget from the real GPU/RAM (no hardcoded
+    16 GB). ``MISBAH_MAX_TRAIN_SEQ_LEN`` still overrides the seq length if set. See
+    ``backend/scripts/train_qlora.py`` and docs/MODEL_SELECTION.md.
     """
+    hw = hardware.train_defaults("finetune")
     return {
         "epochs": 3,
         "learning_rate": 2e-4,
-        "lora_r": 16,               # 16 for 14B, raise to 32 for 8B
-        "lora_alpha": 32,           # = r or 2*r
+        "lora_r": hw["lora_r"],
+        "lora_alpha": hw["lora_alpha"],     # = 2*r
         "lora_dropout": 0.0,        # Unsloth-optimized default; raise if overfitting
         "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj",
                             "gate_proj", "up_proj", "down_proj"],  # all linear layers
-        "max_seq_len": settings.max_train_seq_len,
-        "per_device_batch_size": 1,
-        "grad_accum_steps": 16,     # effective batch 16
+        "max_seq_len": settings.max_train_seq_len or hw["max_seq_len"],
+        "per_device_batch_size": hw["per_device_batch_size"],
+        "grad_accum_steps": hw["grad_accum_steps"],
         "optim": "paged_adamw_8bit",
         "lr_scheduler_type": "cosine",
         "warmup_ratio": 0.03,
@@ -179,7 +183,7 @@ def _default_train_config() -> dict:
         "gradient_checkpointing": True,
         "bf16": True,
         "load_in_4bit": True,
-        "attn_implementation": "sdpa",  # Blackwell sm_120: no flash-attn build
+        "attn_implementation": "sdpa",  # newer GPUs (e.g. Blackwell sm_120) lack a flash-attn build
         "packing": False,
         "use_rslora": False,
         "neftune_noise_alpha": 5,
@@ -192,22 +196,25 @@ def _default_train_config() -> dict:
 
 
 def _default_scratch_config() -> dict:
-    """Defaults for FULL training of a from-scratch model on a 16 GB card.
+    """Defaults for FULL training of a from-scratch model, sized to the real GPU.
 
     Unlike QLoRA this trains *every* parameter, so it leans on paged training
     (weights/optimizer/activations streamed GPU→CPU→disk) by default and a paged
-    8-bit optimizer to keep optimizer state off the GPU. See
+    8-bit optimizer to keep optimizer state off the GPU. The seq length, batch,
+    grad-accum, GPU budget and CPU-offload size come from
+    ``core/hardware.compute_train_defaults`` (detected VRAM + RAM). See
     ``backend/scripts/train_scratch.py``.
     """
+    hw = hardware.train_defaults("scratch")
     return {
         "epochs": 1,
         "learning_rate": 3e-4,
         "lr_scheduler_type": "cosine",
         "warmup_ratio": 0.02,
         "weight_decay": 0.1,
-        "max_seq_len": 1024,
-        "per_device_batch_size": 1,
-        "grad_accum_steps": 16,
+        "max_seq_len": hw["max_seq_len"],
+        "per_device_batch_size": hw["per_device_batch_size"],
+        "grad_accum_steps": hw["grad_accum_steps"],
         "optim": "paged_adamw_8bit",
         "gradient_checkpointing": True,
         "bf16": True,
@@ -224,8 +231,8 @@ def _default_scratch_config() -> dict:
         "max_train_samples": 5000,          # cap so a first run is tractable
         # ── GPU paged training ──
         "paged_training": True,
-        "gpu_budget_gb": max(1, settings.gpu_vram_gb - 1),
-        "cpu_offload_gb": 96,
+        "gpu_budget_gb": hw["gpu_budget_gb"],
+        "cpu_offload_gb": hw["cpu_offload_gb"],
         "oom_max_retries": 3,
         "min_seq_len": 128,
     }

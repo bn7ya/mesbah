@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from typing import Any
 
-# Host-RAM headroom (GB) below which CPU offload is preferred over NVMe.
+# Fallback host-RAM headroom (GB) when the machine's real RAM isn't injected.
 _RAM_HEADROOM_GB = 100
 
 
@@ -32,7 +32,8 @@ def resolve_offload_target(cfg: dict[str, Any]) -> str:
     # auto: full training holds ~ params × (2 bf16 grad + 4 fp32 master + 8 Adam)
     # bytes of state off-GPU. Estimate from the architecture if available.
     est_ram = float(cfg.get("est_host_ram_gb") or 0)
-    return "nvme" if est_ram > _RAM_HEADROOM_GB else "cpu"
+    headroom = float(cfg.get("host_ram_gb") or _RAM_HEADROOM_GB)
+    return "nvme" if est_ram > headroom else "cpu"
 
 
 def build_ds_config(cfg: dict[str, Any]) -> dict[str, Any]:

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
@@ -42,145 +42,150 @@ const VERDICT_SEV: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
   selector: 'app-training-panel',
   imports: [DatePipe, DecimalPipe, FormsModule, ButtonModule, InputTextModule, InputNumberModule, SelectModule, CheckboxModule, ChartModule, ProgressBarModule, TagModule, DialogModule],
   template: `
-    <div class="grid">
+    <div class="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4">
       <!-- left: launcher + runs -->
-      <div class="left">
+      <div class="flex flex-col gap-4">
         @if (isScratch()) {
           <!-- ── from-scratch full-training launcher ── -->
-          <div class="launch glass">
-            <h3 class="h">تدريب النموذج من الصفر</h3>
-            <p class="muted sub">تدريب <strong>كامل</strong> لكل المعاملات من أوزان عشوائية على كوربوس من <code class="ltr">HuggingFace</code> — لا يعتمد على الردود المعتمدة. أول تدريب يُنتج الإصدار الأول.</p>
+          <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
+            <h3 class="m-0 mb-1 text-base font-semibold">تدريب النموذج من الصفر</h3>
+            <p class="text-sm text-neutral-500 mb-3">تدريب <strong>كامل</strong> لكل المعاملات من أوزان عشوائية على كوربوس من <code class="ltr">HuggingFace</code> — لا يعتمد على الردود المعتمدة. أول تدريب يُنتج الإصدار الأول.</p>
 
             <!-- datasets (one or more) -->
-            <div class="ds-block">
-              <div class="search glass">
-                <i class="pi pi-search"></i>
-                <input pInputText class="grow ltr" [(ngModel)]="dsQuery" (keydown.enter)="searchDs()" placeholder="أضف مجموعة بيانات: wikitext, arabic…" />
-                <p-button label="بحث" [loading]="dsSearching()" (onClick)="searchDs()" />
+            <div class="flex flex-col gap-1.5 mb-3">
+              <div class="flex items-center gap-2 rounded-lg border border-neutral-200 dark:border-neutral-800 px-2.5 py-1.5">
+                <i class="pi pi-search text-neutral-400"></i>
+                <input pInputText class="flex-1 min-w-0 border-0 bg-transparent ltr" [(ngModel)]="dsQuery" (keydown.enter)="searchDs()" placeholder="أضف مجموعة بيانات: wikitext, arabic…" />
+                <p-button label="بحث" [loading]="dsSearching()" (onClick)="searchDs()" size="small" />
               </div>
               @for (r of dsResults(); track r.repo_id) {
-                <button class="hit glass" [class.sel]="hasDs(r.repo_id)" type="button" (click)="addDs(r.repo_id)">
-                  <span class="ltr repo">{{ r.repo_id }}</span>
-                  <span class="dim ltr small">{{ hasDs(r.repo_id) ? '✓ مضافة' : '+ إضافة' }}</span>
+                <button class="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border text-start transition-colors"
+                        [class]="hasDs(r.repo_id) ? 'border-blue-400 ring-1 ring-blue-400/40 bg-blue-50/50 dark:bg-blue-950/20' : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'"
+                        type="button" (click)="addDs(r.repo_id)">
+                  <span class="ltr font-semibold text-[0.82rem] truncate">{{ r.repo_id }}</span>
+                  <span class="text-neutral-400 ltr text-xs shrink-0">{{ hasDs(r.repo_id) ? '✓ مضافة' : '+ إضافة' }}</span>
                 </button>
               }
               @for (d of datasets(); track d.repo) {
-                <div class="dsel glass">
-                  <span class="ltr repo grow">{{ d.repo }}</span>
-                  <input pInputText class="ltr tf" [(ngModel)]="d.text_field" placeholder="text field" title="text field" />
-                  <button class="x" type="button" (click)="removeDs(d.repo)" title="إزالة"><i class="pi pi-times"></i></button>
+                <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800">
+                  <span class="ltr font-semibold text-[0.82rem] flex-1 min-w-0 truncate">{{ d.repo }}</span>
+                  <input pInputText class="ltr w-28 text-xs" [(ngModel)]="d.text_field" placeholder="text field" title="text field" />
+                  <button class="text-red-500 hover:text-red-700 p-1 inline-flex" type="button" (click)="removeDs(d.repo)" title="إزالة"><i class="pi pi-times"></i></button>
                 </div>
               }
               @if (datasets().length) {
-                <span class="dim small">{{ datasets().length }} مجموعة · حتى {{ scratchHyper.max_train_samples }} عيّنة (إجمالي بعد الدمج والخلط)</span>
+                <span class="text-neutral-400 text-xs">{{ datasets().length }} مجموعة · حتى {{ scratchHyper.max_train_samples }} عيّنة (إجمالي بعد الدمج والخلط)</span>
               } @else {
-                <span class="warn-x small">لم تُختَر مجموعة بيانات — أضف واحدة على الأقل.</span>
+                <span class="text-amber-600 dark:text-amber-400 text-xs">لم تُختَر مجموعة بيانات — أضف واحدة على الأقل.</span>
               }
             </div>
 
-            <input pInputText [(ngModel)]="runName" placeholder="اسم الإصدار، مثال: v1 — التدريب الأولي" class="full" />
+            <input pInputText [(ngModel)]="runName" placeholder="اسم الإصدار، مثال: v1 — التدريب الأولي" class="w-full mb-3" />
 
             <!-- feasibility readout -->
-            <div class="est" [class.bad]="!archValid()">
-              @if (estimating()) { <span class="muted small">…تقدير الحجم</span> }
+            <div class="flex flex-col gap-1.5 px-3 py-2 rounded-lg border mb-3"
+                 [class]="archValid() ? 'border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/40' : 'border-red-300 dark:border-red-900 bg-red-50/60 dark:bg-red-950/20'">
+              @if (estimating()) { <span class="text-neutral-500 text-xs">…تقدير الحجم</span> }
               @else if (estimate(); as e) {
-                <div class="est-row">
-                  <span class="small">الحجم: <strong class="ltr">{{ e.params.total_params_human }}</strong></span>
-                  @if (isMoe()) { <span class="dim ltr small">active {{ e.params.active_params_human }}</span> }
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-xs">الحجم: <strong class="ltr">{{ e.params.total_params_human }}</strong></span>
+                  @if (isMoe()) { <span class="text-neutral-400 ltr text-xs">active {{ e.params.active_params_human }}</span> }
                   <p-tag [value]="verdictAr(e.memory.verdict)" [severity]="verdictSev(e.memory.verdict)" />
                 </div>
               }
-              @for (w of archErrors(); track w) { <p class="warn-line">⛔ {{ w }}</p> }
+              @for (w of archErrors(); track w) { <p class="text-xs m-0 text-red-600 dark:text-red-400">⛔ {{ w }}</p> }
             </div>
 
-            <button class="adv-toggle" (click)="showAdvanced.set(!showAdvanced())" type="button">
+            <button class="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 py-1 mb-1" (click)="showAdvanced.set(!showAdvanced())" type="button">
               <i class="pi" [class.pi-chevron-down]="showAdvanced()" [class.pi-chevron-left]="!showAdvanced()"></i>
               المعمارية وإعدادات التدريب
             </button>
             @if (showAdvanced()) {
-              <div class="adv">
+              <div class="grid grid-cols-2 gap-3 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 mb-3">
                 @if (spec(); as s) {
-                  <div class="f"><label class="ltr">family</label>
+                  <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">family</label>
                     <p-select [options]="families" optionLabel="label" optionValue="value"
-                              [(ngModel)]="s.family" (ngModelChange)="onArchChange()" appendTo="body" styleClass="sel" /></div>
-                  <div class="f"><label class="ltr">layers</label><p-inputNumber [(ngModel)]="s.num_hidden_layers" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" /></div>
-                  <div class="f"><label class="ltr">hidden_size</label><p-inputNumber [(ngModel)]="s.hidden_size" (ngModelChange)="onArchChange()" [min]="8" [step]="64" [showButtons]="true" /></div>
-                  <div class="f"><label class="ltr">attn heads</label><p-inputNumber [(ngModel)]="s.num_attention_heads" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" /></div>
-                  <div class="f"><label class="ltr">kv heads</label><p-inputNumber [(ngModel)]="s.num_key_value_heads" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" /></div>
-                  <div class="f"><label class="ltr">vocab_size</label><p-inputNumber [(ngModel)]="s.vocab_size" (ngModelChange)="onArchChange()" [min]="1" [step]="1000" /></div>
-                  <div class="f"><label class="ltr">context</label><p-inputNumber [(ngModel)]="s.max_position_embeddings" (ngModelChange)="onArchChange()" [min]="8" [step]="512" /></div>
+                              [(ngModel)]="s.family" (ngModelChange)="onArchChange()" appendTo="body" styleClass="w-full" /></div>
+                  <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">layers</label><p-inputNumber [(ngModel)]="s.num_hidden_layers" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" styleClass="w-full" /></div>
+                  <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">hidden_size</label><p-inputNumber [(ngModel)]="s.hidden_size" (ngModelChange)="onArchChange()" [min]="8" [step]="64" [showButtons]="true" styleClass="w-full" /></div>
+                  <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">attn heads</label><p-inputNumber [(ngModel)]="s.num_attention_heads" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" styleClass="w-full" /></div>
+                  <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">kv heads</label><p-inputNumber [(ngModel)]="s.num_key_value_heads" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" styleClass="w-full" /></div>
+                  <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">vocab_size</label><p-inputNumber [(ngModel)]="s.vocab_size" (ngModelChange)="onArchChange()" [min]="1" [step]="1000" styleClass="w-full" /></div>
+                  <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">context</label><p-inputNumber [(ngModel)]="s.max_position_embeddings" (ngModelChange)="onArchChange()" [min]="8" [step]="512" styleClass="w-full" /></div>
                   @if (isMoe()) {
-                    <div class="f"><label class="ltr">num_experts</label><p-inputNumber [(ngModel)]="s.num_experts" (ngModelChange)="onArchChange()" [min]="1" [max]="1024" [showButtons]="true" /></div>
-                    <div class="f"><label class="ltr">experts/token</label><p-inputNumber [(ngModel)]="s.num_experts_per_tok" (ngModelChange)="onArchChange()" [min]="1" [max]="1024" [showButtons]="true" /></div>
+                    <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">num_experts</label><p-inputNumber [(ngModel)]="s.num_experts" (ngModelChange)="onArchChange()" [min]="1" [max]="1024" [showButtons]="true" styleClass="w-full" /></div>
+                    <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">experts/token</label><p-inputNumber [(ngModel)]="s.num_experts_per_tok" (ngModelChange)="onArchChange()" [min]="1" [max]="1024" [showButtons]="true" styleClass="w-full" /></div>
                   }
                 }
-                <div class="sep"></div>
-                <div class="f"><label class="ltr">epochs</label><p-inputNumber [(ngModel)]="scratchHyper.epochs" [min]="1" [max]="50" [showButtons]="true" /></div>
-                <div class="f"><label class="ltr">learning_rate</label><p-inputNumber [(ngModel)]="scratchHyper.learning_rate" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="6" [step]="0.00005" /></div>
-                <div class="f"><label class="ltr">max_seq_len</label><p-inputNumber [(ngModel)]="scratchHyper.max_seq_len" [min]="128" [max]="32768" [step]="128" /></div>
-                <div class="f"><label class="ltr">max_train_samples</label><p-inputNumber [(ngModel)]="scratchHyper.max_train_samples" [min]="1" [step]="500" /></div>
-                <div class="f"><label class="ltr">grad_accum_steps</label><p-inputNumber [(ngModel)]="scratchHyper.grad_accum_steps" [min]="1" [max]="64" [showButtons]="true" /></div>
+                <div class="col-span-2 h-px bg-neutral-200 dark:bg-neutral-800"></div>
+                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">epochs</label><p-inputNumber [(ngModel)]="scratchHyper.epochs" [min]="1" [max]="50" [showButtons]="true" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">learning_rate</label><p-inputNumber [(ngModel)]="scratchHyper.learning_rate" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="6" [step]="0.00005" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">max_seq_len</label><p-inputNumber [(ngModel)]="scratchHyper.max_seq_len" [min]="128" [max]="32768" [step]="128" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">max_train_samples</label><p-inputNumber [(ngModel)]="scratchHyper.max_train_samples" [min]="1" [step]="500" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">grad_accum_steps</label><p-inputNumber [(ngModel)]="scratchHyper.grad_accum_steps" [min]="1" [max]="64" [showButtons]="true" styleClass="w-full" /></div>
               </div>
             }
 
-            <p-button label="ابدأ التدريب" icon="pi pi-bolt" [disabled]="!canStartScratch()" [loading]="starting()" (onClick)="startScratch()" styleClass="full" />
-            @if (!datasets().length) { <p class="warn-t"><i class="pi pi-info-circle"></i> أضف مجموعة بيانات واحدة على الأقل أعلاه.</p> }
-            @else if (!archValid()) { <p class="warn-t"><i class="pi pi-info-circle"></i> صحّح المعمارية أعلاه قبل بدء التدريب.</p> }
-            <p class="adv-note dim small">⚠ الإزاحة <code class="ltr">ZeRO-Infinity</code> تُكمل التدريب رغم محدودية الذاكرة، لكنها لا توفّر الحوسبة/البيانات التي يحتاجها نموذج حقيقي — توقّع نموذجًا تجريبيًا وزمنًا طويلًا.</p>
+            <p-button label="ابدأ التدريب" icon="pi pi-bolt" [disabled]="!canStartScratch()" [loading]="starting()" (onClick)="startScratch()" styleClass="w-full" />
+            @if (!datasets().length) { <p class="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-sm mt-2"><i class="pi pi-info-circle"></i> أضف مجموعة بيانات واحدة على الأقل أعلاه.</p> }
+            @else if (!archValid()) { <p class="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-sm mt-2"><i class="pi pi-info-circle"></i> صحّح المعمارية أعلاه قبل بدء التدريب.</p> }
+            <p class="text-neutral-400 text-xs mt-2">⚠ الإزاحة <code class="ltr">ZeRO-Infinity</code> تُكمل التدريب رغم محدودية الذاكرة، لكنها لا توفّر الحوسبة/البيانات التي يحتاجها نموذج حقيقي — توقّع نموذجًا تجريبيًا وزمنًا طويلًا.</p>
           </div>
         } @else {
           <!-- ── QLoRA fine-tune launcher ── -->
-          <div class="launch glass">
-            <h3 class="h">جلسة تدريب جديدة</h3>
-            <p class="muted sub">يبني مجموعة بيانات من الردود المعتمدة ثم يضبط النموذج بـ <code class="ltr">QLoRA</code> انطلاقًا من الإصدار النشط.</p>
-            <div class="ds">
+          <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
+            <h3 class="m-0 mb-1 text-base font-semibold">جلسة تدريب جديدة</h3>
+            <p class="text-sm text-neutral-500 mb-3">يبني مجموعة بيانات من الردود المعتمدة ثم يضبط النموذج بـ <code class="ltr">QLoRA</code> انطلاقًا من الإصدار النشط.</p>
+            <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-sm mb-3">
               <i class="pi pi-database"></i>
               <span>{{ preview() }} مثال جاهز للتدريب</span>
-              <button class="link" (click)="openPreview()" type="button">معاينة</button>
+              <button class="ms-auto text-xs underline" (click)="openPreview()" type="button">معاينة</button>
             </div>
-            <input pInputText [(ngModel)]="runName" placeholder="اسم الإصدار، مثال: v1 — تحسين اللهجة" class="full" />
-            <label class="chk"><p-checkbox [(ngModel)]="onlyCorrected" [binary]="true" /> الأمثلة المُصحّحة فقط</label>
+            <input pInputText [(ngModel)]="runName" placeholder="اسم الإصدار، مثال: v1 — تحسين اللهجة" class="w-full mb-3" />
+            <label class="flex items-center gap-2 text-sm mb-3 cursor-pointer"><p-checkbox [(ngModel)]="onlyCorrected" [binary]="true" /> الأمثلة المُصحّحة فقط</label>
 
-            <button class="adv-toggle" (click)="showAdvanced.set(!showAdvanced())" type="button">
+            <button class="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 py-1 mb-1" (click)="showAdvanced.set(!showAdvanced())" type="button">
               <i class="pi" [class.pi-chevron-down]="showAdvanced()" [class.pi-chevron-left]="!showAdvanced()"></i>
               إعدادات <code class="ltr">QLoRA</code> المتقدمة
             </button>
             @if (showAdvanced()) {
-              <div class="adv">
-                <div class="f"><label>epochs</label><p-inputNumber [(ngModel)]="hyper.epochs" [min]="1" [max]="20" [showButtons]="true" /></div>
-                <div class="f"><label>learning_rate</label><p-inputNumber [(ngModel)]="hyper.learning_rate" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="6" [step]="0.00005" /></div>
-                <div class="f"><label>lora_r</label><p-inputNumber [(ngModel)]="hyper.lora_r" [min]="4" [max]="128" [step]="4" [showButtons]="true" /></div>
-                <div class="f"><label>lora_alpha</label><p-inputNumber [(ngModel)]="hyper.lora_alpha" [min]="4" [max]="256" [step]="4" [showButtons]="true" /></div>
-                <div class="f"><label>max_seq_len</label><p-inputNumber [(ngModel)]="hyper.max_seq_len" [min]="512" [max]="32768" [step]="512" /></div>
-                <div class="f"><label>grad_accum_steps</label><p-inputNumber [(ngModel)]="hyper.grad_accum_steps" [min]="1" [max]="64" [showButtons]="true" /></div>
-                <p class="adv-note dim small">القيم الافتراضية مضبوطة لـ <code class="ltr">RTX 5080 / 16 GB</code>. ارفع <code class="ltr">max_seq_len</code> بحذر.</p>
+              <div class="grid grid-cols-2 gap-3 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 mb-3">
+                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">epochs</label><p-inputNumber [(ngModel)]="hyper.epochs" [min]="1" [max]="20" [showButtons]="true" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">learning_rate</label><p-inputNumber [(ngModel)]="hyper.learning_rate" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="6" [step]="0.00005" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">lora_r</label><p-inputNumber [(ngModel)]="hyper.lora_r" [min]="4" [max]="128" [step]="4" [showButtons]="true" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">lora_alpha</label><p-inputNumber [(ngModel)]="hyper.lora_alpha" [min]="4" [max]="256" [step]="4" [showButtons]="true" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">max_seq_len</label><p-inputNumber [(ngModel)]="hyper.max_seq_len" [min]="512" [max]="32768" [step]="512" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">grad_accum_steps</label><p-inputNumber [(ngModel)]="hyper.grad_accum_steps" [min]="1" [max]="64" [showButtons]="true" styleClass="w-full" /></div>
+                <p class="col-span-2 text-neutral-400 text-xs m-0">القيم الافتراضية مضبوطة تلقائيًا حسب عتاد جهازك (VRAM/RAM المكتشفة). ارفع <code class="ltr">max_seq_len</code> بحذر.</p>
               </div>
             }
 
-            <p-button label="ابدأ التدريب" icon="pi pi-bolt" [disabled]="preview() === 0 || starting()" [loading]="starting()" (onClick)="start()" styleClass="full" />
-            @if (preview() === 0) { <p class="warn-t"><i class="pi pi-info-circle"></i> صحّح واعتمد بعض الردود أولًا.</p> }
+            <p-button label="ابدأ التدريب" icon="pi pi-bolt" [disabled]="preview() === 0 || starting()" [loading]="starting()" (onClick)="start()" styleClass="w-full" />
+            @if (preview() === 0) { <p class="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-sm mt-2"><i class="pi pi-info-circle"></i> صحّح واعتمد بعض الردود أولًا.</p> }
           </div>
         }
 
-        <div class="runs glass">
-          <h3 class="h">السجلّ</h3>
+        <div class="flex flex-col gap-1 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
+          <h3 class="m-0 mb-2 text-base font-semibold">السجلّ</h3>
           @for (r of runs(); track r.id) {
-            <button class="run" [class.sel]="r.id === selected()?.id" (click)="watch(r)" type="button">
-              <span class="rn">{{ r.name }}</span>
+            <button class="flex items-center gap-2 px-2.5 py-2 rounded-lg border text-start transition-colors"
+                    [class]="r.id === selected()?.id ? 'border-neutral-300 dark:border-neutral-600 bg-neutral-100 dark:bg-neutral-800' : 'border-transparent hover:bg-neutral-50 dark:hover:bg-neutral-800/50'"
+                    (click)="watch(r)" type="button">
+              <span class="flex-1 text-sm truncate">{{ r.name }}</span>
               <p-tag [value]="statusAr(r.status)" [severity]="sev(r.status)" />
-              <span class="dim ltr small">{{ r.created_at | date:'short' }}</span>
+              <span class="text-neutral-400 ltr text-xs">{{ r.created_at | date:'short' }}</span>
             </button>
           }
-          @if (runs().length === 0) { <p class="muted dim small">لا تدريبات بعد.</p> }
+          @if (runs().length === 0) { <p class="text-neutral-400 text-xs">لا تدريبات بعد.</p> }
         </div>
       </div>
 
       <!-- right: live dashboard -->
-      <div class="dash glass">
+      <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 min-h-[460px]">
         @if (selected(); as r) {
-          <div class="dash-head">
-            <div>
-              <h3 class="h">{{ r.name }}</h3>
+          <div class="flex justify-between items-start mb-4">
+            <div class="flex items-center gap-2.5">
+              <h3 class="m-0 text-base font-semibold">{{ r.name }}</h3>
               <p-tag [value]="statusAr(r.status)" [severity]="sev(r.status)" [icon]="r.status === 'running' ? 'pi pi-spin pi-spinner' : ''" />
             </div>
             @if (r.status === 'running' || r.status === 'preparing') {
@@ -188,28 +193,43 @@ const VERDICT_SEV: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
             }
           </div>
 
-          <div class="kpis">
-            <div class="kpi"><span class="k">الخطوة</span><span class="v ltr">{{ live().step ?? 0 }} / {{ totalSteps() || '—' }}</span></div>
-            <div class="kpi"><span class="k">الخسارة <code class="ltr">loss</code></span><span class="v ltr">{{ live().loss != null ? (live().loss | number:'1.4-4') : '—' }}</span></div>
-            <div class="kpi"><span class="k"><code class="ltr">lr</code></span><span class="v ltr">{{ live().learning_rate != null ? (live().learning_rate | number:'1.2-7') : '—' }}</span></div>
-            <div class="kpi"><span class="k"><code class="ltr">VRAM</code></span><span class="v ltr">{{ live().vram_reserved_gb != null ? (live().vram_reserved_gb | number:'1.1-1') + ' GB' : '—' }}</span></div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-4">
+            <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/40 px-3 py-2.5 flex flex-col gap-0.5"><span class="text-xs text-neutral-500">الخطوة</span><span class="text-base font-bold ltr">{{ live().step ?? 0 }} / {{ totalSteps() || '—' }}</span></div>
+            <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/40 px-3 py-2.5 flex flex-col gap-0.5"><span class="text-xs text-neutral-500">الخسارة <code class="ltr">loss</code></span><span class="text-base font-bold ltr">{{ live().loss != null ? (live().loss | number:'1.4-4') : '—' }}</span></div>
+            <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/40 px-3 py-2.5 flex flex-col gap-0.5"><span class="text-xs text-neutral-500"><code class="ltr">lr</code></span><span class="text-base font-bold ltr">{{ live().learning_rate != null ? (live().learning_rate | number:'1.2-7') : '—' }}</span></div>
+            <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/40 px-3 py-2.5 flex flex-col gap-0.5"><span class="text-xs text-neutral-500"><code class="ltr">VRAM</code></span><span class="text-base font-bold ltr">{{ live().vram_reserved_gb != null ? (live().vram_reserved_gb | number:'1.1-1') + ' GB' : '—' }}</span></div>
           </div>
 
-          <p-progressBar [value]="progressPct()" [showValue]="true" styleClass="pbar" />
+          <p-progressBar [value]="progressPct()" [showValue]="true" styleClass="w-full" />
 
-          <div class="chart-box">
+          <div class="mt-4">
             <p-chart type="line" [data]="chartData()" [options]="chartOptions" height="260px" />
           </div>
 
+          <!-- live terminal logs (trainer stdout/stderr) -->
+          <div class="mt-4">
+            <button class="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200" (click)="showLogs.set(!showLogs())" type="button">
+              <i class="pi" [class.pi-chevron-down]="showLogs()" [class.pi-chevron-left]="!showLogs()"></i>
+              سجلّ التدريب <code class="ltr">terminal</code>
+              @if (logs().length) { <span class="text-neutral-400">· {{ logs().length }}</span> }
+            </button>
+            @if (showLogs()) {
+              <div #logBox class="ltr mt-2 h-56 overflow-auto rounded-lg bg-neutral-950 text-neutral-200 text-xs leading-relaxed p-3 whitespace-pre-wrap">
+                @for (l of logs(); track $index) { <div>{{ l }}</div> }
+                @if (logs().length === 0) { <div class="text-neutral-500">…بانتظار خرج التدريب</div> }
+              </div>
+            }
+          </div>
+
           @if (r.status === 'failed' && r.error) {
-            <pre class="err ltr">{{ r.error }}</pre>
+            <pre class="ltr bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-xs max-h-40 overflow-auto whitespace-pre-wrap mt-3">{{ r.error }}</pre>
           }
           @if (r.status === 'completed') {
-            <div class="done"><i class="pi pi-check-circle"></i> اكتمل التدريب وأصبح الإصدار الجديد نشطًا. راجع شجرة الإصدارات.</div>
+            <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mt-3"><i class="pi pi-check-circle"></i> اكتمل التدريب وأصبح الإصدار الجديد نشطًا. راجع شجرة الإصدارات.</div>
           }
         } @else {
-          <div class="empty muted">
-            <span class="big">📈</span>
+          <div class="flex flex-col items-center justify-center gap-2 text-neutral-500 min-h-[420px]">
+            <span class="text-5xl">📈</span>
             <p>اختر تدريبًا من السجلّ أو ابدأ جلسة جديدة لمتابعة المنحنى مباشرةً.</p>
           </div>
         }
@@ -217,83 +237,20 @@ const VERDICT_SEV: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
     </div>
 
     <p-dialog header="معاينة بيانات التدريب" [(visible)]="showPreview" [modal]="true" [style]="{ width: '720px', maxWidth: '94vw' }" [dismissableMask]="true">
-      <p class="muted small">عيّنة من الأمثلة المبنيّة من الردود المعتمدة (آخر رسالة هي الهدف الذي يتعلّمه النموذج).</p>
+      <p class="text-neutral-500 text-sm">عيّنة من الأمثلة المبنيّة من الردود المعتمدة (آخر رسالة هي الهدف الذي يتعلّمه النموذج).</p>
       @for (ex of previewSample(); track $index) {
-        <div class="ex glass">
+        <div class="flex flex-col gap-1.5 p-3 mb-2 rounded-lg border border-neutral-200 dark:border-neutral-800">
           @for (m of ex.messages; track $index) {
-            <div class="ex-msg" [class.t]="$last">
-              <span class="role ltr">{{ m.role }}</span>
-              <span class="txt">{{ m.content }}</span>
+            <div class="flex gap-2 text-[0.82rem]" [class.border-t]="$last" [class.border-dashed]="$last" [class.border-neutral-200]="$last" [class.dark:border-neutral-700]="$last" [class.pt-1.5]="$last">
+              <span class="ltr text-[0.68rem] text-blue-600 dark:text-blue-400 min-w-[70px]">{{ m.role }}</span>
+              <span class="whitespace-pre-wrap">{{ m.content }}</span>
             </div>
           }
         </div>
       }
-      @if (previewSample().length === 0) { <p class="muted">لا أمثلة بعد.</p> }
+      @if (previewSample().length === 0) { <p class="text-neutral-500">لا أمثلة بعد.</p> }
     </p-dialog>
   `,
-  styles: [`
-    .grid { display: grid; grid-template-columns: 330px 1fr; gap: 1rem; }
-    .left { display: flex; flex-direction: column; gap: 1rem; }
-    .launch, .runs, .dash { padding: 1rem; }
-    .h { margin: 0 0 0.4rem; font-size: 1.05rem; }
-    .sub { font-size: 0.8rem; margin: 0 0 0.7rem; }
-    .ds { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.7rem; border-radius: 10px; background: var(--accent-soft); color: var(--accent); margin-bottom: 0.7rem; font-size: 0.9rem; }
-    .link { background: none; border: none; color: var(--accent); cursor: pointer; text-decoration: underline; font-size: 0.8rem; margin-inline-start: auto; }
-    .adv-toggle { background: none; border: none; color: var(--text-2); cursor: pointer; display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0; font-size: 0.85rem; margin-bottom: 0.4rem; }
-    .adv-toggle:hover { color: var(--text-1); }
-    .adv { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.6rem; border: 1px solid var(--glass-border); border-radius: 12px; margin-bottom: 0.7rem; }
-    .adv .f { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
-    .adv .f label { font-family: var(--font-mono); font-size: 0.76rem; color: var(--text-2); }
-    .adv .f :host ::ng-deep .p-inputnumber-input, .adv .f ::ng-deep input { width: 120px; }
-    .adv .sep { height: 1px; background: var(--glass-border); margin: 0.2rem 0; }
-    :host ::ng-deep .adv .f .sel { width: 150px; min-width: 0; }
-    .adv-note { margin: 0.2rem 0 0; }
-    .est { padding: 0.55rem 0.7rem; border-radius: 10px; background: var(--glass-bg); border: 1px solid var(--glass-border); margin-bottom: 0.7rem; display: flex; flex-direction: column; gap: 0.35rem; }
-    .est.bad { border-color: color-mix(in srgb, var(--err) 55%, transparent); background: rgba(251,113,133,0.06); }
-    .est-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
-    .warn-line { font-size: 0.76rem; margin: 0; color: var(--err); }
-    .warn-x { color: var(--warn); }
-    .ds-block { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.7rem; }
-    .ds-block .search { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.6rem; }
-    .ds-block .search .grow { flex: 1; border: none; background: transparent; min-width: 0; }
-    .hit { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; padding: 0.45rem 0.6rem; cursor: pointer; border: 1px solid var(--glass-border); border-radius: 10px; background: transparent; color: var(--text-1); }
-    .hit:hover { border-color: var(--accent); }
-    .hit.sel { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 40%, transparent); }
-    .hit .repo, .dsel .repo { font-weight: 700; font-size: 0.82rem; }
-    .dsel { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.6rem; border: 1px solid var(--glass-border); border-radius: 10px; }
-    .dsel .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .dsel .tf { width: 120px; font-size: 0.76rem; }
-    .dsel .x { background: none; border: none; color: var(--err); cursor: pointer; padding: 0.2rem; display: inline-flex; }
-    .dsel .x:hover { color: var(--text-1); }
-    .ex { padding: 0.6rem 0.8rem; margin-bottom: 0.6rem; display: flex; flex-direction: column; gap: 0.35rem; }
-    .ex-msg { display: flex; gap: 0.5rem; font-size: 0.82rem; }
-    .ex-msg.t { border-top: 1px dashed var(--glass-border); padding-top: 0.35rem; }
-    .ex-msg .role { font-family: var(--font-mono); font-size: 0.68rem; color: var(--accent); min-width: 70px; }
-    .ex-msg .txt { white-space: pre-wrap; color: var(--text-1); }
-    .full, .pbar { width: 100%; }
-    input.full { margin-bottom: 0.6rem; }
-    .chk { display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; margin-bottom: 0.7rem; cursor: pointer; }
-    .warn-t { color: var(--warn); font-size: 0.8rem; display: flex; gap: 0.4rem; align-items: center; }
-    .runs { display: flex; flex-direction: column; gap: 0.35rem; }
-    .run { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.6rem; border-radius: 10px; background: transparent; border: 1px solid transparent; cursor: pointer; color: var(--text-1); text-align: start; }
-    .run:hover { background: var(--glass-bg); }
-    .run.sel { background: var(--glass-bg-strong); border-color: var(--glass-border); }
-    .run .rn { flex: 1; font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .small { font-size: 0.72rem; }
-    .dash { min-height: 460px; }
-    .dash-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.9rem; }
-    .dash-head .h { display: inline-block; margin-inline-end: 0.6rem; }
-    .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; margin-bottom: 0.9rem; }
-    .kpi { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 12px; padding: 0.6rem 0.7rem; display: flex; flex-direction: column; gap: 0.2rem; }
-    .kpi .k { font-size: 0.72rem; color: var(--text-2); }
-    .kpi .v { font-size: 1.05rem; font-weight: 700; }
-    .chart-box { margin-top: 1rem; }
-    .err { background: rgba(251,113,133,0.1); color: var(--err); padding: 0.7rem; border-radius: 10px; font-size: 0.72rem; max-height: 160px; overflow: auto; white-space: pre-wrap; }
-    .done { color: var(--ok); display: flex; gap: 0.5rem; align-items: center; margin-top: 0.9rem; }
-    .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 420px; gap: 0.5rem; }
-    .empty .big { font-size: 2.6rem; }
-    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } .kpis { grid-template-columns: 1fr 1fr; } }
-  `],
 })
 export class TrainingPanel implements OnInit, OnDestroy {
   @Input() projectId!: string;
@@ -310,6 +267,11 @@ export class TrainingPanel implements OnInit, OnDestroy {
   readonly showAdvanced = signal(false);
   readonly previewSample = signal<any[]>([]);
   showPreview = false;
+
+  // live terminal logs (trainer stdout/stderr streamed over the run WS)
+  readonly logs = signal<string[]>([]);
+  readonly showLogs = signal(true);
+  @ViewChild('logBox') private logBox?: ElementRef<HTMLDivElement>;
 
   runName = '';
   onlyCorrected = false;
@@ -362,10 +324,10 @@ export class TrainingPanel implements OnInit, OnDestroy {
 
   chartOptions = {
     responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
-    plugins: { legend: { labels: { color: 'rgba(74,56,47,0.75)' } } },
+    plugins: { legend: { labels: { color: 'rgba(120,120,120,0.85)' } } },
     scales: {
-      x: { ticks: { color: 'rgba(74,56,47,0.5)' }, grid: { color: 'rgba(74,56,47,0.08)' }, title: { display: true, text: 'step', color: 'rgba(74,56,47,0.6)' } },
-      y: { ticks: { color: 'rgba(74,56,47,0.5)' }, grid: { color: 'rgba(74,56,47,0.08)' }, title: { display: true, text: 'loss', color: 'rgba(74,56,47,0.6)' } },
+      x: { ticks: { color: 'rgba(120,120,120,0.7)' }, grid: { color: 'rgba(120,120,120,0.12)' }, title: { display: true, text: 'step', color: 'rgba(120,120,120,0.7)' } },
+      y: { ticks: { color: 'rgba(120,120,120,0.7)' }, grid: { color: 'rgba(120,120,120,0.12)' }, title: { display: true, text: 'loss', color: 'rgba(120,120,120,0.7)' } },
     },
   };
 
@@ -537,6 +499,7 @@ export class TrainingPanel implements OnInit, OnDestroy {
   watch(r: TrainingRun): void {
     this.selected.set(r);
     this.resetChart();
+    this.logs.set([]);
     this.socket?.close();
     this.live.set({ step: r.progress?.step ?? 0 });
     if (r.status === 'running' || r.status === 'preparing') {
@@ -553,9 +516,22 @@ export class TrainingPanel implements OnInit, OnDestroy {
     sock.onmessage = (ev) => {
       const msg = JSON.parse(ev.data);
       if (msg.type === 'metric') this.onMetric(msg.data as MetricPoint);
+      else if (msg.type === 'log') this.onLog(msg.data?.line ?? '');
       else if (msg.type === 'status') this.onStatus(msg.data);
     };
     sock.onerror = () => {};
+  }
+
+  /** Append a raw trainer log line (ring buffer, auto-scrolled to the bottom). */
+  private onLog(line: string): void {
+    if (!line) return;
+    const next = [...this.logs(), line];
+    if (next.length > 500) next.splice(0, next.length - 500);
+    this.logs.set(next);
+    queueMicrotask(() => {
+      const el = this.logBox?.nativeElement;
+      if (el) el.scrollTop = el.scrollHeight;
+    });
   }
 
   private onMetric(p: MetricPoint): void {
@@ -587,7 +563,7 @@ export class TrainingPanel implements OnInit, OnDestroy {
         labels: [...this.steps],
         datasets: [{
           label: 'loss', data: [...this.losses], tension: 0.35, borderWidth: 2,
-          borderColor: '#cf7d5c', backgroundColor: 'rgba(207,125,92,0.18)', fill: true, pointRadius: 0,
+          borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.15)', fill: true, pointRadius: 0,
         }],
       });
     }
@@ -622,6 +598,6 @@ export class TrainingPanel implements OnInit, OnDestroy {
 
   private resetChart(): void { this.steps = []; this.losses = []; this.chartData.set(this.emptyChart()); }
   private emptyChart() {
-    return { labels: [], datasets: [{ label: 'loss', data: [], borderColor: '#cf7d5c', backgroundColor: 'rgba(207,125,92,0.18)', fill: true, tension: 0.35, pointRadius: 0 }] };
+    return { labels: [], datasets: [{ label: 'loss', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.15)', fill: true, tension: 0.35, pointRadius: 0 }] };
   }
 }

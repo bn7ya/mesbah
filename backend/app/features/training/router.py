@@ -118,10 +118,12 @@ def cancel_run(run_id: str, db: Session = Depends(get_session)):
 
 @router.websocket("/training/runs/{run_id}/ws")
 async def run_ws(websocket: WebSocket, run_id: str):
-    """Stream live metric points + terminal status to the dashboard."""
+    """Stream live metric points, raw trainer logs, and terminal status."""
     await websocket.accept()
     metrics_file = manager.metrics_path(run_id)
-    offset = 0
+    log_file = manager.log_path(run_id)
+    offset = 0          # byte offset into metrics.jsonl
+    log_offset = 0      # byte offset into train.log
     try:
         while True:
             # forward any new metric lines
@@ -136,6 +138,22 @@ async def run_ws(websocket: WebSocket, run_id: str):
                             except json.JSONDecodeError:
                                 pass
                     offset = f.tell()
+
+            # forward any new raw terminal log lines (the trainer's stdout/stderr).
+            # Binary read for exact byte offsets; only emit complete lines and keep a
+            # trailing partial line for the next poll.
+            if log_file.exists():
+                with log_file.open("rb") as f:
+                    f.seek(log_offset)
+                    data = f.read()
+                nl = data.rfind(b"\n")
+                if nl >= 0:
+                    consumed = data[:nl + 1]
+                    log_offset += len(consumed)
+                    for raw in consumed.split(b"\n"):
+                        text = raw.decode("utf-8", "replace").rstrip("\r")
+                        if text:
+                            await websocket.send_json({"type": "log", "data": {"line": text}})
 
             # check run status (fresh session each poll)
             status = _read_status(run_id)

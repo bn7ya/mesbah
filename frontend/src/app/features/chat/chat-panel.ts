@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, inject, signal } from '@angular/core';
+import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -15,40 +16,44 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
 
 @Component({
   selector: 'app-chat-panel',
-  imports: [FormsModule, ButtonModule, InputTextModule, TextareaModule, TagModule, TooltipModule, SelectModule, DialogModule, CheckboxModule, MarkdownPipe],
+  imports: [NgClass, FormsModule, ButtonModule, InputTextModule, TextareaModule, TagModule, TooltipModule, SelectModule, DialogModule, CheckboxModule, MarkdownPipe],
   template: `
-    <div class="chat-layout">
+    <div class="flex gap-4 h-[calc(100vh-12rem)]">
       <!-- sessions rail -->
-      <aside class="rail glass">
-        <div class="rail-head">
-          <span class="t">الجلسات</span>
-          <div class="rail-actions">
+      <aside class="w-64 shrink-0 flex flex-col p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+        <div class="flex items-center justify-between mb-2">
+          <span class="font-bold">الجلسات</span>
+          <div class="flex">
             <p-button icon="pi pi-clone" [rounded]="true" [text]="true" size="small" pTooltip="استيراد محادثات من مشروع آخر" (onClick)="openImport()" />
             <p-button icon="pi pi-plus" [rounded]="true" [text]="true" size="small" pTooltip="جلسة جديدة" (onClick)="newSession()" />
           </div>
         </div>
-        <div class="sessions">
+        <div class="flex flex-col gap-1 overflow-auto">
           @for (s of sessions(); track s.id) {
-            <button class="srow" [class.sel]="s.id === current()?.id" (click)="open(s.id)" type="button">
+            <button class="flex items-center gap-2 px-2.5 py-2 rounded-lg text-start transition-colors"
+                    [ngClass]="s.id === current()?.id
+                      ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300'
+                      : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800/50'"
+                    (click)="open(s.id)" type="button">
               <i class="pi pi-comment"></i>
-              <span class="st">{{ s.title }}</span>
-              @if (s.approved_count > 0) { <span class="cnt">{{ s.approved_count }}</span> }
+              <span class="flex-1 truncate text-sm">{{ s.title }}</span>
+              @if (s.approved_count > 0) { <span class="text-xs font-bold rounded-full px-1.5 bg-blue-600 text-white">{{ s.approved_count }}</span> }
             </button>
           }
-          @if (sessions().length === 0) { <p class="muted dim hint">لا جلسات بعد — ابدأ واحدة.</p> }
+          @if (sessions().length === 0) { <p class="p-2 text-xs text-neutral-400">لا جلسات بعد — ابدأ واحدة.</p> }
         </div>
       </aside>
 
       <!-- conversation -->
-      <section class="conv glass">
+      <section class="flex-1 flex flex-col overflow-hidden rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
         @if (current(); as s) {
-          <header class="conv-head">
-            <input pInputText class="title-in" [(ngModel)]="s.title" (blur)="renameSession(s)" />
-            <div class="head-right">
+          <header class="flex items-center justify-between gap-3 px-4 py-3 border-b border-neutral-200 dark:border-neutral-800">
+            <input pInputText class="flex-1 min-w-0 bg-transparent border-0 px-0 font-bold text-base focus:outline-none" [(ngModel)]="s.title" (blur)="renameSession(s)" />
+            <div class="flex items-center gap-3 shrink-0">
               <p-button icon="pi pi-cog" [text]="true" size="small" label="تعليمات النظام" pTooltip="تعليمات النظام (system prompt)" (onClick)="openSysPrompt(s)" />
               <p-button icon="pi pi-sparkles" [text]="true" size="small" label="تعليمات التحسين" pTooltip="تعليمات التحسين الذاتي (correction prompt)" (onClick)="openCorrectionPrompt(s)" />
               <!-- which model is this chat talking to -->
-              <div class="model-of" pTooltip="النموذج الذي تحادثه في هذه الجلسة">
+              <div class="flex items-center gap-2" pTooltip="النموذج الذي تحادثه في هذه الجلسة">
                 @if (s.is_base_model) {
                   <p-tag value="النموذج الأساسي" severity="contrast" icon="pi pi-box" />
                 } @else {
@@ -58,37 +63,46 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
                           [ngModel]="s.model_version_id" (onChange)="switchModel(s, $event.value)"
                           styleClass="ver-sel" appendTo="body" />
               </div>
-              <span class="muted dim approved"><i class="pi pi-database"></i> {{ s.approved_count }} مثال تدريب</span>
+              <span class="text-xs whitespace-nowrap text-neutral-500 dark:text-neutral-400"><i class="pi pi-database"></i> {{ s.approved_count }} مثال تدريب</span>
             </div>
           </header>
 
-          <div class="stream">
+          <div class="flex-1 overflow-auto p-4 flex flex-col gap-4">
             @for (m of s.messages; track m.id) {
-              <div class="msg" [class.user]="m.role === 'user'" [class.assistant]="m.role === 'assistant'"
-                   [class.editing]="editingId() === m.id">
-                <div class="avatar">{{ m.role === 'user' ? '🧑' : '🕯️' }}</div>
-                <div class="bubble glass">
+              <div class="flex gap-2"
+                   [ngClass]="{
+                     'flex-row-reverse ms-auto': m.role === 'user',
+                     'max-w-full w-full': editingId() === m.id,
+                     'max-w-[86%]': editingId() !== m.id
+                   }">
+                <div class="text-xl shrink-0">{{ m.role === 'user' ? '🧑' : '🕯️' }}</div>
+                <div class="rounded-2xl px-4 py-2"
+                     [ngClass]="{
+                       'bg-blue-600 text-white': m.role === 'user',
+                       'bg-neutral-100 dark:bg-neutral-800': m.role === 'assistant',
+                       'flex-1': editingId() === m.id
+                     }">
                   @if (editingId() === m.id) {
-                    <div class="edit-head muted small"><i class="pi pi-pencil"></i> تصحيح الرد — اكتب ما كان يجب أن يقوله النموذج</div>
-                    <textarea pTextarea [(ngModel)]="editText" class="edit-area" autofocus></textarea>
-                    <div class="edit-actions">
+                    <div class="flex items-center gap-1.5 mb-2 text-xs text-neutral-500 dark:text-neutral-400"><i class="pi pi-pencil"></i> تصحيح الرد — اكتب ما كان يجب أن يقوله النموذج</div>
+                    <textarea pTextarea [(ngModel)]="editText" class="w-full min-h-[260px] resize-y" autofocus></textarea>
+                    <div class="flex gap-2 mt-3">
                       <p-button label="حفظ التصحيح" icon="pi pi-check" (onClick)="saveEdit(m)" />
                       <p-button label="إلغاء" severity="secondary" [text]="true" (onClick)="editingId.set(null)" />
                     </div>
                   } @else {
                     @if (m.role === 'assistant') {
-                      <div class="content md" [innerHTML]="displayContent(m) | markdown"></div>
+                      <div class="leading-7 break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_h1]:text-lg [&_h1]:font-bold [&_h1]:my-2 [&_h2]:text-base [&_h2]:font-bold [&_h2]:my-2 [&_h3]:text-sm [&_h3]:font-bold [&_h3]:my-2 [&_p]:my-2 [&_ul]:my-2 [&_ul]:ps-6 [&_ul]:list-disc [&_ol]:my-2 [&_ol]:ps-6 [&_ol]:list-decimal [&_li]:my-0.5 [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_code]:font-mono [&_code]:text-[0.86em] [&_code]:bg-neutral-200/60 dark:[&_code]:bg-neutral-700/60 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_pre]:bg-neutral-50 dark:[&_pre]:bg-neutral-950 [&_pre]:border [&_pre]:border-neutral-200 dark:[&_pre]:border-neutral-800 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:overflow-auto [&_pre]:text-left [&_pre]:[direction:ltr] [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_blockquote]:border-s-2 [&_blockquote]:border-neutral-300 dark:[&_blockquote]:border-neutral-700 [&_blockquote]:ps-3 [&_blockquote]:text-neutral-500 [&_table]:w-full [&_table]:border-collapse [&_table]:my-2 [&_th]:border [&_th]:border-neutral-200 dark:[&_th]:border-neutral-800 [&_th]:p-2 [&_th]:bg-neutral-100 dark:[&_th]:bg-neutral-800 [&_th]:font-bold [&_th]:text-start [&_td]:border [&_td]:border-neutral-200 dark:[&_td]:border-neutral-800 [&_td]:p-2 [&_td]:text-start" [innerHTML]="displayContent(m) | markdown"></div>
                     } @else {
-                      <p class="content">{{ m.content }}</p>
+                      <p class="m-0 whitespace-pre-wrap leading-7">{{ m.content }}</p>
                     }
-                    @if (showCaret(m)) { <span class="caret">▍</span> }
-                    <div class="tags">
+                    @if (showCaret(m)) { <span class="inline-block ms-0.5 text-blue-600 dark:text-blue-400 animate-pulse">▍</span> }
+                    <div class="flex gap-1 mt-2">
                       @if (m.corrected) { <p-tag value="معدّل" severity="warn" icon="pi pi-pencil" /> }
                       @if (isSelfCorrected(m)) { <p-tag value="تحسين ذاتي" severity="info" icon="pi pi-sparkles" /> }
                       @if (m.approved) { <p-tag value="معتمد للتدريب" severity="success" icon="pi pi-check" /> }
                     </div>
                     @if (m.role === 'assistant' && isPersisted(m)) {
-                      <div class="msg-actions">
+                      <div class="flex flex-wrap gap-1 mt-1">
                         <p-button icon="pi pi-pencil" [text]="true" size="small" label="تصحيح"
                                   [disabled]="correcting() !== null" (onClick)="startEdit(m)" />
                         <p-button icon="pi pi-sparkles" [text]="true" size="small" label="تحسين ذاتي"
@@ -108,7 +122,7 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
                         }
                       </div>
                     } @else if (m.role === 'assistant' && !isPersisted(m)) {
-                      <div class="msg-actions dim small">…سيمكن التصحيح بعد اكتمال الرد</div>
+                      <div class="mt-1 text-xs text-neutral-400">…سيمكن التصحيح بعد اكتمال الرد</div>
                     }
                   }
                 </div>
@@ -116,14 +130,14 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
             }
           </div>
 
-          <footer class="composer">
+          <footer class="flex items-end gap-2 p-3 border-t border-neutral-200 dark:border-neutral-800">
             <textarea pTextarea rows="2" [(ngModel)]="draft" (keydown.enter)="$event.preventDefault(); send()"
-                      placeholder="اكتب رسالتك… ثم صحّح رد النموذج ليتعلّم منه" class="composer-in"></textarea>
+                      placeholder="اكتب رسالتك… ثم صحّح رد النموذج ليتعلّم منه" class="flex-1 resize-none"></textarea>
             <p-button icon="pi pi-send" [rounded]="true" [disabled]="!draft.trim() || thinking()" (onClick)="send()" />
           </footer>
         } @else {
-          <div class="empty muted">
-            <span class="big">💬</span>
+          <div class="flex flex-col items-center justify-center h-full gap-2 text-neutral-500 dark:text-neutral-400">
+            <span class="text-5xl">💬</span>
             <p>اختر جلسة أو أنشئ واحدة جديدة لبدء المحادثة والتصحيح.</p>
           </div>
         }
@@ -133,8 +147,8 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
     <!-- system prompt editor -->
     <p-dialog header="تعليمات النظام · system prompt" [(visible)]="showSysPrompt" [modal]="true"
               [style]="{ width: '640px', maxWidth: '94vw' }" [dismissableMask]="true">
-      <p class="muted small dlg-sub">توجيه يُضاف قبل كل محادثة في هذه الجلسة لضبط أسلوب النموذج.</p>
-      <textarea pTextarea [(ngModel)]="sysPromptDraft" class="sys-area" placeholder="مثال: أنت مساعد عربي مفيد ودقيق، تجيب بإيجاز وباللغة العربية الفصحى."></textarea>
+      <p class="mt-0 mb-3 text-xs text-neutral-500 dark:text-neutral-400">توجيه يُضاف قبل كل محادثة في هذه الجلسة لضبط أسلوب النموذج.</p>
+      <textarea pTextarea [(ngModel)]="sysPromptDraft" class="w-full min-h-[180px] leading-8 resize-y" placeholder="مثال: أنت مساعد عربي مفيد ودقيق، تجيب بإيجاز وباللغة العربية الفصحى."></textarea>
       <ng-template pTemplate="footer">
         <p-button label="إلغاء" severity="secondary" [text]="true" (onClick)="showSysPrompt = false" />
         <p-button label="حفظ" icon="pi pi-check" (onClick)="saveSysPrompt()" />
@@ -144,8 +158,8 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
     <!-- self-correction prompt editor (the "magic wand") -->
     <p-dialog header="تعليمات التحسين الذاتي · correction prompt" [(visible)]="showCorrectionPrompt" [modal]="true"
               [style]="{ width: '640px', maxWidth: '94vw' }" [dismissableMask]="true">
-      <p class="muted small dlg-sub">توجيه يُملي على النموذج كيف يُحسّن ردّه عند الضغط على زر «تحسين ذاتي» (لغة، منطق، تفكير من المبادئ الأولى، وتنسيق Markdown). اتركه فارغًا لاستخدام التعليمات الافتراضية.</p>
-      <textarea pTextarea [(ngModel)]="correctionPromptDraft" class="sys-area"
+      <p class="mt-0 mb-3 text-xs text-neutral-500 dark:text-neutral-400">توجيه يُملي على النموذج كيف يُحسّن ردّه عند الضغط على زر «تحسين ذاتي» (لغة، منطق، تفكير من المبادئ الأولى، وتنسيق Markdown). اتركه فارغًا لاستخدام التعليمات الافتراضية.</p>
+      <textarea pTextarea [(ngModel)]="correctionPromptDraft" class="w-full min-h-[180px] leading-8 resize-y"
                 [placeholder]="correctionPromptPlaceholder"></textarea>
       <ng-template pTemplate="footer">
         <p-button label="إلغاء" severity="secondary" [text]="true" (onClick)="showCorrectionPrompt = false" />
@@ -156,21 +170,21 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
     <!-- inherit chats from other projects -->
     <p-dialog header="استيراد محادثات من مشروع آخر" [(visible)]="showImport" [modal]="true"
               [style]="{ width: '720px', maxWidth: '94vw' }" [dismissableMask]="true">
-      <p class="muted small dlg-sub">انسخ جلسات (مع تصحيحاتها) من مشروع آخر إلى هذا المشروع لإعادة استخدامها في التدريب.</p>
-      <label class="lbl">المشروع المصدر</label>
+      <p class="mt-0 mb-3 text-xs text-neutral-500 dark:text-neutral-400">انسخ جلسات (مع تصحيحاتها) من مشروع آخر إلى هذا المشروع لإعادة استخدامها في التدريب.</p>
+      <label class="block mt-2 mb-1.5 font-semibold">المشروع المصدر</label>
       <p-select [options]="otherProjects()" optionLabel="name" optionValue="id" [(ngModel)]="importSourceId"
-                (onChange)="loadSourceSessions($event.value)" placeholder="اختر مشروعًا" styleClass="full" appendTo="body" />
+                (onChange)="loadSourceSessions($event.value)" placeholder="اختر مشروعًا" styleClass="w-full" appendTo="body" />
 
       @if (importSourceId) {
-        <div class="src-list">
+        <div class="flex flex-col gap-0.5 mt-3 max-h-80 overflow-auto">
           @for (s of sourceSessions(); track s.id) {
-            <label class="src-row">
+            <label class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg cursor-pointer transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
               <p-checkbox [binary]="true" [ngModel]="isPicked(s.id)" (ngModelChange)="togglePick(s.id)" />
-              <span class="src-title">{{ s.title }}</span>
-              <span class="src-meta dim">{{ s.approved_count }} مثال معتمد</span>
+              <span class="flex-1 text-sm">{{ s.title }}</span>
+              <span class="text-xs text-neutral-400">{{ s.approved_count }} مثال معتمد</span>
             </label>
           }
-          @if (sourceSessions().length === 0) { <p class="muted dim">لا جلسات في هذا المشروع.</p> }
+          @if (sourceSessions().length === 0) { <p class="text-neutral-400">لا جلسات في هذا المشروع.</p> }
         </div>
       }
       <ng-template pTemplate="footer">
@@ -179,78 +193,6 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
       </ng-template>
     </p-dialog>
   `,
-  styles: [`
-    .chat-layout { display: grid; grid-template-columns: 260px 1fr; gap: 0.9rem; height: 68vh; }
-    .rail { padding: 0.8rem; display: flex; flex-direction: column; }
-    .rail-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
-    .rail-head .t { font-weight: 700; }
-    .small { font-size: 0.75rem; }
-    .rail-actions { display: flex; gap: 0.1rem; }
-    .dlg-sub { margin: 0 0 0.8rem; }
-    .lbl { font-weight: 600; display: block; margin: 0.4rem 0 0.3rem; }
-    .full { width: 100%; }
-    .sys-area { width: 100%; min-height: 180px; font-size: 0.95rem; line-height: 1.8; resize: vertical; }
-    .src-list { display: flex; flex-direction: column; gap: 0.2rem; margin-top: 0.8rem; max-height: 320px; overflow: auto; }
-    .src-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.6rem; border-radius: 10px; cursor: pointer; }
-    .src-row:hover { background: var(--glass-bg); }
-    .src-title { flex: 1; font-size: 0.9rem; }
-    .src-meta { font-size: 0.76rem; }
-    .sessions { display: flex; flex-direction: column; gap: 0.3rem; overflow: auto; }
-    .srow { display: flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.6rem; border-radius: 10px; background: transparent; border: 1px solid transparent; color: var(--text-2); cursor: pointer; text-align: start; }
-    .srow:hover { background: var(--glass-bg); color: var(--text-1); }
-    .srow.sel { background: var(--glass-bg-strong); color: var(--text-1); border-color: var(--glass-border); }
-    .srow .st { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.86rem; }
-    .srow .cnt { font-size: 0.7rem; background: var(--accent-grad); color: #06121a; border-radius: 999px; padding: 0 0.4rem; font-weight: 700; }
-    .hint { padding: 0.5rem; font-size: 0.8rem; }
-    .conv { display: flex; flex-direction: column; overflow: hidden; }
-    .conv-head { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; padding: 0.7rem 1rem; border-bottom: 1px solid var(--glass-border); }
-    .title-in { background: transparent; border: none; font-weight: 700; font-size: 1rem; color: var(--text-1); flex: 1; min-width: 0; }
-    .head-right { display: flex; align-items: center; gap: 0.8rem; flex-shrink: 0; }
-    .model-of { display: flex; align-items: center; gap: 0.4rem; }
-    .approved { font-size: 0.78rem; white-space: nowrap; }
-    :host ::ng-deep .ver-sel { font-size: 0.78rem; }
-    .stream { flex: 1; overflow: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.9rem; }
-    .msg { display: flex; gap: 0.6rem; max-width: 86%; }
-    .msg.user { flex-direction: row-reverse; margin-inline-start: auto; }
-    .msg.editing { max-width: 100%; width: 100%; }
-    .msg.editing .bubble { flex: 1; }
-    .avatar { font-size: 1.3rem; }
-    .bubble { padding: 0.7rem 0.9rem; border-radius: 16px; }
-    .msg.user .bubble { background: var(--accent-soft); }
-    .content { margin: 0; white-space: pre-wrap; line-height: 1.7; }
-    /* Markdown-rendered assistant replies (headings + tables the magic wand emits) */
-    .content.md { white-space: normal; }
-    .content.md :first-child { margin-top: 0; }
-    .content.md :last-child { margin-bottom: 0; }
-    .content.md h1, .content.md h2, .content.md h3 { line-height: 1.35; margin: 0.8rem 0 0.4rem; font-weight: 700; }
-    .content.md h1 { font-size: 1.15rem; }
-    .content.md h2 { font-size: 1.05rem; }
-    .content.md h3 { font-size: 0.98rem; }
-    .content.md p { margin: 0.4rem 0; }
-    .content.md ul, .content.md ol { margin: 0.4rem 0; padding-inline-start: 1.4rem; }
-    .content.md li { margin: 0.15rem 0; }
-    .content.md a { color: var(--accent); }
-    .content.md code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.86em; background: var(--glass-bg); padding: 0.1em 0.35em; border-radius: 6px; direction: ltr; unicode-bidi: embed; }
-    .content.md pre { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 12px; padding: 0.7rem 0.9rem; overflow: auto; direction: ltr; text-align: left; }
-    .content.md pre code { background: none; padding: 0; }
-    .content.md blockquote { margin: 0.5rem 0; padding-inline-start: 0.8rem; border-inline-start: 3px solid var(--glass-border); color: var(--text-2); }
-    .content.md table { direction: rtl; border-collapse: collapse; width: 100%; margin: 0.6rem 0; font-size: 0.9rem; }
-    .content.md th, .content.md td { border: 1px solid var(--glass-border); padding: 0.4rem 0.6rem; text-align: start; }
-    .content.md th { background: var(--glass-bg); font-weight: 700; }
-    .tags { display: flex; gap: 0.3rem; margin-top: 0.4rem; }
-    .msg-actions { display: flex; gap: 0.2rem; margin-top: 0.3rem; flex-wrap: wrap; }
-    .composer-in { width: 100%; }
-    .edit-head { margin-bottom: 0.5rem; display: flex; gap: 0.4rem; align-items: center; }
-    .edit-area { width: 100%; min-height: 260px; font-size: 0.98rem; line-height: 1.8; resize: vertical; }
-    .edit-actions { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
-    .caret { display: inline-block; margin-inline-start: 2px; color: var(--accent); animation: blink 1s steps(2) infinite; }
-    @keyframes blink { 50% { opacity: 0; } }
-    .composer { display: flex; gap: 0.5rem; align-items: flex-end; padding: 0.7rem; border-top: 1px solid var(--glass-border); }
-    .composer-in { flex: 1; resize: none; }
-    .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 0.4rem; }
-    .empty .big { font-size: 2.4rem; }
-    @media (max-width: 760px) { .chat-layout { grid-template-columns: 1fr; height: auto; } }
-  `],
 })
 export class ChatPanel implements OnInit {
   @Input() projectId!: string;

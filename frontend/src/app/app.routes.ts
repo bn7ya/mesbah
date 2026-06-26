@@ -12,6 +12,11 @@ export const routes: Routes = [
     title: 'النماذج · مِصباح',
   },
   {
+    path: 'settings',
+    loadComponent: () => import('./features/settings/settings-page').then((m) => m.SettingsPage),
+    title: 'الإعدادات · مِصباح',
+  },
+  {
     path: 'projects/:id',
     loadComponent: () => import('./features/workspace/workspace-page').then((m) => m.WorkspacePage),
     title: 'مساحة العمل · مِصباح',

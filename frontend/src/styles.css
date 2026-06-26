@@ -1,0 +1,47 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   مِصباح · Misbah — global styles (minimal / Notion-like)
+   Tailwind drives all layout & spacing; PrimeNG provides the components.
+   RTL Arabic UI; technical terms stay LTR. No custom design system, no glass.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Layer order: PrimeNG sits below Tailwind's components/utilities (so utility
+   classes win) but above Tailwind's base reset (so component theming survives).
+   Declared first so this ordering is authoritative. */
+@layer theme, base, primeng, components, utilities;
+
+@import "tailwindcss";
+
+/* Dark mode is class-based (`.dark` on <html>) to match PrimeNG's darkModeSelector. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root { color-scheme: light; }
+:root.dark { color-scheme: dark; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: 'IBM Plex Sans Arabic', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Neutral Notion-ish surface; the shell sets the same via Tailwind, this just
+   avoids a flash before hydration. */
+body { background: #ffffff; color: #37352f; }
+:root.dark body { background: #1a1a1a; color: #e6e6e6; }
+
+/* Technical terms / code stay left-to-right inside the RTL flow. */
+.ltr, code, kbd, .mono {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* Quiet, thin scrollbars. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(120, 120, 120, 0.28); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(120, 120, 120, 0.45); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

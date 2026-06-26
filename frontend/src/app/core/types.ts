@@ -229,10 +229,23 @@ export interface CuratedModel {
   default_lora_r?: number;
 }
 
+/** A detected CUDA GPU (mirrors core/hardware.detect_gpus). */
+export interface GpuInfo {
+  index: number;
+  name: string;
+  total_vram_gb: number;
+  compute_capability: string | null;
+}
+
 export interface SystemInfo {
+  gpus: GpuInfo[];
+  selected_gpu: GpuInfo | null;
   gpu_vram_gb: number;
+  system_ram_gb: number;
+  cuda_available: boolean;
   default_base_model: string;
   max_train_seq_len: number;
+  onboarded: boolean;
   engine: {
     runtime_available: boolean;
     loaded: boolean;
@@ -242,6 +255,15 @@ export interface SystemInfo {
     vram_free_gb?: number;
     vram_used_gb?: number;
   };
+}
+
+/** Persisted user settings (mirrors features/settings.public()). */
+export interface AppSettings {
+  onboarded: boolean;
+  selected_gpu_index: number | null;
+  gpu_vram_gb_override: number | null;
+  theme: 'light' | 'dark';
+  tokens: Record<string, { configured: boolean; hint: string }>;
 }
 
 /** One live point streamed over the training WebSocket. */

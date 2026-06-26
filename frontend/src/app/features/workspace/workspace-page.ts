@@ -20,13 +20,13 @@ import { AutoEnhancePanel } from '../auto-enhance/auto-enhance-panel';
   ],
   template: `
     @if (project(); as p) {
-      <section class="page">
-        <header class="head glass">
-          <a routerLink="/" class="back"><i class="pi pi-arrow-right"></i></a>
-          <div class="meta">
-            <h1 class="name">{{ p.name }}</h1>
-            <div class="row">
-              <code class="ltr base">{{ p.base_model_repo }}</code>
+      <section class="max-w-6xl mx-auto px-4 pt-2 pb-8">
+        <header class="flex gap-4 items-start mb-5">
+          <a routerLink="/" class="text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 text-xl pt-1 no-underline"><i class="pi pi-arrow-right"></i></a>
+          <div class="flex-1">
+            <h1 class="m-0 mb-1.5 text-2xl font-semibold">{{ p.name }}</h1>
+            <div class="flex gap-2 items-center flex-wrap">
+              <code class="ltr text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded">{{ p.base_model_repo }}</code>
               <p-tag [value]="p.kind === 'scratch' ? 'من الصفر' : 'fine-tune'"
                      [severity]="p.kind === 'scratch' ? 'warn' : 'info'" />
               @if (activeLabel()) {
@@ -36,11 +36,11 @@ import { AutoEnhancePanel } from '../auto-enhance/auto-enhance-panel';
                 <p-tag value="غير مُدرَّب بعد — درّبه أولًا" severity="warn" icon="pi pi-exclamation-triangle" />
               }
             </div>
-            @if (p.description) { <p class="muted desc">{{ p.description }}</p> }
+            @if (p.description) { <p class="mt-2 mb-0 text-sm text-neutral-500">{{ p.description }}</p> }
           </div>
         </header>
 
-        <p-tabs [(value)]="tab" class="tabs">
+        <p-tabs [(value)]="tab">
           <p-tablist>
             <p-tab [value]="0"><i class="pi pi-comments"></i> المحادثات والتصحيح</p-tab>
             <p-tab [value]="1"><i class="pi pi-check-square"></i> المهام</p-tab>
@@ -52,13 +52,13 @@ import { AutoEnhancePanel } from '../auto-enhance/auto-enhance-panel';
             <p-tab [value]="3"><i class="pi pi-sync"></i> التحسين التلقائي</p-tab>
             <p-tab [value]="4"><i class="pi pi-sitemap"></i> شجرة الإصدارات</p-tab>
           </p-tablist>
-          <p-tabpanels>
+          <p-tabpanels class="!bg-transparent !px-0">
             <p-tabpanel [value]="0">
               @if (mustTrainFirst()) {
-                <div class="gate glass">
-                  <span class="big">🧬</span>
-                  <h3>هذا النموذج مبنيّ من الصفر ولم يُدرَّب بعد</h3>
-                  <p class="muted">لا توجد أوزان بعد — درّب النموذج أولًا لتوليد الإصدار الأول، ثم تصبح المحادثة والتصحيح متاحَين.</p>
+                <div class="flex flex-col items-center gap-2 text-center rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-8 py-12">
+                  <span class="text-5xl">🧬</span>
+                  <h3 class="m-0 text-lg font-semibold">هذا النموذج مبنيّ من الصفر ولم يُدرَّب بعد</h3>
+                  <p class="text-neutral-500 max-w-md">لا توجد أوزان بعد — درّب النموذج أولًا لتوليد الإصدار الأول، ثم تصبح المحادثة والتصحيح متاحَين.</p>
                   <p-button label="انتقل إلى التدريب" icon="pi pi-bolt" (onClick)="tab = 2" />
                 </div>
               } @else {
@@ -73,28 +73,9 @@ import { AutoEnhancePanel } from '../auto-enhance/auto-enhance-panel';
         </p-tabs>
       </section>
     } @else {
-      <div class="muted center">…جارٍ تحميل المشروع</div>
+      <div class="text-center text-neutral-500 py-16">…جارٍ تحميل المشروع</div>
     }
   `,
-  styles: [`
-    .page { max-width: 1240px; margin: 0 auto; padding: 0.3rem 0.6rem 2rem; }
-    .head { display: flex; gap: 1rem; align-items: flex-start; padding: 1.1rem 1.3rem; margin-bottom: 1rem; }
-    .back { color: var(--text-2); font-size: 1.2rem; padding-top: 0.3rem; text-decoration: none; }
-    .back:hover { color: var(--text-1); }
-    .meta .name { margin: 0 0 0.35rem; font-size: 1.5rem; }
-    .row { display: flex; gap: 0.7rem; align-items: center; flex-wrap: wrap; }
-    .base { font-size: 0.8rem; color: var(--accent); background: var(--accent-soft); padding: 0.2rem 0.55rem; border-radius: 8px; }
-    .desc { margin: 0.5rem 0 0; font-size: 0.88rem; }
-    .center { text-align: center; padding: 4rem; }
-    .gate { text-align: center; padding: 3rem 2rem; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
-    .gate .big { font-size: 2.8rem; }
-    .gate h3 { margin: 0; }
-    .gate p { max-width: 460px; }
-    :host ::ng-deep .p-tablist { background: transparent; }
-    :host ::ng-deep .p-tabpanels { background: transparent; padding: 1.1rem 0 0; }
-    :host ::ng-deep .p-tab { color: var(--text-2); font-weight: 600; }
-    :host ::ng-deep .p-tab[data-p-active="true"] { color: var(--accent); }
-  `],
 })
 export class WorkspacePage implements OnInit, OnDestroy {
   @Input() id!: string;                       // bound from route param

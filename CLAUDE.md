@@ -23,11 +23,12 @@ Project (wraps one HuggingFace base model)
 
 | Layer    | Tech |
 |----------|------|
-| Frontend | Angular 20 (standalone, signals) + PrimeNG 20 + `@primeuix/themes` (Aura), RTL, glassmorphism, chart.js |
-| Backend  | FastAPI + SQLModel/SQLite, WebSocket live metrics |
+| Frontend | Angular 20 (standalone, signals) + PrimeNG 20 + `@primeuix/themes` (Aura), **Tailwind v4**, RTL, minimal/Notion-like, chart.js |
+| Backend  | FastAPI + SQLModel/SQLite, WebSocket live metrics (+ live trainer logs); serves the built SPA in prod/desktop |
 | Training | QLoRA via **Unsloth** (preferred) or transformers + peft + trl + bitsandbytes; runs as an isolated subprocess |
 | Model    | **Qwen/Qwen3-14B** (default) — see `docs/MODEL_SELECTION.md` |
-| Hardware | RTX 5080 (16 GB, Blackwell sm_120), CUDA 13.2, torch 2.11+cu130 — see `docs/HARDWARE.md` |
+| Hardware | **Auto-detected** GPU/VRAM/RAM (pynvml → torch → nvidia-smi); training params derive from the real card, GPU chosen on first run. Dev box: RTX 5080 16 GB, sm_120, CUDA 13.2, torch 2.11+cu130 — see `docs/HARDWARE.md` |
+| Desktop  | Optional **Tauri** shell (`frontend/src-tauri`) — launches the local backend, opens the studio; `.deb`/`.AppImage` (Linux), `.msi`/`.exe` (Windows) |
 
 ## Layout
 

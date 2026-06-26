@@ -1,48 +1,106 @@
 <p-toast position="top-left" />
 <p-confirmdialog />
 
-<div class="shell">
-  <header class="topbar glass-strong">
-    <a routerLink="/" class="brand">
-      <span class="lamp">🕯️</span>
-      <span class="brand-text">
-        <span class="text-grad name">مِصباح</span>
-        <small class="muted">استوديو ضبط النماذج</small>
-      </span>
+<div class="flex flex-col h-screen bg-neutral-50 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-100">
+  <header
+    class="flex items-center gap-4 px-5 h-14 shrink-0 border-b border-neutral-200 dark:border-neutral-800 bg-white/90 dark:bg-neutral-900/90 backdrop-blur">
+    <a routerLink="/" class="flex items-center gap-2 no-underline text-inherit">
+      <span class="text-xl">🕯️</span>
+      <span class="font-semibold">مِصباح</span>
+      <span class="hidden sm:inline text-xs text-neutral-400">استوديو ضبط النماذج</span>
     </a>
 
-    <nav class="nav">
-      <a routerLink="/" class="nav-link"><i class="pi pi-folder"></i> المشاريع</a>
-      <a routerLink="/models" class="nav-link"><i class="pi pi-box"></i> النماذج</a>
+    <nav class="flex items-center gap-1 text-sm">
+      <a routerLink="/"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 no-underline">
+        <i class="pi pi-folder text-xs"></i> المشاريع
+      </a>
+      <a routerLink="/models"
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 no-underline">
+        <i class="pi pi-box text-xs"></i> النماذج
+      </a>
     </nav>
 
-    <button
-      type="button"
-      class="theme-toggle"
-      (click)="toggleTheme()"
-      [title]="theme() === 'dark' ? 'الوضع الفاتح' : 'الوضع الداكن'"
-      [attr.aria-label]="theme() === 'dark' ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الداكن'">
-      <i class="pi" [class.pi-sun]="theme() === 'dark'" [class.pi-moon]="theme() === 'light'"></i>
-    </button>
-
-    @if (sys(); as s) {
-      <div class="status">
-        <span class="chip" [class.ok]="s.engine.runtime_available" [class.warn]="!s.engine.runtime_available">
-          <i class="pi" [class.pi-bolt]="s.engine.runtime_available" [class.pi-exclamation-triangle]="!s.engine.runtime_available"></i>
-          <span class="mono">{{ s.engine.runtime_available ? 'GPU runtime' : 'CPU only' }}</span>
+    <div class="flex items-center gap-2 ms-auto">
+      @if (sys(); as s) {
+        <span
+          class="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border"
+          [class]="s.engine.runtime_available
+            ? 'border-emerald-200 text-emerald-600 dark:border-emerald-900/60 dark:text-emerald-400'
+            : 'border-amber-200 text-amber-600 dark:border-amber-900/60 dark:text-amber-400'"
+          [title]="s.selected_gpu?.name || ''">
+          <i class="pi text-[10px]"
+            [class.pi-bolt]="s.engine.runtime_available"
+            [class.pi-exclamation-triangle]="!s.engine.runtime_available"></i>
+          <span class="mono">{{ gpuLabel(s) }}</span>
         </span>
         @if (s.engine.cuda && s.engine.vram_total_gb) {
-          <span class="chip vram" title="VRAM usage">
-            <span class="mono">VRAM</span>
-            <span class="bar"><span class="fill" [style.width.%]="vramPct()"></span></span>
-            <span class="mono dim">{{ s.engine.vram_used_gb | number:'1.1-1' }}/{{ s.engine.vram_total_gb | number:'1.0-0' }} GB</span>
+          <span
+            class="hidden md:inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs border border-neutral-200 dark:border-neutral-700"
+            title="VRAM">
+            <span class="mono text-neutral-500">VRAM</span>
+            <span class="w-16 h-1.5 rounded bg-neutral-200 dark:bg-neutral-700 overflow-hidden">
+              <span class="block h-full bg-blue-500 transition-all duration-500" [style.width.%]="vramPct()"></span>
+            </span>
+            <span class="mono text-neutral-400">
+              {{ s.engine.vram_used_gb | number: '1.1-1' }}/{{ s.engine.vram_total_gb | number: '1.0-0' }} GB
+            </span>
           </span>
         }
-      </div>
-    }
+      }
+
+      <a routerLink="/settings"
+        class="flex items-center justify-center w-9 h-9 rounded-md text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 no-underline"
+        title="الإعدادات" aria-label="الإعدادات">
+        <i class="pi pi-cog"></i>
+      </a>
+
+      <button type="button" (click)="toggleTheme()"
+        class="flex items-center justify-center w-9 h-9 rounded-md text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+        [title]="theme() === 'dark' ? 'الوضع الفاتح' : 'الوضع الداكن'"
+        [attr.aria-label]="theme() === 'dark' ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الداكن'">
+        <i class="pi" [class.pi-sun]="theme() === 'dark'" [class.pi-moon]="theme() === 'light'"></i>
+      </button>
+    </div>
   </header>
 
-  <main class="content">
+  <main class="flex-1 overflow-auto">
     <router-outlet />
   </main>
 </div>
+
+<!-- first-run GPU onboarding (shown once) -->
+@if (showOnboarding()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div class="w-full max-w-lg rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-6 shadow-xl">
+      <div class="text-center mb-4">
+        <div class="text-3xl mb-1">🕯️</div>
+        <h2 class="text-lg font-semibold m-0">مرحبًا بك في مِصباح</h2>
+        <p class="text-sm text-neutral-500 mt-1">اختر بطاقة الرسوميات التي ستُستخدم للتدريب والاستدلال. يُسأل هذا مرة واحدة فقط (يمكن تغييره لاحقًا من الإعدادات).</p>
+      </div>
+      @if (sys(); as s) {
+        @if (s.gpus.length) {
+          <div class="flex flex-col gap-2">
+            @for (g of s.gpus; track g.index) {
+              <button type="button" (click)="onboard(g.index)"
+                class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-neutral-200 dark:border-neutral-800 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 text-start transition-colors">
+                <div class="min-w-0">
+                  <div class="font-semibold ltr truncate">{{ g.name }}</div>
+                  <div class="text-xs text-neutral-400 ltr">GPU {{ g.index }} · {{ g.total_vram_gb | number: '1.0-1' }} GB
+                    @if (g.compute_capability) { · sm {{ g.compute_capability }} }
+                  </div>
+                </div>
+                <i class="pi pi-chevron-left text-neutral-400"></i>
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="text-center">
+            <p class="text-sm text-amber-600 dark:text-amber-400 mb-3"><i class="pi pi-exclamation-triangle"></i> لم يُكتشف <code class="ltr">GPU</code> متوافق مع <code class="ltr">CUDA</code> — سيعمل التطبيق على <code class="ltr">CPU</code> فقط.</p>
+            <button type="button" (click)="onboard(null)" class="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700">متابعة</button>
+          </div>
+        }
+      }
+    </div>
+  </div>
+}

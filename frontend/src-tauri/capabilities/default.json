@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Core permissions for the main window. The studio UI is served by the local backend and uses no Tauri JS APIs, so this stays minimal.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

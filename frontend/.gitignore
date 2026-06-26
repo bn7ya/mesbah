@@ -41,3 +41,8 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Tauri desktop shell build artifacts (Rust target + generated schemas)
+/src-tauri/target
+/src-tauri/gen
+/.playwright-mcp

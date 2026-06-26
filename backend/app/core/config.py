@@ -45,13 +45,13 @@ class Settings(BaseSettings):
     # Curated default base model — see docs/MODEL_SELECTION.md. Overridable per project.
     default_base_model: str = "Qwen/Qwen3-14B"
 
-    # ── Hardware budget (RTX 5080 / 16 GB) ──
-    gpu_vram_gb: int = 16
-    # Host RAM available for ZeRO-Infinity CPU offload (see docs/HARDWARE.md: 128 GB).
-    # Drives the cpu-vs-nvme offload decision for from-scratch full training.
-    host_ram_gb: int = 128
-    # Hard ceiling the UI warns past; QLoRA defaults are tuned for this card.
-    max_train_seq_len: int = 4096
+    # ── Hardware budget (auto-detected; env only OVERRIDES the probe) ──
+    # Left as None by default → resolved from the real machine via core/hardware.py
+    # (the user picks which GPU on first run). Set MISBAH_GPU_VRAM_GB etc. only to
+    # force a value (e.g. headless CI). Use the resolved_* accessors below.
+    gpu_vram_gb: int | None = None
+    host_ram_gb: int | None = None
+    max_train_seq_len: int | None = None
 
     # ── Inference defaults ──
     infer_max_new_tokens: int = 1024
@@ -174,6 +174,21 @@ class Settings(BaseSettings):
                   self.datasets_dir, self.runs_dir, self.loops_dir, self.offload_dir,
                   self.projects_dir):
             p.mkdir(parents=True, exist_ok=True)
+
+    # ── Resolved hardware (env override → real machine probe) ─────────────────
+    def resolved_vram_gb(self) -> float:
+        """Usable GPU VRAM: the env override if set, else the detected/selected GPU."""
+        if self.gpu_vram_gb:
+            return float(self.gpu_vram_gb)
+        from .hardware import effective_vram_gb
+        return effective_vram_gb()
+
+    def resolved_ram_gb(self) -> float:
+        """Host RAM (GB): the env override if set, else the detected system RAM."""
+        if self.host_ram_gb:
+            return float(self.host_ram_gb)
+        from .hardware import system_ram_gb
+        return system_ram_gb()
 
 
 @lru_cache

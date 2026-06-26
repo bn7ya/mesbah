@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { DecimalPipe, NgTemplateOutlet } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -9,67 +10,54 @@ import { MessageService } from 'primeng/api';
 import { Api } from '../../core/api';
 import { CuratedModel, DatasetHit } from '../../core/types';
 
-interface DownloadState { status: string; bytes_done: number; local_path?: string | null; error?: string | null; }
+interface DownloadState {
+  status: string;
+  bytes_done: number;
+  total_bytes?: number;
+  percent?: number;
+  local_path?: string | null;
+  error?: string | null;
+}
 
 @Component({
   selector: 'app-models-page',
-  imports: [DecimalPipe, NgTemplateOutlet, FormsModule, ButtonModule, InputTextModule, TagModule, ProgressBarModule],
+  imports: [DecimalPipe, NgTemplateOutlet, RouterLink, FormsModule, ButtonModule, InputTextModule, TagModule, ProgressBarModule],
   template: `
-    <section class="page">
-      <div class="head">
-        <h1 class="title">النماذج <code class="ltr">models</code></h1>
-        <p class="muted sub">ابحث في <code class="ltr">HuggingFace</code>، نزّل النموذج الأساسي محليًا، وتابع التقدّم.</p>
+    <section class="max-w-4xl mx-auto px-4 py-2">
+      <div class="mb-5">
+        <h1 class="text-2xl font-semibold m-0 mb-1">النماذج <code class="ltr">models</code></h1>
+        <p class="text-neutral-500 text-sm m-0">ابحث في <code class="ltr">HuggingFace</code>، نزّل النموذج الأساسي محليًا، وتابع التقدّم.</p>
       </div>
 
-      <!-- HuggingFace token -->
-      <div class="token glass">
-        <div class="token-top">
-          <div class="token-info">
-            <i class="pi pi-key"></i>
-            <span class="tlabel">رمز <code class="ltr">HuggingFace</code> <span class="dim small">(للنماذج/المجموعات الخاصة والمحمية)</span></span>
-            @if (tokenStatus(); as st) {
-              @if (st.configured) {
-                <p-tag [value]="(st.source === 'env' ? 'من البيئة' : 'مضبوط') + (st.hint ? ' · ' + st.hint : '')" severity="success" icon="pi pi-check" />
-              } @else {
-                <p-tag value="غير مضبوط" severity="warn" />
-              }
-            }
-          </div>
-          <a class="ltr small open-hf" href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener">
-            افتح صفحة الرموز ↗
-          </a>
-        </div>
-        <div class="token-row">
-          <input pInputText type="password" class="grow ltr" [(ngModel)]="token" placeholder="hf_xxx… الصق الرمز هنا" (keydown.enter)="saveToken()" />
-          <p-button label="حفظ" icon="pi pi-save" [loading]="savingToken()" [disabled]="!token.trim()" (onClick)="saveToken()" />
-          @if (tokenStatus()?.configured) {
-            <p-button label="مسح" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="clearToken()" />
-          }
-        </div>
-        <p class="muted small token-help">سجّل الدخول في <code class="ltr">HuggingFace</code> عبر الزر أعلاه، أنشئ رمزًا بصلاحية <code class="ltr">read</code>، ثم الصقه هنا. يُحفظ محليًا على جهازك ويُستخدم في البحث والتنزيل.</p>
-      </div>
+      <!-- token hint → settings -->
+      <a routerLink="/settings"
+         class="flex items-center gap-2 px-3 py-2 mb-5 rounded-lg border border-neutral-200 dark:border-neutral-800 text-sm text-neutral-600 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 no-underline transition-colors">
+        <i class="pi pi-key text-neutral-400"></i>
+        لإدارة رمز <code class="ltr">HuggingFace</code> (للنماذج/المجموعات الخاصة) افتح <span class="text-blue-600 dark:text-blue-400">الإعدادات</span>
+        <i class="pi pi-arrow-left ms-auto text-xs text-neutral-400"></i>
+      </a>
 
       <!-- search -->
-      <div class="search glass">
-        <i class="pi pi-search"></i>
-        <input pInputText [(ngModel)]="query" (keydown.enter)="search()" placeholder="ابحث: Qwen3, DeepSeek, Arabic …" class="grow ltr" />
-        <p-button label="بحث" icon="pi pi-search" [loading]="searching()" (onClick)="search()" />
+      <div class="flex items-center gap-2 px-3 py-2 mb-5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+        <i class="pi pi-search text-neutral-400"></i>
+        <input pInputText [(ngModel)]="query" (keydown.enter)="search()" placeholder="ابحث: Qwen3, DeepSeek, Arabic …" class="flex-1 min-w-0 border-0 bg-transparent ltr" />
+        <p-button label="بحث" icon="pi pi-search" [loading]="searching()" (onClick)="search()" size="small" />
       </div>
 
       @if (results().length) {
-        <div class="block">
-          <h3 class="h">نتائج البحث</h3>
-          <div class="rows">
+        <div class="mb-6">
+          <h3 class="text-base font-semibold m-0 mb-2">نتائج البحث</h3>
+          <div class="flex flex-col gap-2">
             @for (r of results(); track r.repo_id) {
-              <div class="row glass">
-                <div class="info">
-                  <span class="ltr repo">{{ r.repo_id }}</span>
-                  <span class="meta dim ltr">
+              <div class="flex items-center justify-between gap-4 px-4 py-3 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+                <div class="flex items-center gap-2 flex-wrap min-w-0">
+                  <span class="ltr font-semibold text-sm truncate">{{ r.repo_id }}</span>
+                  <span class="flex gap-3 text-xs text-neutral-400 ltr">
                     @if (r.downloads != null) { <span><i class="pi pi-download"></i> {{ r.downloads | number }}</span> }
                     @if (r.likes != null) { <span><i class="pi pi-heart"></i> {{ r.likes }}</span> }
                   </span>
                 </div>
-                <ng-container [ngTemplateOutlet]="dl" [ngTemplateOutletContext]="{ $implicit: r.repo_id }" />
+                <ng-container [ngTemplateOutlet]="dl" [ngTemplateOutletContext]="{ $implicit: r.repo_id, type: 'model' }" />
               </div>
             }
           </div>
@@ -77,26 +65,29 @@ interface DownloadState { status: string; bytes_done: number; local_path?: strin
       }
 
       <!-- dataset search (corpus browser) -->
-      <div class="block">
-        <h3 class="h">مجموعات البيانات <code class="ltr">datasets</code></h3>
-        <p class="muted dim small">ابحث في كوربوس <code class="ltr">HuggingFace</code>. تُستخدم لتدريب نموذج من الصفر (اخترها داخل معالج الإنشاء).</p>
-        <div class="search glass">
-          <i class="pi pi-search"></i>
-          <input pInputText [(ngModel)]="dsQuery" (keydown.enter)="searchDatasets()" placeholder="ابحث: wikitext, arabic, oscar …" class="grow ltr" />
-          <p-button label="بحث" icon="pi pi-search" [loading]="dsSearching()" (onClick)="searchDatasets()" />
+      <div class="mb-6">
+        <h3 class="text-base font-semibold m-0 mb-1">مجموعات البيانات <code class="ltr">datasets</code></h3>
+        <p class="text-neutral-400 text-xs mb-2">ابحث في كوربوس <code class="ltr">HuggingFace</code>. تُستخدم لتدريب نموذج من الصفر (اخترها داخل معالج الإنشاء).</p>
+        <div class="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+          <i class="pi pi-search text-neutral-400"></i>
+          <input pInputText [(ngModel)]="dsQuery" (keydown.enter)="searchDatasets()" placeholder="ابحث: wikitext, arabic, oscar …" class="flex-1 min-w-0 border-0 bg-transparent ltr" />
+          <p-button label="بحث" icon="pi pi-search" [loading]="dsSearching()" (onClick)="searchDatasets()" size="small" />
         </div>
         @if (dsResults().length) {
-          <div class="rows">
+          <div class="flex flex-col gap-2">
             @for (d of dsResults(); track d.repo_id) {
-              <div class="row glass">
-                <div class="info">
-                  <span class="ltr repo">{{ d.repo_id }}</span>
-                  <span class="meta dim ltr">
+              <div class="flex items-center justify-between gap-4 px-4 py-3 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+                <div class="flex items-center gap-2 flex-wrap min-w-0">
+                  <span class="ltr font-semibold text-sm truncate">{{ d.repo_id }}</span>
+                  <span class="flex gap-3 text-xs text-neutral-400 ltr">
                     @if (d.downloads != null) { <span><i class="pi pi-download"></i> {{ d.downloads | number }}</span> }
                     @if (d.likes != null) { <span><i class="pi pi-heart"></i> {{ d.likes }}</span> }
                   </span>
                 </div>
-                <a class="ltr small" [href]="'https://huggingface.co/datasets/' + d.repo_id" target="_blank" rel="noopener">HuggingFace ↗</a>
+                <div class="flex items-center gap-3 shrink-0">
+                  <a class="ltr text-xs text-blue-600 dark:text-blue-400 no-underline hover:underline" [href]="'https://huggingface.co/datasets/' + d.repo_id" target="_blank" rel="noopener">HuggingFace ↗</a>
+                  <ng-container [ngTemplateOutlet]="dl" [ngTemplateOutletContext]="{ $implicit: d.repo_id, type: 'dataset' }" />
+                </div>
               </div>
             }
           </div>
@@ -104,91 +95,68 @@ interface DownloadState { status: string; bytes_done: number; local_path?: strin
       </div>
 
       <!-- curated -->
-      <div class="block">
-        <h3 class="h">مختارة للعربية</h3>
-        <div class="rows">
+      <div class="mb-6">
+        <h3 class="text-base font-semibold m-0 mb-2">مختارة للعربية</h3>
+        <div class="flex flex-col gap-2">
           @for (m of curated(); track m.repo_id) {
-            <div class="row glass">
-              <div class="info">
-                <span class="ltr repo">{{ m.label }}</span>
+            <div class="flex items-center justify-between gap-4 px-4 py-3 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+              <div class="flex items-center gap-2 flex-wrap min-w-0">
+                <span class="ltr font-semibold text-sm">{{ m.label }}</span>
                 @if (m.recommended) { <p-tag value="موصى به" severity="success" /> }
-                <span class="badges">
-                  <span class="b">{{ m.params }}</span><span class="b ltr">{{ m.context }}</span>
-                  <span class="b">عربي: {{ m.arabic }}</span><span class="b ltr">{{ m.license }}</span>
+                <span class="flex gap-1 flex-wrap">
+                  <span class="text-[0.66rem] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800">{{ m.params }}</span>
+                  <span class="text-[0.66rem] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 ltr">{{ m.context }}</span>
+                  <span class="text-[0.66rem] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800">عربي: {{ m.arabic }}</span>
+                  <span class="text-[0.66rem] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 ltr">{{ m.license }}</span>
                 </span>
               </div>
-              <ng-container [ngTemplateOutlet]="dl" [ngTemplateOutletContext]="{ $implicit: m.repo_id }" />
+              <ng-container [ngTemplateOutlet]="dl" [ngTemplateOutletContext]="{ $implicit: m.repo_id, type: 'model' }" />
             </div>
           }
         </div>
       </div>
 
       <!-- local -->
-      <div class="block">
-        <h3 class="h">المحمَّلة محليًا</h3>
+      <div class="mb-6">
+        <h3 class="text-base font-semibold m-0 mb-2">المحمَّلة محليًا</h3>
         @if (local().length) {
-          <div class="rows">
+          <div class="flex flex-col gap-2">
             @for (l of local(); track l.repo_id) {
-              <div class="row glass">
-                <div class="info"><span class="ltr repo">{{ l.repo_id }}</span></div>
-                <span class="ok"><i class="pi pi-check-circle"></i> {{ gb(l.bytes) }} GB</span>
+              <div class="flex items-center justify-between gap-4 px-4 py-3 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+                <span class="ltr font-semibold text-sm">{{ l.repo_id }}</span>
+                <span class="text-emerald-600 dark:text-emerald-400 inline-flex gap-1 items-center text-sm"><i class="pi pi-check-circle"></i> {{ gb(l.bytes) }} GB</span>
               </div>
             }
           </div>
-        } @else { <p class="muted dim">لا نماذج محمَّلة بعد.</p> }
+        } @else { <p class="text-neutral-400">لا نماذج محمَّلة بعد.</p> }
       </div>
     </section>
 
     <!-- download cells rendered via template refs -->
-    <ng-template #dl let-repo>
-      @if (dlState(repo); as st) {
+    <ng-template #dl let-repo let-type="type">
+      @if (dlState(repo, type); as st) {
         @if (st.status === 'downloading' || st.status === 'pending') {
-          <div class="dl">
-            <p-progressBar mode="indeterminate" styleClass="pb" />
-            <span class="dim ltr small">{{ gb(st.bytes_done) }} GB…</span>
+          <div class="flex items-center gap-2 min-w-[200px]">
+            @if (st.total_bytes) {
+              <p-progressBar [value]="st.percent ?? 0" [showValue]="false" styleClass="w-28" />
+              <span class="text-neutral-400 ltr text-xs whitespace-nowrap">{{ gb(st.bytes_done) }}/{{ gb(st.total_bytes) }} GB</span>
+            } @else {
+              <p-progressBar mode="indeterminate" styleClass="w-28" />
+              <span class="text-neutral-400 ltr text-xs whitespace-nowrap">{{ gb(st.bytes_done) }} GB…</span>
+            }
           </div>
         } @else if (st.status === 'done') {
-          <span class="ok"><i class="pi pi-check-circle"></i> محمّل</span>
+          <span class="text-emerald-600 dark:text-emerald-400 inline-flex gap-1 items-center text-sm"><i class="pi pi-check-circle"></i> محمّل</span>
         } @else if (st.status === 'error') {
-          <span class="err" [title]="st.error || ''"><i class="pi pi-times-circle"></i> فشل</span>
+          <span class="text-red-500 inline-flex gap-1 items-center text-sm" [title]="st.error || ''"><i class="pi pi-times-circle"></i> فشل</span>
         } @else {
-          <p-button label="تنزيل" icon="pi pi-download" size="small" [outlined]="true" (onClick)="download(repo)" />
+          <p-button label="تنزيل" icon="pi pi-download" size="small" [outlined]="true" (onClick)="download(repo, type)" />
         }
       } @else {
-        <p-button label="تنزيل" icon="pi pi-download" size="small" [outlined]="true" (onClick)="download(repo)" />
+        <p-button label="تنزيل" icon="pi pi-download" size="small" [outlined]="true" (onClick)="download(repo, type)" />
       }
     </ng-template>
   `,
-  styles: [`
-    .page { max-width: 1000px; margin: 0 auto; padding: 0.4rem 0.6rem; }
-    .title { font-size: 1.9rem; margin: 0 0 0.2rem; }
-    .sub { margin: 0 0 1.2rem; font-size: 0.9rem; }
-    .token { padding: 0.8rem 1rem; margin-bottom: 1.3rem; display: flex; flex-direction: column; gap: 0.6rem; }
-    .token-top { display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; flex-wrap: wrap; }
-    .token-info { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-    .token-info .tlabel { font-weight: 600; }
-    .token-row { display: flex; align-items: center; gap: 0.6rem; }
-    .token-row .grow { flex: 1; min-width: 0; }
-    .open-hf { color: var(--accent); text-decoration: none; white-space: nowrap; }
-    .open-hf:hover { text-decoration: underline; }
-    .token-help { margin: 0; }
-    .search { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.9rem; margin-bottom: 1.3rem; }
-    .search .grow { flex: 1; }
-    .block { margin-bottom: 1.5rem; }
-    .h { font-size: 1.05rem; margin: 0 0 0.6rem; }
-    .rows { display: flex; flex-direction: column; gap: 0.5rem; }
-    .row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.7rem 1rem; }
-    .info { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-    .repo { font-weight: 700; font-size: 0.9rem; }
-    .meta { display: flex; gap: 0.7rem; font-size: 0.78rem; }
-    .badges { display: flex; gap: 0.3rem; flex-wrap: wrap; }
-    .badges .b { font-size: 0.66rem; padding: 0.1rem 0.4rem; border-radius: 6px; background: rgba(150,95,70,0.09); }
-    .dl { display: flex; align-items: center; gap: 0.5rem; min-width: 160px; }
-    .dl .pb { width: 110px; }
-    .small { font-size: 0.72rem; }
-    .ok { color: var(--ok); display: inline-flex; gap: 0.3rem; align-items: center; font-size: 0.85rem; }
-    .err { color: var(--err); display: inline-flex; gap: 0.3rem; align-items: center; font-size: 0.85rem; }
-  `],
 })
 export class ModelsPage implements OnInit {
   private api = inject(Api);
@@ -205,42 +173,9 @@ export class ModelsPage implements OnInit {
   query = '';
   private timers: Record<string, any> = {};
 
-  // HuggingFace token
-  readonly tokenStatus = signal<{ configured: boolean; source: string | null; hint: string | null } | null>(null);
-  readonly savingToken = signal(false);
-  token = '';
-
   ngOnInit(): void {
     this.api.curatedModels().subscribe((m) => this.curated.set(m));
     this.refreshLocal();
-    this.refreshToken();
-  }
-
-  refreshToken(): void { this.api.hfTokenStatus().subscribe((s) => this.tokenStatus.set(s)); }
-
-  saveToken(): void {
-    const t = this.token.trim();
-    if (!t) return;
-    this.savingToken.set(true);
-    this.api.setHfToken(t).subscribe({
-      next: (r) => {
-        this.savingToken.set(false);
-        this.token = '';
-        this.refreshToken();
-        this.toast.add({ severity: 'success', summary: 'تم حفظ الرمز', detail: r.username ? `مرحبًا ${r.username}` : '' });
-      },
-      error: (e) => {
-        this.savingToken.set(false);
-        this.toast.add({ severity: 'error', summary: 'رمز غير صالح', detail: String(e?.error?.detail ?? e.message), life: 7000 });
-      },
-    });
-  }
-
-  clearToken(): void {
-    this.api.clearHfToken().subscribe(() => {
-      this.refreshToken();
-      this.toast.add({ severity: 'info', summary: 'تم مسح الرمز' });
-    });
   }
 
   refreshLocal(): void { this.api.localModels().subscribe((l) => this.local.set(l)); }
@@ -263,34 +198,44 @@ export class ModelsPage implements OnInit {
     });
   }
 
-  download(repo: string): void {
-    this.setDl(repo, { status: 'pending', bytes_done: 0 });
-    this.api.downloadModel(repo).subscribe({
-      next: () => this.poll(repo),
-      error: (e) => this.setDl(repo, { status: 'error', bytes_done: 0, error: String(e?.error?.detail ?? e.message) }),
+  download(repo: string, type: string = 'model'): void {
+    this.setDl(type, repo, { status: 'pending', bytes_done: 0 });
+    const req = type === 'dataset' ? this.api.downloadDataset(repo) : this.api.downloadModel(repo);
+    req.subscribe({
+      next: () => this.poll(repo, type),
+      error: (e) => this.setDl(type, repo, { status: 'error', bytes_done: 0, error: String(e?.error?.detail ?? e.message) }),
     });
   }
 
-  private poll(repo: string): void {
-    clearInterval(this.timers[repo]);
-    this.timers[repo] = setInterval(() => {
-      this.api.downloadStatus(repo).subscribe((s) => {
-        this.setDl(repo, s);
+  private poll(repo: string, type: string): void {
+    const k = this.key(type, repo);
+    clearInterval(this.timers[k]);
+    this.timers[k] = setInterval(() => {
+      const obs = type === 'dataset' ? this.api.datasetDownloadStatus(repo) : this.api.downloadStatus(repo);
+      obs.subscribe((s) => {
+        this.setDl(type, repo, s);
         if (s.status === 'done' || s.status === 'error') {
-          clearInterval(this.timers[repo]);
-          if (s.status === 'done') { this.refreshLocal(); this.toast.add({ severity: 'success', summary: 'اكتمل التنزيل', detail: repo }); }
+          clearInterval(this.timers[k]);
+          if (s.status === 'done') {
+            if (type === 'model') this.refreshLocal();
+            this.toast.add({ severity: 'success', summary: 'اكتمل التنزيل', detail: repo });
+          }
         }
       });
     }, 1500);
   }
 
-  dlState(repo: string): DownloadState | null {
-    const fromMap = this.downloads()[repo];
+  private key(type: string, repo: string): string { return `${type}:${repo}`; }
+
+  dlState(repo: string, type: string = 'model'): DownloadState | null {
+    const fromMap = this.downloads()[this.key(type, repo)];
     if (fromMap) return fromMap;
-    if (this.local().some((l) => l.repo_id === repo)) return { status: 'done', bytes_done: 0 };
+    if (type === 'model' && this.local().some((l) => l.repo_id === repo)) return { status: 'done', bytes_done: 0 };
     return null;
   }
-  private setDl(repo: string, st: DownloadState): void { this.downloads.set({ ...this.downloads(), [repo]: st }); }
+  private setDl(type: string, repo: string, st: DownloadState): void {
+    this.downloads.set({ ...this.downloads(), [this.key(type, repo)]: st });
+  }
 
   gb(bytes: number): string { return (bytes / 1e9).toFixed(2); }
 }

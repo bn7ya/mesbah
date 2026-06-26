@@ -98,10 +98,13 @@ def cancel_loop(loop_id: str, db: Session = Depends(get_session)):
 
 @router.websocket("/auto-enhance/loops/{loop_id}/ws")
 async def loop_ws(websocket: WebSocket, loop_id: str):
-    """Stream live loop events + terminal status to the dashboard."""
+    """Stream live loop events, the current fine-tune's raw logs, and status."""
+    from ..training.manager import manager as training_manager
     await websocket.accept()
     events_file = manager.events_path(loop_id)
     offset = 0
+    log_run_id: str | None = None    # run_id whose train.log we're tailing
+    log_offset = 0
     try:
         while True:
             if events_file.exists():
@@ -117,6 +120,28 @@ async def loop_ws(websocket: WebSocket, loop_id: str):
                     offset = f.tell()
 
             status = _read_status(loop_id)
+
+            # While a generation is fine-tuning, tail that run's raw train.log so the
+            # panel shows the same live terminal output as a manual training run.
+            cur = (status.get("progress") or {}).get("current_run_id")
+            if cur:
+                if cur != log_run_id:
+                    log_run_id, log_offset = cur, 0
+                log_file = training_manager.log_path(cur)
+                if log_file.exists():
+                    with log_file.open("rb") as f:
+                        f.seek(log_offset)
+                        data = f.read()
+                    nl = data.rfind(b"\n")
+                    if nl >= 0:
+                        consumed = data[:nl + 1]
+                        log_offset += len(consumed)
+                        for raw in consumed.split(b"\n"):
+                            text = raw.decode("utf-8", "replace").rstrip("\r")
+                            if text:
+                                await websocket.send_json(
+                                    {"type": "log", "data": {"line": text, "run_id": cur}})
+
             await websocket.send_json({"type": "status", "data": status})
             if status and status.get("status") in {s.value for s in TERMINAL}:
                 break

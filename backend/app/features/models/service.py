@@ -100,29 +100,43 @@ CURATED_MODELS: list[dict[str, Any]] = [
 @dataclass
 class Download:
     repo_id: str
+    repo_type: str = "model"          # "model" | "dataset"
     status: str = "pending"          # pending | downloading | done | error
     local_path: Optional[str] = None
     error: Optional[str] = None
     bytes_done: int = 0
+    total_bytes: int = 0              # 0 until the Hub metadata lookup lands
     started: bool = False
     thread: Any = field(default=None, repr=False)
 
 
 class DownloadManager:
+    """Background snapshot downloads for **models and datasets**, with a real
+    total-size lookup so the GUI can show a percentage bar (not just bytes-on-disk).
+    """
+
     def __init__(self) -> None:
         self._downloads: dict[str, Download] = {}
         self._lock = threading.Lock()
 
-    def _target_dir(self, repo_id: str) -> Path:
-        return settings.models_dir / repo_id.replace("/", "__")
+    def _key(self, repo_id: str, repo_type: str) -> str:
+        return f"{repo_type}:{repo_id}"
 
-    def start(self, repo_id: str) -> Download:
+    def _target_dir(self, repo_id: str, repo_type: str = "model") -> Path:
+        sub = repo_id.replace("/", "__")
+        if repo_type == "dataset":
+            # keep downloaded HF datasets out of the generated-jsonl datasets_dir
+            return settings.datasets_dir / "_hf" / sub
+        return settings.models_dir / sub
+
+    def start(self, repo_id: str, repo_type: str = "model") -> Download:
         with self._lock:
-            existing = self._downloads.get(repo_id)
+            key = self._key(repo_id, repo_type)
+            existing = self._downloads.get(key)
             if existing and existing.status in ("pending", "downloading", "done"):
                 return existing
-            dl = Download(repo_id=repo_id)
-            self._downloads[repo_id] = dl
+            dl = Download(repo_id=repo_id, repo_type=repo_type)
+            self._downloads[key] = dl
             dl.thread = threading.Thread(target=self._run, args=(dl,), daemon=True)
             dl.thread.start()
             return dl
@@ -130,11 +144,17 @@ class DownloadManager:
     def _run(self, dl: Download) -> None:
         dl.started = True
         dl.status = "downloading"
-        target = self._target_dir(dl.repo_id)
+        target = self._target_dir(dl.repo_id, dl.repo_type)
+        # Best-effort total size up front so the progress bar has a denominator.
+        try:
+            dl.total_bytes = _repo_total_bytes(dl.repo_id, dl.repo_type)
+        except Exception:
+            dl.total_bytes = 0
         try:
             from huggingface_hub import snapshot_download
             local = snapshot_download(
                 repo_id=dl.repo_id,
+                repo_type=dl.repo_type,
                 local_dir=str(target),
                 token=settings.hf_token,
                 cache_dir=str(settings.hf_home),
@@ -145,23 +165,48 @@ class DownloadManager:
             dl.error = str(exc)
             dl.status = "error"
 
-    def status(self, repo_id: str) -> dict[str, Any]:
-        dl = self._downloads.get(repo_id)
-        target = self._target_dir(repo_id)
+    def status(self, repo_id: str, repo_type: str = "model") -> dict[str, Any]:
+        dl = self._downloads.get(self._key(repo_id, repo_type))
+        target = self._target_dir(repo_id, repo_type)
         bytes_done = _dir_size(target)
         if dl is None:
             # Maybe it was downloaded in a previous session.
             if target.exists() and bytes_done > 0:
-                return {"repo_id": repo_id, "status": "done",
-                        "local_path": str(target), "bytes_done": bytes_done}
-            return {"repo_id": repo_id, "status": "absent", "bytes_done": 0}
+                return {"repo_id": repo_id, "repo_type": repo_type, "status": "done",
+                        "local_path": str(target), "bytes_done": bytes_done,
+                        "total_bytes": bytes_done, "percent": 100.0}
+            return {"repo_id": repo_id, "repo_type": repo_type, "status": "absent",
+                    "bytes_done": 0, "total_bytes": 0, "percent": 0.0}
+        total = dl.total_bytes or 0
+        if dl.status == "done":
+            percent = 100.0
+        elif total:
+            percent = round(min(100.0, bytes_done / total * 100), 1)
+        else:
+            percent = 0.0
         return {
             "repo_id": repo_id,
+            "repo_type": repo_type,
             "status": dl.status,
             "local_path": dl.local_path or (str(target) if target.exists() else None),
             "error": dl.error,
             "bytes_done": bytes_done,
+            "total_bytes": total,
+            "percent": percent,
         }
+
+
+def _repo_total_bytes(repo_id: str, repo_type: str = "model") -> int:
+    """Sum of all file sizes in a Hub repo (one metadata call; best-effort)."""
+    from huggingface_hub import HfApi
+    info = HfApi(token=settings.hf_token).repo_info(
+        repo_id=repo_id, repo_type=repo_type, files_metadata=True)
+    total = 0
+    for s in (info.siblings or []):
+        size = getattr(s, "size", None)
+        if size:
+            total += int(size)
+    return total
 
 
 def _dir_size(path: Path) -> int:

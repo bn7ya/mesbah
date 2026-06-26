@@ -19,13 +19,22 @@ imported lazily. Endpoints that need the GPU return **503** with guidance until
 
 ```
 app/
-  main.py            FastAPI wiring (includes every feature router) + /api/health, /api/system
+  main.py            FastAPI wiring (includes every feature router) + /api/health, /api/system;
+                     also serves the built Angular SPA (frontend/dist) when present, with an
+                     index.html SPA fallback — desktop/prod runs same-origin (dev uses the proxy).
   core/
-    config.py        Settings (env prefix MISBAH_) + data-dir layout
+    config.py        Settings (env prefix MISBAH_) + data-dir layout. Hardware fields
+                     (gpu_vram_gb/host_ram_gb/max_train_seq_len) are env OVERRIDES only
+                     (default None) — use resolved_vram_gb()/resolved_ram_gb().
+    hardware.py      Detect GPUs (pynvml→torch→nvidia-smi) + RAM; pick the effective GPU
+                     (user choice via features/settings); compute_train_defaults(vram,ram)
+                     derives seq-len/batch/grad-accum/lora_r/offload from real hardware.
     db.py            SQLite engine (WAL), init_db(), get_session() dependency
     models.py        ALL SQLModel tables (one place — see "Data rules")
     events.py        async pub/sub for live progress (currently the WS tails files)
-  features/<name>/   router.py + service.py (+ schemas.py); each has a CLAUDE.md
+  features/<name>/   router.py + service.py (+ schemas.py); each has a CLAUDE.md.
+                     settings/ holds the GUI-set app settings (onboarding, GPU choice,
+                     theme, generic API tokens) in data/app_settings.json.
   scripts/
     train_qlora.py   standalone QLoRA fine-tuning subprocess (kind="finetune")
     train_scratch.py standalone from-scratch full-training subprocess (kind="scratch")

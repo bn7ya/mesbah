@@ -142,7 +142,10 @@ def build_ds_config(cfg: dict[str, Any]) -> dict[str, Any]:
     trains to completion."""
     target = (cfg.get("offload_target") or "auto").lower()
     if target not in ("cpu", "nvme"):
-        target = "nvme" if float(cfg.get("est_host_ram_gb") or 0) > 100 else "cpu"
+        # Spill to NVMe only when the off-GPU state exceeds the machine's real host
+        # RAM (injected as host_ram_gb); fall back to 100 GB if it wasn't provided.
+        headroom = float(cfg.get("host_ram_gb") or 100)
+        target = "nvme" if float(cfg.get("est_host_ram_gb") or 0) > headroom else "cpu"
     nvme_path = cfg.get("nvme_path") or cfg.get("offload_folder") or "offload"
     if target == "nvme":
         Path(nvme_path).mkdir(parents=True, exist_ok=True)

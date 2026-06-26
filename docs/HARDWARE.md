@@ -1,5 +1,13 @@
 # Hardware & Software Stack
 
+> **Hardware is auto-detected at runtime.** `backend/app/core/hardware.py` probes the
+> GPU(s) and RAM (pynvml → torch → `nvidia-smi`) and derives the training params
+> (sequence length, batch, grad-accum, LoRA rank, CPU offload) from the **real**
+> card via `compute_train_defaults`. The user picks which GPU on first run (stored in
+> `data/app_settings.json`). The box below is just the reference dev machine; nothing
+> below is hardcoded — set `MISBAH_GPU_VRAM_GB` / `MISBAH_HOST_RAM_GB` only to force a
+> value.
+
 ## The machine
 
 | | |

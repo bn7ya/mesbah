@@ -86,3 +86,4 @@ Thumbs.db
 !.vscode/settings.shared.json
 *.swp
 *~
+backend/data/hf_token

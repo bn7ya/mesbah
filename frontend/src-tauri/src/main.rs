@@ -94,6 +94,14 @@ fn show_error(win: &tauri::WebviewWindow) {
 }
 
 fn main() {
+    // WebKitGTK renders a blank white page on some Linux GPU/driver combos (notably
+    // NVIDIA + Wayland) unless the DMABUF renderer is disabled. Set it before the
+    // webview initializes; an explicit value from the environment still wins.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    }
+
     let app = tauri::Builder::default()
         .manage(BackendProc(Mutex::new(None)))
         .setup(|app| {

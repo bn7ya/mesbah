@@ -55,11 +55,18 @@ fn resolve_backend_dir() -> Option<PathBuf> {
 fn spawn_backend() -> Option<Child> {
     let dir = resolve_backend_dir()?;
     let python = std::env::var("MISBAH_PYTHON").unwrap_or_else(|_| "python".into());
-    Command::new(python)
-        .args(["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8077"])
-        .current_dir(dir)
-        .spawn()
-        .ok()
+    let mut cmd = Command::new(python);
+    cmd.args(["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8077"])
+        .current_dir(dir);
+    // When packaged as an AppImage, the runtime injects LD_LIBRARY_PATH / PYTHONHOME /
+    // APPDIR etc. into our environment. Those would be inherited by the spawned Python
+    // and break it ("Failed to import encodings", wrong shared libs), so strip them so
+    // the backend runs in the user's normal environment.
+    for var in ["LD_LIBRARY_PATH", "LD_PRELOAD", "PYTHONHOME", "PYTHONPATH",
+                "APPDIR", "APPIMAGE", "ARGV0", "GTK_PATH", "GIO_MODULE_DIR"] {
+        cmd.env_remove(var);
+    }
+    cmd.spawn().ok()
 }
 
 fn backend_up() -> bool {

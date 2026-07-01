@@ -8,93 +8,14 @@ fill smoothly).
 from __future__ import annotations
 
 import os
+import re
 import threading
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
 from ...core.config import settings
-
-# Curated starting points for the "new project" picker. Kept in English on
-# purpose. See docs/MODEL_SELECTION.md for the full rationale (Arabic quality,
-# long context, QLoRA fit on 16 GB). Updated from the research pass.
-CURATED_MODELS: list[dict[str, Any]] = [
-    {
-        "repo_id": "Qwen/Qwen3-14B",
-        "label": "Qwen3-14B",
-        "params": "14B",
-        "context": "32K (131K w/ YaRN)",
-        "arabic": "strong (119 langs)",
-        "license": "Apache-2.0",
-        "note": "Recommended default — newest Qwen that is actually 4-bit QLoRA-trainable on 16 GB. Best Arabic among QLoRA-viable models. Train at ~4K, serve longer via YaRN.",
-        "recommended": True,
-        "fast_4bit_repo": "unsloth/Qwen3-14B-unsloth-bnb-4bit",
-        "default_seq_len": 4096,
-        "default_lora_r": 16,
-    },
-    {
-        "repo_id": "Qwen/Qwen3-8B",
-        "label": "Qwen3-8B",
-        "params": "8B",
-        "context": "32K (131K w/ YaRN)",
-        "arabic": "strong (119 langs)",
-        "license": "Apache-2.0",
-        "note": "Safest 16 GB fallback — ~2-3x more trainable context (~8-16K) and faster iteration. Cost-effective Arabic pick.",
-        "recommended": False,
-        "fast_4bit_repo": "unsloth/Qwen3-8B-unsloth-bnb-4bit",
-        "default_seq_len": 8192,
-        "default_lora_r": 32,
-    },
-    {
-        "repo_id": "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
-        "label": "DeepSeek-R1-0528-Qwen3-8B",
-        "params": "8B",
-        "context": "32K (131K w/ YaRN)",
-        "arabic": "good (Qwen3-based)",
-        "license": "MIT",
-        "note": "Best DeepSeek-branded option — built on Qwen3-8B-Base so inherits Arabic. Always-on reasoning (cannot disable); pick for chain-of-thought tasks.",
-        "recommended": False,
-        "default_seq_len": 6144,
-        "default_lora_r": 32,
-    },
-    {
-        "repo_id": "Qwen/Qwen2.5-14B-Instruct-1M",
-        "label": "Qwen2.5-14B-Instruct-1M",
-        "params": "14B",
-        "context": "1M (trained)",
-        "arabic": "fair (29 langs)",
-        "license": "Apache-2.0",
-        "note": "Only pick for genuine >128K context needs. Weaker Arabic than Qwen3; serving true 1M needs huge VRAM.",
-        "recommended": False,
-        "default_seq_len": 4096,
-        "default_lora_r": 16,
-    },
-    {
-        # Constraint-relaxing: not Qwen/DeepSeek, but materially better native Arabic.
-        "repo_id": "ALLaM-AI/ALLaM-7B-Instruct-preview",
-        "label": "ALLaM-7B-Instruct (Arabic specialist)",
-        "params": "7B",
-        "context": "4K",
-        "arabic": "excellent (native, ArabicMMLU ~67.8)",
-        "license": "Apache-2.0",
-        "note": "Best native Arabic (MSA + dialects) but only 4K context and NOT Qwen/DeepSeek-derived. Choose if Arabic cultural alignment outweighs long context.",
-        "recommended": False,
-        "default_seq_len": 4096,
-        "default_lora_r": 32,
-    },
-    {
-        "repo_id": "Navid-AI/Yehia-7B-preview",
-        "label": "Yehia-7B (Arabic, AraGen-leading)",
-        "params": "7B",
-        "context": "4K",
-        "arabic": "excellent (AraGen-leading)",
-        "license": "Apache-2.0",
-        "note": "ALLaM-based Arabic fine-tune topping AraGen. Same 4K limit; strongest Arabic if you relax the Qwen/DeepSeek constraint.",
-        "recommended": False,
-        "default_seq_len": 4096,
-        "default_lora_r": 32,
-    },
-]
 
 
 @dataclass
@@ -194,6 +115,12 @@ class DownloadManager:
             "total_bytes": total,
             "percent": percent,
         }
+
+    def list_all(self) -> list[dict[str, Any]]:
+        """Status of every download tracked this session (for the global GUI chip)."""
+        with self._lock:
+            entries = list(self._downloads.values())
+        return [self.status(dl.repo_id, dl.repo_type) for dl in entries]
 
 
 def _repo_total_bytes(repo_id: str, repo_type: str = "model") -> int:
@@ -316,6 +243,101 @@ def clear_hf_token() -> dict[str, Any]:
     return {"ok": True}
 
 
+# ── Live model listing (no hardcoded catalog) ─────────────────────────────────
+# The models page and the new-project picker are populated straight from the
+# HuggingFace Hub. Results are cached in-process for a short TTL so the GUI
+# doesn't hammer the Hub; when the Hub is unreachable we degrade to the locally
+# downloaded models so the picker keeps working offline.
+
+_FEATURED_TTL_SECONDS = 15 * 60
+_featured_cache: dict[str, tuple[float, list[dict[str, Any]]]] = {}
+_featured_lock = threading.Lock()
+
+_PARAMS_RE = re.compile(r"(\d+(?:\.\d+)?)\s*[bB]\b")
+
+
+def _params_from_name(repo_id: str) -> Optional[str]:
+    """Best-effort parameter count from the repo name (``Qwen3-14B`` → ``14B``)."""
+    m = _PARAMS_RE.search(repo_id.rsplit("/", 1)[-1].replace("_", "-"))
+    return f"{m.group(1)}B" if m else None
+
+
+def _license_from_tags(tags: list[str]) -> Optional[str]:
+    for t in tags:
+        if t.startswith("license:"):
+            return t.split(":", 1)[1]
+    return None
+
+
+def _hub_model(m: Any) -> dict[str, Any]:
+    """Normalize a ``huggingface_hub`` model hit to the shape the GUI renders."""
+    repo_id = m.id
+    tags = list(getattr(m, "tags", []) or [])
+    return {
+        "repo_id": repo_id,
+        "label": repo_id.rsplit("/", 1)[-1],
+        "downloads": getattr(m, "downloads", None),
+        "likes": getattr(m, "likes", None),
+        "tags": tags,
+        "license": _license_from_tags(tags),
+        "params": _params_from_name(repo_id),
+        "pipeline_tag": getattr(m, "pipeline_tag", None),
+        "gated": bool(getattr(m, "gated", False)),
+        "source": "hub",
+    }
+
+
+def _local_as_hub_models(note: str | None = None) -> list[dict[str, Any]]:
+    """Locally downloaded models mapped to the featured shape (offline fallback)."""
+    out = []
+    for m in list_local():
+        out.append({
+            "repo_id": m["repo_id"],
+            "label": m["repo_id"].rsplit("/", 1)[-1],
+            "downloads": None,
+            "likes": None,
+            "tags": [],
+            "license": None,
+            "params": _params_from_name(m["repo_id"]),
+            "pipeline_tag": None,
+            "gated": False,
+            "source": "local",
+            **({"note": note} if note else {}),
+        })
+    return out
+
+
+def list_featured(limit: int = 12, language: str | None = None) -> list[dict[str, Any]]:
+    """Most-downloaded text-generation models, live from the HF API.
+
+    ``language="ar"`` powers the Arabic section. Cached for ~15 min; on any hub
+    error returns the local registry (``source: "local"``) — never raises.
+    """
+    key = f"{limit}:{language or ''}"
+    now = time.time()
+    with _featured_lock:
+        hit = _featured_cache.get(key)
+        if hit and now - hit[0] < _FEATURED_TTL_SECONDS:
+            return hit[1]
+    try:
+        from huggingface_hub import HfApi
+        api = HfApi(token=settings.hf_token)
+        # Language codes are plain tags on the Hub; hub 1.x dropped the
+        # ``language=`` kwarg, so filter by tag (works on 0.x too).
+        models = api.list_models(
+            pipeline_tag="text-generation",
+            filter=language or None,
+            sort="downloads",
+            limit=limit,
+        )
+        out = [_hub_model(m) for m in models]
+        with _featured_lock:
+            _featured_cache[key] = (now, out)
+        return out
+    except Exception as exc:  # pragma: no cover - network dependent
+        return _local_as_hub_models(note=str(exc))
+
+
 def search(query: str, limit: int = 20) -> list[dict[str, Any]]:
     try:
         from huggingface_hub import HfApi
@@ -330,9 +352,10 @@ def search(query: str, limit: int = 20) -> list[dict[str, Any]]:
             "tags": getattr(m, "tags", []) or [],
         } for m in models]
     except Exception as exc:  # pragma: no cover
-        # Fall back to filtering the curated list so the picker still works offline.
+        # Fall back to filtering the local registry so the picker still works offline.
         q = query.lower()
-        return [m for m in CURATED_MODELS if q in m["repo_id"].lower() or q in m["label"].lower()] or [
+        local = [m for m in _local_as_hub_models() if q in m["repo_id"].lower()]
+        return local or [
             {"repo_id": query, "downloads": None, "likes": None, "tags": [], "note": str(exc)}
         ]
 

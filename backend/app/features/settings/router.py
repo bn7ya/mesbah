@@ -12,7 +12,8 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 
 
 class SettingsPatch(BaseModel):
-    selected_gpu_index: Optional[int] = None
+    selected_gpu_index: Optional[int] = None          # legacy single choice
+    selected_gpu_indices: Optional[list[int]] = None  # multi-GPU selection
     gpu_vram_gb_override: Optional[float] = None
     theme: Optional[str] = None
     # {name: secret} — empty/null secret removes that token. Never echoed back raw.
@@ -20,7 +21,8 @@ class SettingsPatch(BaseModel):
 
 
 class OnboardRequest(BaseModel):
-    selected_gpu_index: Optional[int] = None
+    selected_gpu_index: Optional[int] = None          # legacy single choice
+    selected_gpu_indices: Optional[list[int]] = None
 
 
 @router.get("")
@@ -37,5 +39,8 @@ def patch_settings(req: SettingsPatch):
 
 @router.post("/onboard")
 def onboard(req: OnboardRequest):
-    """Finish first-run setup: persist the chosen GPU and mark the app onboarded."""
-    return service.onboard(req.selected_gpu_index)
+    """Finish first-run setup: persist the chosen GPU(s) and mark the app onboarded."""
+    indices = req.selected_gpu_indices
+    if indices is None and req.selected_gpu_index is not None:
+        indices = [req.selected_gpu_index]
+    return service.onboard(indices)

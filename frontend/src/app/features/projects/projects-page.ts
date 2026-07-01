@@ -13,10 +13,11 @@ import { SliderModule } from 'primeng/slider';
 import { CheckboxModule } from 'primeng/checkbox';
 import { RadioButtonModule } from 'primeng/radiobutton';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { ProgressBarModule } from 'primeng/progressbar';
 import { MessageService } from 'primeng/api';
 import { Api } from '../../core/api';
 import {
-  ArchitectureSpec, CuratedModel, DatasetHit, FeasibilityEstimate, Project,
+  ArchitectureSpec, DatasetHit, FeasibilityEstimate, HubModel, Project,
 } from '../../core/types';
 
 type Kind = 'finetune' | 'scratch';
@@ -50,6 +51,7 @@ function freshSpec(): ArchitectureSpec {
     DatePipe, FormsModule, RouterLink, ButtonModule, DialogModule,
     InputTextModule, TextareaModule, TagModule, SelectModule, InputNumberModule,
     SliderModule, CheckboxModule, RadioButtonModule, ProgressSpinnerModule,
+    ProgressBarModule,
   ],
   template: `
     <section class="max-w-6xl mx-auto px-4 pt-2 pb-8">
@@ -120,26 +122,61 @@ function freshSpec(): ArchitectureSpec {
             <label class="font-semibold mt-1 block">الوصف <span class="text-neutral-400">(اختياري)</span></label>
             <textarea pTextarea class="w-full" rows="2" [(ngModel)]="form.description" placeholder="ماذا سيتعلم هذا النموذج؟"></textarea>
             <label class="font-semibold mt-1 block">النموذج الأساسي <code class="ltr">base model</code></label>
+            <div class="flex items-center gap-2">
+              <i class="pi pi-search text-neutral-400"></i>
+              <input pInputText class="flex-1 min-w-0 ltr" [(ngModel)]="mQuery" (keydown.enter)="searchM()" placeholder="ابحث في HuggingFace: Qwen3, ALLaM, Arabic…" />
+              <p-button label="بحث" [loading]="mSearching()" (onClick)="searchM()" size="small" />
+            </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-              @for (m of models(); track m.repo_id) {
+              @for (m of pickerModels(); track m.repo_id) {
                 <button class="text-start p-3 cursor-pointer rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex flex-col gap-2 transition-colors hover:border-neutral-300 dark:hover:border-neutral-700" [class.ring-2]="form.base_model_repo === m.repo_id" [class.ring-blue-500]="form.base_model_repo === m.repo_id" (click)="selectCard(m.repo_id)" type="button">
-                  <div class="flex justify-between items-center gap-2">
-                    <span class="ltr font-bold text-sm">{{ m.label }}</span>
-                    @if (m.recommended) { <p-tag value="موصى به" severity="success" /> }
+                  <div class="flex justify-between items-center gap-2 min-w-0">
+                    <span class="ltr font-bold text-sm truncate">{{ m.repo_id }}</span>
+                    @if (m.gated) { <p-tag value="gated" severity="warn" /> }
                   </div>
-                  <div class="flex flex-wrap gap-1.5">
-                    <span class="text-xs px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800">{{ m.params }}</span>
-                    <span class="text-xs px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800 ltr">{{ m.context }}</span>
-                    <span class="text-xs px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800">عربي: {{ m.arabic }}</span>
-                    <span class="text-xs px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800 ltr">{{ m.license }}</span>
+                  <div class="flex flex-wrap gap-1.5 items-center">
+                    @if (m.params) { <span class="text-xs px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800 ltr">{{ m.params }}</span> }
+                    @if (m.license) { <span class="text-xs px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800 ltr">{{ m.license }}</span> }
+                    @if (m.downloads != null) { <span class="text-xs text-neutral-400 ltr"><i class="pi pi-download"></i> {{ m.downloads }}</span> }
+                    @if (m.source === 'local') { <span class="text-xs text-emerald-600 dark:text-emerald-400"><i class="pi pi-check-circle"></i> محلي</span> }
                   </div>
-                  <p class="text-neutral-500 dark:text-neutral-400 text-xs m-0">{{ m.note }}</p>
                 </button>
-              }
+              } @empty { <p class="text-neutral-400 text-sm m-0 sm:col-span-2">لا نتائج — ابحث أعلاه أو أدخل معرّفًا مخصّصًا.</p> }
             </div>
             <label class="font-semibold mt-1 block">أو معرّف نموذج مخصص من <code class="ltr">HuggingFace</code></label>
             <input pInputText class="ltr w-full" [ngModel]="customRepo()" (ngModelChange)="setCustom($event)"
                    placeholder="مثال: Qwen/Qwen3-8B" />
+            @if (form.base_model_repo) {
+              <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 p-3 flex flex-col gap-2">
+                <div class="flex items-center gap-2 flex-wrap text-sm">
+                  <code class="ltr text-blue-600 dark:text-blue-400">{{ form.base_model_repo }}</code>
+                  @if (selInfo(); as info) {
+                    <span class="text-xs text-neutral-500 dark:text-neutral-400 ltr">{{ info.model_type }}</span>
+                    @if (info.max_position_embeddings) { <span class="text-xs px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 ltr">context {{ info.max_position_embeddings }}</span> }
+                    @if (info.num_hidden_layers) { <span class="text-xs px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 ltr">{{ info.num_hidden_layers }} layers</span> }
+                  } @else if (selInfoError()) {
+                    <span class="text-xs text-red-500">{{ selInfoError() }}</span>
+                  }
+                </div>
+                @if (selDl(); as st) {
+                  @if (st.status === 'absent') {
+                    <div class="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
+                      <i class="pi pi-exclamation-triangle"></i> النموذج غير محمّل محليًا — سيُنزَّل عند أول استخدام، أو
+                      <p-button label="تنزيل الآن" icon="pi pi-download" size="small" [text]="true" (onClick)="downloadSel()" />
+                    </div>
+                  } @else if (st.status === 'downloading' || st.status === 'pending') {
+                    <div class="flex items-center gap-2">
+                      <p-progressBar [value]="st.percent ?? 0" [showValue]="false" styleClass="w-32" [mode]="st.total_bytes ? 'determinate' : 'indeterminate'" />
+                      <span class="text-xs text-neutral-400 ltr">{{ st.percent }}%</span>
+                    </div>
+                  } @else if (st.status === 'done') {
+                    <span class="text-xs text-emerald-600 dark:text-emerald-400"><i class="pi pi-check-circle"></i> محمّل محليًا</span>
+                  } @else if (st.status === 'error') {
+                    <span class="text-xs text-red-500" [title]="st.error || ''"><i class="pi pi-times-circle"></i> فشل التنزيل</span>
+                  }
+                }
+              </div>
+            }
           </div>
         }
 
@@ -294,7 +331,8 @@ export class ProjectsPage implements OnInit {
   readonly offloadTargets = OFFLOAD_TARGETS;
   offloadTarget = 'auto';
   readonly projects = signal<Project[]>([]);
-  readonly models = signal<CuratedModel[]>([]);
+  readonly models = signal<HubModel[]>([]);          // featured, live from the HF API
+  readonly localRepos = signal<string[]>([]);
   readonly loading = signal(true);
   readonly dialog = signal(false);
   readonly creating = signal(false);
@@ -304,6 +342,22 @@ export class ProjectsPage implements OnInit {
   readonly kind = signal<Kind>('finetune');
   form = { name: '', description: '', base_model_repo: '' };
   readonly customRepo = signal('');
+  private defaultBaseModel = '';
+
+  // fine-tune — model search + selected-model facts/download
+  mQuery = '';
+  readonly mResults = signal<HubModel[]>([]);
+  readonly mSearching = signal(false);
+  readonly selInfo = signal<{ model_type: string | null; max_position_embeddings: number | null; num_hidden_layers: number | null } | null>(null);
+  readonly selInfoError = signal('');
+  readonly selDl = signal<{ status: string; percent?: number; total_bytes?: number; error?: string | null } | null>(null);
+  private selDlTimer: any = null;
+  /** Search results when present, else the featured list (local models flagged). */
+  readonly pickerModels = computed<HubModel[]>(() => {
+    const list = this.mResults().length ? this.mResults() : this.models();
+    const local = new Set(this.localRepos());
+    return list.map((m) => (local.has(m.repo_id) ? { ...m, source: 'local' as const } : m));
+  });
 
   // scratch — architecture
   readonly spec = signal<ArchitectureSpec>(freshSpec());
@@ -342,28 +396,89 @@ export class ProjectsPage implements OnInit {
 
   setCustom(v: string): void {
     this.customRepo.set(v);
-    if (v.trim()) this.form.base_model_repo = v.trim();
+    if (v.trim()) { this.form.base_model_repo = v.trim(); this.onModelSelected(); }
   }
-  selectCard(repo: string): void { this.form.base_model_repo = repo; this.customRepo.set(''); }
+  selectCard(repo: string): void {
+    this.form.base_model_repo = repo;
+    this.customRepo.set('');
+    this.onModelSelected();
+  }
+
+  searchM(): void {
+    const q = this.mQuery.trim();
+    if (!q) { this.mResults.set([]); return; }
+    this.mSearching.set(true);
+    this.api.searchModels(q).subscribe({
+      next: (r) => { this.mResults.set(r as HubModel[]); this.mSearching.set(false); },
+      error: () => this.mSearching.set(false),
+    });
+  }
+
+  /** Inspect the chosen repo (context length + validation) and check its download state. */
+  private onModelSelected(): void {
+    const repo = this.form.base_model_repo;
+    this.selInfo.set(null); this.selInfoError.set(''); this.selDl.set(null);
+    clearInterval(this.selDlTimer);
+    if (!repo) return;
+    this.api.inspectModel(repo).subscribe({
+      next: (a) => this.selInfo.set({ model_type: a.model_type, max_position_embeddings: a.max_position_embeddings, num_hidden_layers: a.num_hidden_layers }),
+      error: (e) => this.selInfoError.set(String(e?.error?.detail ?? e.message)),
+    });
+    this.api.downloadStatus(repo).subscribe((s) => {
+      if (this.form.base_model_repo === repo) this.selDl.set(s);
+    });
+  }
+
+  downloadSel(): void {
+    const repo = this.form.base_model_repo;
+    if (!repo) return;
+    this.selDl.set({ status: 'pending', percent: 0 });
+    this.api.downloadModel(repo).subscribe({
+      next: () => {
+        clearInterval(this.selDlTimer);
+        this.selDlTimer = setInterval(() => {
+          this.api.downloadStatus(repo).subscribe((s) => {
+            if (this.form.base_model_repo !== repo) { clearInterval(this.selDlTimer); return; }
+            this.selDl.set(s);
+            if (s.status === 'done' || s.status === 'error') clearInterval(this.selDlTimer);
+          });
+        }, 1500);
+      },
+      error: (e) => this.selDl.set({ status: 'error', error: String(e?.error?.detail ?? e.message) }),
+    });
+  }
 
   ngOnInit(): void {
     this.api.listProjects().subscribe({
       next: (p) => { this.projects.set(p); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
-    this.api.curatedModels().subscribe((m) => this.models.set(m));
+    this.api.featuredModels().subscribe((m) => this.models.set(m));
+    this.api.localModels().subscribe((l) => this.localRepos.set(l.map((x: any) => x.repo_id)));
     this.api.system().subscribe((s) => {
       const v = s.gpu_vram_gb || 16;
       this.vram.set(v);
       this.gpuBudget.set(Math.max(1, v - 1));
+      this.defaultBaseModel = s.default_base_model || '';
     });
+  }
+
+  /** Default pick: a locally downloaded featured model → first featured → system default. */
+  private defaultRepo(): string {
+    const local = new Set(this.localRepos());
+    const models = this.models();
+    return models.find((m) => local.has(m.repo_id))?.repo_id
+      ?? models[0]?.repo_id
+      ?? this.defaultBaseModel;
   }
 
   openNew(): void {
     this.step.set(0);
     this.kind.set('finetune');
     this.customRepo.set('');
-    this.form = { name: '', description: '', base_model_repo: this.models().find((m) => m.recommended)?.repo_id ?? '' };
+    this.mQuery = ''; this.mResults.set([]);
+    this.form = { name: '', description: '', base_model_repo: this.defaultRepo() };
+    if (this.form.base_model_repo) this.onModelSelected();
     this.spec.set(freshSpec());
     this.estimate.set(null);
     this.embMode = 'new'; this.embSource.set(''); this.embArch.set(null); this.embResults.set([]); this.embQuery = '';

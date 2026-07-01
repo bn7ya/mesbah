@@ -22,6 +22,15 @@
     </nav>
 
     <div class="flex items-center gap-2 ms-auto">
+      @if (activeDownloads().length) {
+        <a routerLink="/models"
+          class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border border-blue-200 text-blue-600 dark:border-blue-900/60 dark:text-blue-400 no-underline"
+          [title]="activeDownloads()[0].repo_id">
+          <i class="pi pi-spin pi-spinner text-[10px]"></i>
+          <span>تنزيل {{ activeDownloads().length }}</span>
+          <span class="mono">{{ downloadPct() }}%</span>
+        </a>
+      }
       @if (sys(); as s) {
         <span
           class="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border"
@@ -48,6 +57,12 @@
           </span>
         }
       }
+
+      <a routerLink="/debug"
+        class="flex items-center justify-center w-9 h-9 rounded-md text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 no-underline"
+        title="الحالة والتشخيص" aria-label="الحالة والتشخيص">
+        <i class="pi pi-wrench"></i>
+      </a>
 
       <a routerLink="/settings"
         class="flex items-center justify-center w-9 h-9 rounded-md text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 no-underline"
@@ -76,23 +91,30 @@
       <div class="text-center mb-4">
         <div class="text-3xl mb-1">🕯️</div>
         <h2 class="text-lg font-semibold m-0">مرحبًا بك في مِصباح</h2>
-        <p class="text-sm text-neutral-500 mt-1">اختر بطاقة الرسوميات التي ستُستخدم للتدريب والاستدلال. يُسأل هذا مرة واحدة فقط (يمكن تغييره لاحقًا من الإعدادات).</p>
+        <p class="text-sm text-neutral-500 mt-1">اختر بطاقة/بطاقات الرسوميات التي ستُستخدم للتدريب والاستدلال — عند اختيار أكثر من واحدة يُجمع الـ <code class="ltr">VRAM</code>. يُسأل هذا مرة واحدة فقط (يمكن تغييره لاحقًا من الإعدادات).</p>
       </div>
       @if (sys(); as s) {
         @if (s.gpus.length) {
           <div class="flex flex-col gap-2">
             @for (g of s.gpus; track g.index) {
-              <button type="button" (click)="onboard(g.index)"
-                class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-neutral-200 dark:border-neutral-800 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 text-start transition-colors">
+              <button type="button" (click)="toggleOnboardGpu(g.index)"
+                class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg border text-start transition-colors"
+                [class]="onboardSelection().includes(g.index)
+                  ? 'border-blue-400 ring-1 ring-blue-400/40 bg-blue-50/50 dark:bg-blue-950/20'
+                  : 'border-neutral-200 dark:border-neutral-800 hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-950/20'">
                 <div class="min-w-0">
                   <div class="font-semibold ltr truncate">{{ g.name }}</div>
                   <div class="text-xs text-neutral-400 ltr">GPU {{ g.index }} · {{ g.total_vram_gb | number: '1.0-1' }} GB
                     @if (g.compute_capability) { · sm {{ g.compute_capability }} }
                   </div>
                 </div>
-                <i class="pi pi-chevron-left text-neutral-400"></i>
+                <i class="pi text-neutral-400" [class.pi-check-circle]="onboardSelection().includes(g.index)" [class.pi-circle]="!onboardSelection().includes(g.index)"></i>
               </button>
             }
+            <button type="button" (click)="onboard(onboardSelection())" [disabled]="!onboardSelection().length"
+              class="mt-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              متابعة{{ onboardSelection().length > 1 ? ' (' + onboardSelection().length + '× GPU)' : '' }}
+            </button>
           </div>
         } @else {
           <div class="text-center">

@@ -8,7 +8,7 @@ import { TagModule } from 'primeng/tag';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { MessageService } from 'primeng/api';
 import { Api } from '../../core/api';
-import { CuratedModel, DatasetHit } from '../../core/types';
+import { DatasetHit, HubModel } from '../../core/types';
 
 interface DownloadState {
   status: string;
@@ -94,25 +94,25 @@ interface DownloadState {
         }
       </div>
 
-      <!-- curated -->
+      <!-- live from the HuggingFace API -->
       <div class="mb-6">
-        <h3 class="text-base font-semibold m-0 mb-2">مختارة للعربية</h3>
+        <h3 class="text-base font-semibold m-0 mb-2">الأكثر تنزيلًا <code class="ltr">text-generation</code></h3>
+        @if (offlineNote()) {
+          <p class="text-amber-600 dark:text-amber-400 text-xs mb-2"><i class="pi pi-exclamation-triangle"></i> تعذّر الوصول إلى HuggingFace — تُعرض النماذج المحلية فقط.</p>
+        }
         <div class="flex flex-col gap-2">
-          @for (m of curated(); track m.repo_id) {
-            <div class="flex items-center justify-between gap-4 px-4 py-3 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
-              <div class="flex items-center gap-2 flex-wrap min-w-0">
-                <span class="ltr font-semibold text-sm">{{ m.label }}</span>
-                @if (m.recommended) { <p-tag value="موصى به" severity="success" /> }
-                <span class="flex gap-1 flex-wrap">
-                  <span class="text-[0.66rem] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800">{{ m.params }}</span>
-                  <span class="text-[0.66rem] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 ltr">{{ m.context }}</span>
-                  <span class="text-[0.66rem] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800">عربي: {{ m.arabic }}</span>
-                  <span class="text-[0.66rem] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 ltr">{{ m.license }}</span>
-                </span>
-              </div>
-              <ng-container [ngTemplateOutlet]="dl" [ngTemplateOutletContext]="{ $implicit: m.repo_id, type: 'model' }" />
-            </div>
-          }
+          @for (m of featured(); track m.repo_id) {
+            <ng-container [ngTemplateOutlet]="hubRow" [ngTemplateOutletContext]="{ $implicit: m }" />
+          } @empty { <p class="text-neutral-400 text-sm m-0">لا نتائج بعد.</p> }
+        </div>
+      </div>
+
+      <div class="mb-6">
+        <h3 class="text-base font-semibold m-0 mb-2">نماذج عربية</h3>
+        <div class="flex flex-col gap-2">
+          @for (m of featuredAr(); track m.repo_id) {
+            <ng-container [ngTemplateOutlet]="hubRow" [ngTemplateOutletContext]="{ $implicit: m }" />
+          } @empty { <p class="text-neutral-400 text-sm m-0">لا نتائج بعد.</p> }
         </div>
       </div>
 
@@ -131,6 +131,22 @@ interface DownloadState {
         } @else { <p class="text-neutral-400">لا نماذج محمَّلة بعد.</p> }
       </div>
     </section>
+
+    <!-- one hub-model row (featured sections) -->
+    <ng-template #hubRow let-m>
+      <div class="flex items-center justify-between gap-4 px-4 py-3 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
+        <div class="flex items-center gap-2 flex-wrap min-w-0">
+          <span class="ltr font-semibold text-sm truncate">{{ m.repo_id }}</span>
+          @if (m.gated) { <p-tag value="gated" severity="warn" /> }
+          <span class="flex gap-1 flex-wrap items-center">
+            @if (m.params) { <span class="text-[0.66rem] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 ltr">{{ m.params }}</span> }
+            @if (m.license) { <span class="text-[0.66rem] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 ltr">{{ m.license }}</span> }
+            @if (m.downloads != null) { <span class="text-xs text-neutral-400 ltr"><i class="pi pi-download"></i> {{ m.downloads | number }}</span> }
+          </span>
+        </div>
+        <ng-container [ngTemplateOutlet]="dl" [ngTemplateOutletContext]="{ $implicit: m.repo_id, type: 'model' }" />
+      </div>
+    </ng-template>
 
     <!-- download cells rendered via template refs -->
     <ng-template #dl let-repo let-type="type">
@@ -163,7 +179,9 @@ export class ModelsPage implements OnInit {
   private toast = inject(MessageService);
 
   readonly results = signal<any[]>([]);
-  readonly curated = signal<CuratedModel[]>([]);
+  readonly featured = signal<HubModel[]>([]);
+  readonly featuredAr = signal<HubModel[]>([]);
+  readonly offlineNote = signal(false);
   readonly local = signal<any[]>([]);
   readonly searching = signal(false);
   readonly dsResults = signal<DatasetHit[]>([]);
@@ -174,7 +192,12 @@ export class ModelsPage implements OnInit {
   private timers: Record<string, any> = {};
 
   ngOnInit(): void {
-    this.api.curatedModels().subscribe((m) => this.curated.set(m));
+    this.api.featuredModels().subscribe((m) => {
+      this.featured.set(m);
+      this.offlineNote.set(m.some((x) => x.source === 'local'));
+    });
+    this.api.featuredModels('ar').subscribe((m) =>
+      this.featuredAr.set(m.filter((x) => x.source !== 'local')));
     this.refreshLocal();
   }
 

@@ -3,10 +3,15 @@
 `ProjectsPage` — landing page: grid of project glass-cards + a **multi-step
 "new project" wizard** (one `p-dialog`, driven by a `step` signal).
 
-- Loads `api.listProjects()`, `api.curatedModels()`, `api.system()` (for the VRAM
-  slider max).
+- Loads `api.listProjects()`, `api.featuredModels()` (live from the HF API),
+  `api.localModels()`, `api.system()` (for the VRAM slider max + default model).
 - Step 0 picks the **kind**:
-  - **fine-tune** → the original curated model picker + custom repo; one step.
+  - **fine-tune** → model **search box** (`api.searchModels`) + a featured grid
+    (live, local models flagged) + custom repo; one step. Selecting a model calls
+    `api.inspectModel` (context length + validation) and `api.downloadStatus` —
+    if the model isn't local an inline warning offers a "تنزيل الآن" button with a
+    progress bar (download continues globally). Default pick: first locally
+    downloaded featured model → first featured → `SystemInfo.default_base_model`.
   - **scratch** → four steps:
     1. name + **architecture** (family, layers, hidden, heads, vocab, context;
        experts/experts-per-token when MoE) with a **live feasibility readout**

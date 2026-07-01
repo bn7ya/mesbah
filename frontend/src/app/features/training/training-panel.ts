@@ -135,12 +135,41 @@ const VERDICT_SEV: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
           <!-- ── QLoRA fine-tune launcher ── -->
           <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
             <h3 class="m-0 mb-1 text-base font-semibold">جلسة تدريب جديدة</h3>
-            <p class="text-sm text-neutral-500 mb-3">يبني مجموعة بيانات من الردود المعتمدة ثم يضبط النموذج بـ <code class="ltr">QLoRA</code> انطلاقًا من الإصدار النشط.</p>
+            <p class="text-sm text-neutral-500 mb-3">يبني مجموعة بيانات من الردود المعتمدة و/أو مجموعات <code class="ltr">HuggingFace</code>، ثم يضبط النموذج بـ <code class="ltr">QLoRA</code> انطلاقًا من الإصدار النشط.</p>
             <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-sm mb-3">
               <i class="pi pi-database"></i>
               <span>{{ preview() }} مثال جاهز للتدريب</span>
               <button class="ms-auto text-xs underline" (click)="openPreview()" type="button">معاينة</button>
             </div>
+            <label class="flex items-center gap-2 text-sm mb-2 cursor-pointer"><p-checkbox [(ngModel)]="useCorrections" [binary]="true" /> استخدم الردود المعتمدة</label>
+
+            <!-- optional HF datasets (trained alongside / instead of corrections) -->
+            <div class="flex flex-col gap-1.5 mb-3">
+              <div class="flex items-center gap-2 rounded-lg border border-neutral-200 dark:border-neutral-800 px-2.5 py-1.5">
+                <i class="pi pi-search text-neutral-400"></i>
+                <input pInputText class="flex-1 min-w-0 border-0 bg-transparent ltr" [(ngModel)]="dsQuery" (keydown.enter)="searchDs()" placeholder="أضف مجموعة بيانات من HuggingFace…" />
+                <p-button label="بحث" [loading]="dsSearching()" (onClick)="searchDs()" size="small" />
+              </div>
+              @for (r of dsResults(); track r.repo_id) {
+                <button class="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border text-start transition-colors"
+                        [class]="hasDs(r.repo_id) ? 'border-blue-400 ring-1 ring-blue-400/40 bg-blue-50/50 dark:bg-blue-950/20' : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'"
+                        type="button" (click)="addDs(r.repo_id)">
+                  <span class="ltr font-semibold text-[0.82rem] truncate">{{ r.repo_id }}</span>
+                  <span class="text-neutral-400 ltr text-xs shrink-0">{{ hasDs(r.repo_id) ? '✓ مضافة' : '+ إضافة' }}</span>
+                </button>
+              }
+              @for (d of datasets(); track d.repo) {
+                <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800">
+                  <span class="ltr font-semibold text-[0.82rem] flex-1 min-w-0 truncate">{{ d.repo }}</span>
+                  <input pInputText class="ltr w-28 text-xs" [(ngModel)]="d.text_field" placeholder="text field" title="text field" />
+                  <button class="text-red-500 hover:text-red-700 p-1 inline-flex" type="button" (click)="removeDs(d.repo)" title="إزالة"><i class="pi pi-times"></i></button>
+                </div>
+              }
+              @if (datasets().length) {
+                <span class="text-neutral-400 text-xs">{{ datasets().length }} مجموعة — الأعمدة المعروفة (<code class="ltr">messages/instruction/prompt/text</code>) تُحوَّل تلقائيًا.</span>
+              }
+            </div>
+
             <input pInputText [(ngModel)]="runName" placeholder="اسم الإصدار، مثال: v1 — تحسين اللهجة" class="w-full mb-3" />
             <label class="flex items-center gap-2 text-sm mb-3 cursor-pointer"><p-checkbox [(ngModel)]="onlyCorrected" [binary]="true" /> الأمثلة المُصحّحة فقط</label>
 
@@ -160,8 +189,8 @@ const VERDICT_SEV: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
               </div>
             }
 
-            <p-button label="ابدأ التدريب" icon="pi pi-bolt" [disabled]="preview() === 0 || starting()" [loading]="starting()" (onClick)="start()" styleClass="w-full" />
-            @if (preview() === 0) { <p class="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-sm mt-2"><i class="pi pi-info-circle"></i> صحّح واعتمد بعض الردود أولًا.</p> }
+            <p-button label="ابدأ التدريب" icon="pi pi-bolt" [disabled]="!canStartFinetune()" [loading]="starting()" (onClick)="start()" styleClass="w-full" />
+            @if (!canStartFinetune() && !starting()) { <p class="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-sm mt-2"><i class="pi pi-info-circle"></i> صحّح واعتمد بعض الردود أولًا، أو أضف مجموعة بيانات من <code class="ltr">HuggingFace</code>.</p> }
           </div>
         }
 
@@ -275,6 +304,7 @@ export class TrainingPanel implements OnInit, OnDestroy {
 
   runName = '';
   onlyCorrected = false;
+  useCorrections = true;
   hyper: { epochs: number; learning_rate: number; lora_r: number; lora_alpha: number; max_seq_len: number; grad_accum_steps: number } = {
     epochs: 3, learning_rate: 0.0002, lora_r: 16, lora_alpha: 32,
     max_seq_len: 4096, grad_accum_steps: 16,
@@ -316,6 +346,11 @@ export class TrainingPanel implements OnInit, OnDestroy {
   readonly canStartScratch = computed(
     () => this.isScratch() && this.datasets().length > 0 && this.archValid() && !this.starting(),
   );
+  /** QLoRA needs at least one source: approved corrections or an HF dataset. */
+  canStartFinetune(): boolean {
+    if (this.starting()) return false;
+    return (this.useCorrections && this.preview() > 0) || this.datasets().length > 0;
+  }
 
   private socket: WebSocket | null = null;
   private steps: number[] = [];
@@ -345,6 +380,7 @@ export class TrainingPanel implements OnInit, OnDestroy {
         this.onArchChange();
       } else {
         this.loadPreview();
+        this.datasets.set(this.readDatasets(c));
         const h = this.hyper as unknown as Record<string, number>;
         for (const k of Object.keys(h)) if (c[k] != null) h[k] = c[k];
       }
@@ -481,6 +517,10 @@ export class TrainingPanel implements OnInit, OnDestroy {
     const name = this.runName.trim() || `run-${this.runs().length + 1}`;
     this.api.createRun(this.projectId, {
       name, only_corrected: this.onlyCorrected, autostart: true,
+      use_corrections: this.useCorrections,
+      datasets: this.datasets().map((d) => ({
+        repo: d.repo, config: null, split: 'train', text_field: d.text_field || 'text',
+      })),
       hyperparams: { ...this.hyper },
     }).subscribe({
       next: (r) => {
@@ -588,7 +628,8 @@ export class TrainingPanel implements OnInit, OnDestroy {
 
   cancel(r: TrainingRun): void { this.api.cancelRun(r.id).subscribe(() => this.loadRuns()); }
 
-  totalSteps(): number { return Number(this.selected()?.progress?.total_steps ?? this.live().total_steps ?? 0); }
+  // `||` (not `??`): a 0 estimate (HF-dataset-only run) falls through to the stream value.
+  totalSteps(): number { return Number(this.selected()?.progress?.total_steps || this.live().total_steps || 0); }
   progressPct(): number {
     const total = this.totalSteps(); const step = this.live().step ?? 0;
     return total ? Math.min(100, Math.round((step / total) * 100)) : 0;

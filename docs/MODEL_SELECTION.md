@@ -1,5 +1,11 @@
 # Model Selection — base model for Arabic long-context QLoRA on a 16 GB RTX 5080
 
+> **Note:** the app no longer hardcodes this list. The new-project picker and
+> the models page list models **live from the HuggingFace API** (featured +
+> search). This document remains as *guidance* for choosing a base model; the
+> only remaining default is the env-overridable `MISBAH_DEFAULT_BASE_MODEL`
+> fallback (`Qwen/Qwen3-14B`).
+
 > Decision: **Qwen/Qwen3-14B** is the default base model. **Qwen/Qwen3-8B** is the
 > safest fallback. Researched against the constraint "latest Qwen or DeepSeek,
 > excellent Arabic, long context, QLoRA on 16 GB" (mid-2026).

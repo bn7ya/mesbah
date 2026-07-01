@@ -160,25 +160,34 @@ def refresh() -> None:
 
 # ── effective selection (honours the user's first-run / settings choice) ──────
 
-def effective_gpu() -> Optional[dict[str, Any]]:
-    """The GPU training should target: the user-selected index, else the largest."""
+def effective_gpus() -> list[dict[str, Any]]:
+    """The GPU(s) training should target: the user-selected indices (in order),
+    else the single largest detected GPU. Empty on a CPU-only box."""
     gpus = detect_gpus()
     if not gpus:
-        return None
+        return []
     try:
         from ..features.settings import service as settings_store
-        idx = settings_store.selected_gpu_index()
+        indices = settings_store.selected_gpu_indices()
     except Exception:
-        idx = None
-    if idx is not None:
-        for g in gpus:
-            if g["index"] == idx:
-                return g
-    return max(gpus, key=lambda g: g.get("total_vram_gb", 0))
+        indices = None
+    if indices:
+        by_index = {g["index"]: g for g in gpus}
+        chosen = [by_index[i] for i in indices if i in by_index]
+        if chosen:
+            return chosen
+    return [max(gpus, key=lambda g: g.get("total_vram_gb", 0))]
+
+
+def effective_gpu() -> Optional[dict[str, Any]]:
+    """First selected GPU (back-compat for single-GPU callers)."""
+    gpus = effective_gpus()
+    return gpus[0] if gpus else None
 
 
 def effective_vram_gb() -> float:
-    """Usable VRAM (GB): a manual override if set, else the selected GPU's total."""
+    """Usable VRAM (GB): a manual override if set, else the **sum** across the
+    selected GPUs (device_map sharding lets training use them together)."""
     try:
         from ..features.settings import service as settings_store
         override = settings_store.vram_override_gb()
@@ -186,16 +195,17 @@ def effective_vram_gb() -> float:
         override = None
     if override:
         return float(override)
-    gpu = effective_gpu()
-    return float(gpu["total_vram_gb"]) if gpu else 0.0
+    return float(sum(g.get("total_vram_gb", 0) for g in effective_gpus()))
 
 
 def snapshot() -> dict[str, Any]:
     """Hardware summary for ``GET /api/system`` and the first-run GPU picker."""
     gpus = detect_gpus()
+    selected = effective_gpus()
     return {
         "gpus": gpus,
-        "selected_gpu": effective_gpu(),
+        "selected_gpu": selected[0] if selected else None,   # back-compat
+        "selected_gpus": selected,
         "gpu_vram_gb": effective_vram_gb(),
         "system_ram_gb": system_ram_gb(),
         "cuda_available": bool(gpus),
@@ -252,6 +262,11 @@ def compute_train_defaults(vram_gb: float, ram_gb: float, *, kind: str = "finetu
 
 
 def train_defaults(kind: str = "finetune", model_params_b: Optional[float] = None) -> dict[str, Any]:
-    """``compute_train_defaults`` fed with this machine's effective VRAM + RAM."""
-    return compute_train_defaults(effective_vram_gb(), system_ram_gb(),
-                                  kind=kind, model_params_b=model_params_b)
+    """``compute_train_defaults`` fed with this machine's effective VRAM + RAM.
+
+    With multiple selected GPUs the VRAM is the aggregate across them (the
+    trainer shards via device_map), reported alongside ``num_gpus``."""
+    out = compute_train_defaults(effective_vram_gb(), system_ram_gb(),
+                                 kind=kind, model_params_b=model_params_b)
+    out["num_gpus"] = len(effective_gpus())
+    return out

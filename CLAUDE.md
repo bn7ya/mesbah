@@ -26,8 +26,8 @@ Project (wraps one HuggingFace base model)
 | Frontend | Angular 20 (standalone, signals) + PrimeNG 20 + `@primeuix/themes` (Aura), **Tailwind v4**, RTL, minimal/Notion-like, chart.js |
 | Backend  | FastAPI + SQLModel/SQLite, WebSocket live metrics (+ live trainer logs); serves the built SPA in prod/desktop |
 | Training | QLoRA via **Unsloth** (preferred) or transformers + peft + trl + bitsandbytes; runs as an isolated subprocess |
-| Model    | **Qwen/Qwen3-14B** (default) — see `docs/MODEL_SELECTION.md` |
-| Hardware | **Auto-detected** GPU/VRAM/RAM (pynvml → torch → nvidia-smi); training params derive from the real card, GPU chosen on first run. Dev box: RTX 5080 16 GB, sm_120, CUDA 13.2, torch 2.11+cu130 — see `docs/HARDWARE.md` |
+| Model    | Picked **live from the HuggingFace API** (featured/search — no hardcoded list). Env fallback default: **Qwen/Qwen3-14B**; guidance in `docs/MODEL_SELECTION.md` |
+| Hardware | **Auto-detected** GPU/VRAM/RAM (pynvml → torch → nvidia-smi); training params derive from the real card(s), GPU(s) chosen on first run. **Multi-GPU**: select several GPUs — VRAM aggregates, training/inference shard via `device_map` (multi-GPU uses transformers+peft; OSS Unsloth is single-GPU). Dev box: RTX 5080 16 GB, sm_120, CUDA 13.2, torch 2.11+cu130 — see `docs/HARDWARE.md` |
 | Desktop  | Optional **Tauri** shell (`frontend/src-tauri`) — launches the local backend, opens the studio; `.deb`/`.AppImage` (Linux), `.msi`/`.exe` (Windows) |
 
 ## Layout
@@ -70,7 +70,8 @@ Chat/training return a clear 503/“not installed” until `requirements-ml.txt`
   annotations` break the mapper) — query explicitly and cascade-delete in
   services with `PRAGMA defer_foreign_keys`.
 - **Lazy ML imports** in `features/inference/engine.py` and `scripts/train_qlora.py`.
-- **One model resident at a time** on 16 GB; training unloads the inference engine first.
+- **One model resident at a time**; training unloads the inference engine first.
+  The one-trainer-at-a-time rule holds even with multiple selected GPUs.
 - **Arabic UI, English technical terms.** Don't translate `loss`, `adapter`, etc.
 - Each feature directory has a **`CLAUDE.md`** — read it before changing that feature.
 

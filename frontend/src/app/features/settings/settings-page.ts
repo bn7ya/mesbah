@@ -34,10 +34,10 @@ const THEME_KEY = 'misbah-theme';
           </div>
 
           @if (s.gpus.length) {
-            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-2">اختر بطاقة الرسوميات للتدريب</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-2">اختر بطاقة/بطاقات الرسوميات للتدريب <span class="normal-case text-neutral-400">(يمكن اختيار أكثر من واحدة — يُجمع الـ VRAM)</span></p>
             <div class="flex flex-col gap-2">
               @for (g of s.gpus; track g.index) {
-                <button type="button" (click)="selectGpu(g.index)"
+                <button type="button" (click)="toggleGpu(g.index)"
                   class="flex items-center justify-between gap-3 px-3.5 py-3 rounded-lg border text-start transition-colors"
                   [class]="isSelected(g) ? 'border-blue-400 dark:border-blue-500 ring-1 ring-blue-400/40 bg-blue-50/50 dark:bg-blue-950/20' : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'">
                   <div class="min-w-0">
@@ -49,6 +49,9 @@ const THEME_KEY = 'misbah-theme';
                   @if (isSelected(g)) { <p-tag value="مُختارة" severity="success" icon="pi pi-check" /> }
                   @else { <span class="text-xs text-blue-600 dark:text-blue-400 shrink-0">تحديد</span> }
                 </button>
+              }
+              @if ((s.selected_gpus.length || 0) > 1) {
+                <p class="text-xs text-neutral-500 m-0"><i class="pi pi-info-circle"></i> {{ s.selected_gpus.length }}× GPU — إجمالي <span class="ltr font-semibold">{{ s.gpu_vram_gb | number:'1.0-1' }} GB</span> VRAM. التدريب يوزّع الطبقات عبر البطاقات (<code class="ltr">device_map</code>)؛ يستخدم مسار <code class="ltr">transformers</code> بدل <code class="ltr">Unsloth</code>.</p>
               }
             </div>
           } @else {
@@ -152,18 +155,23 @@ export class SettingsPage implements OnInit {
   private reloadSettings(): void { this.api.getSettings().subscribe((s) => this.settings.set(s)); }
 
   // ── hardware ──
-  isSelected(g: GpuInfo): boolean {
-    const sel = this.settings()?.selected_gpu_index;
-    if (sel != null) return g.index === sel;
-    // no explicit choice → the effective (largest) GPU is what the backend reports
-    return this.sys()?.selected_gpu?.index === g.index;
+  /** The effective selection: the stored multi-select, else what the backend reports. */
+  private selectedIndices(): number[] {
+    const sel = this.settings()?.selected_gpu_indices;
+    if (sel?.length) return sel;
+    return (this.sys()?.selected_gpus ?? []).map((g) => g.index);
   }
 
-  selectGpu(index: number): void {
-    this.api.updateSettings({ selected_gpu_index: index }).subscribe((s) => {
+  isSelected(g: GpuInfo): boolean { return this.selectedIndices().includes(g.index); }
+
+  toggleGpu(index: number): void {
+    const cur = this.selectedIndices();
+    const next = cur.includes(index) ? cur.filter((i) => i !== index) : [...cur, index].sort((a, b) => a - b);
+    // Empty selection ⇒ null (auto: largest GPU) so the backend never has zero GPUs.
+    this.api.updateSettings({ selected_gpu_indices: next.length ? next : null }).subscribe((s) => {
       this.settings.set(s);
       this.reloadSystem();
-      this.toast.add({ severity: 'success', summary: 'تم تحديد بطاقة الرسوميات' });
+      this.toast.add({ severity: 'success', summary: next.length > 1 ? `تم تحديد ${next.length} بطاقات` : 'تم تحديد بطاقة الرسوميات' });
     });
   }
 

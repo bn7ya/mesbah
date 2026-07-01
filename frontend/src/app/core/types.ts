@@ -215,18 +215,31 @@ export interface AutoEnhanceEvent {
   message?: string;
 }
 
-export interface CuratedModel {
+/** A model listed live from the HuggingFace API (or the local registry offline). */
+export interface HubModel {
   repo_id: string;
   label: string;
-  params: string;
-  context: string;
-  arabic: string;
-  license: string;
-  note: string;
-  recommended: boolean;
-  fast_4bit_repo?: string;
-  default_seq_len?: number;
-  default_lora_r?: number;
+  downloads?: number | null;
+  likes?: number | null;
+  tags?: string[];
+  license?: string | null;
+  params?: string | null;
+  pipeline_tag?: string | null;
+  gated?: boolean;
+  source?: 'hub' | 'local';
+  note?: string;
+}
+
+/** One background download's status (models/downloads). */
+export interface DownloadState {
+  repo_id: string;
+  repo_type: 'model' | 'dataset';
+  status: 'pending' | 'downloading' | 'done' | 'error' | 'absent';
+  local_path?: string | null;
+  error?: string | null;
+  bytes_done: number;
+  total_bytes: number;
+  percent: number;
 }
 
 /** A detected CUDA GPU (mirrors core/hardware.detect_gpus). */
@@ -240,6 +253,7 @@ export interface GpuInfo {
 export interface SystemInfo {
   gpus: GpuInfo[];
   selected_gpu: GpuInfo | null;
+  selected_gpus: GpuInfo[];
   gpu_vram_gb: number;
   system_ram_gb: number;
   cuda_available: boolean;
@@ -260,10 +274,28 @@ export interface SystemInfo {
 /** Persisted user settings (mirrors features/settings.public()). */
 export interface AppSettings {
   onboarded: boolean;
-  selected_gpu_index: number | null;
+  selected_gpu_index: number | null;          // legacy single choice
+  selected_gpu_indices: number[] | null;      // null ⇒ auto (largest GPU)
   gpu_vram_gb_override: number | null;
   theme: 'light' | 'dark';
   tokens: Record<string, { configured: boolean; hint: string }>;
+}
+
+/** Snapshot from GET /api/debug/status. */
+export interface DebugStatus {
+  hardware: SystemInfo & Record<string, unknown>;
+  gpu_live: Array<{
+    index: number; name: string; util_pct: number | null;
+    mem_used_gb: number | null; mem_total_gb: number | null; temp_c: number | null;
+  }>;
+  engine: Record<string, any>;
+  downloads: DownloadState[];
+  active_runs: Array<{
+    id: string; name: string; project_id: string; status: string;
+    pid: number | null; started_at: string | null;
+  }>;
+  settings: { selected_gpu_indices: number[] | null; onboarded: boolean };
+  env: { python: string; torch: string | null; transformers: string | null; ml_available: boolean };
 }
 
 /** One live point streamed over the training WebSocket. */

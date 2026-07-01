@@ -20,14 +20,16 @@ _LOCK = threading.Lock()
 
 _DEFAULTS: dict[str, Any] = {
     "onboarded": False,
-    "selected_gpu_index": None,    # None => use the largest detected GPU
+    "selected_gpu_index": None,    # legacy single choice (kept for back-compat reads)
+    "selected_gpu_indices": None,  # None => use the largest detected GPU
     "gpu_vram_gb_override": None,   # None => use the detected VRAM
     "theme": "light",              # "light" | "dark"
     "tokens": {},                  # generic {name: secret} API tokens (HF has its own file)
 }
 
 # Keys a PATCH is allowed to set directly (``tokens`` is merged separately).
-_ALLOWED = {"onboarded", "selected_gpu_index", "gpu_vram_gb_override", "theme"}
+_ALLOWED = {"onboarded", "selected_gpu_index", "selected_gpu_indices",
+            "gpu_vram_gb_override", "theme"}
 
 
 def _path() -> Path:
@@ -66,6 +68,18 @@ def selected_gpu_index() -> Optional[int]:
     return int(v) if isinstance(v, int) else None
 
 
+def selected_gpu_indices() -> Optional[list[int]]:
+    """The user's GPU choice as a list. The new multi-select key wins; a legacy
+    single ``selected_gpu_index`` is wrapped as ``[idx]``. None ⇒ auto (largest)."""
+    data = _read_raw()
+    v = data.get("selected_gpu_indices")
+    if isinstance(v, list):
+        indices = [int(i) for i in v if isinstance(i, (int, float))]
+        return indices or None
+    legacy = data.get("selected_gpu_index")
+    return [int(legacy)] if isinstance(legacy, int) else None
+
+
 def vram_override_gb() -> Optional[float]:
     v = _read_raw().get("gpu_vram_gb_override")
     return float(v) if isinstance(v, (int, float)) and v else None
@@ -93,6 +107,7 @@ def public() -> dict[str, Any]:
     return {
         "onboarded": bool(data.get("onboarded")),
         "selected_gpu_index": data.get("selected_gpu_index"),
+        "selected_gpu_indices": selected_gpu_indices(),
         "gpu_vram_gb_override": data.get("gpu_vram_gb_override"),
         "theme": data.get("theme", "light"),
         "tokens": {name: {"configured": True, "hint": _hint(secret)}
@@ -116,10 +131,18 @@ def patch(updates: dict[str, Any]) -> dict[str, Any]:
                 data["tokens"] = tokens
             elif key in _ALLOWED:
                 data[key] = value
+                # Keep the two GPU keys coherent so old readers of the legacy
+                # single index still see something sensible.
+                if key == "selected_gpu_indices":
+                    data["selected_gpu_index"] = (
+                        int(value[0]) if isinstance(value, list) and value else None)
+                elif key == "selected_gpu_index":
+                    data["selected_gpu_indices"] = (
+                        [int(value)] if isinstance(value, int) else None)
         _write_raw(data)
     return public()
 
 
-def onboard(selected_gpu_index: Optional[int]) -> dict[str, Any]:
+def onboard(selected_gpu_indices: Optional[list[int]]) -> dict[str, Any]:
     """Record the first-run GPU choice and flip the onboarded flag."""
-    return patch({"onboarded": True, "selected_gpu_index": selected_gpu_index})
+    return patch({"onboarded": True, "selected_gpu_indices": selected_gpu_indices})

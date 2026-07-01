@@ -33,6 +33,10 @@ class RunCreate(BaseModel):
     session_ids: Optional[list[str]] = None         # None => all sessions
     task_id: Optional[str] = None
     only_corrected: bool = False
+    # HF datasets to train on, alongside (or instead of) chat corrections:
+    # [{repo, config, split, text_field, max_samples}]
+    datasets: Optional[list[dict[str, Any]]] = None
+    use_corrections: bool = True
     hyperparams: dict[str, Any] = {}
     autostart: bool = True
 
@@ -65,6 +69,8 @@ def create_run(project_id: str, data: RunCreate, db: Session = Depends(get_sessi
             "session_ids": data.session_ids,
             "task_id": data.task_id,
             "only_corrected": data.only_corrected,
+            "datasets": data.datasets or [],
+            "use_corrections": data.use_corrections,
             "hyperparams": data.hyperparams,
         },
     )
@@ -73,9 +79,9 @@ def create_run(project_id: str, data: RunCreate, db: Session = Depends(get_sessi
     db.refresh(run)
 
     run = manager.prepare(db, run)
-    if run.num_examples == 0:
+    if run.num_examples == 0 and not (data.datasets or []):
         run.status = RunStatus.failed
-        run.error = "No approved training examples found. Correct and approve some replies first."
+        run.error = "No approved training examples found. Correct and approve some replies first, or add a HuggingFace dataset."
         db.add(run)
         db.commit()
         db.refresh(run)

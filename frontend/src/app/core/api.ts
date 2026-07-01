@@ -2,9 +2,9 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
-  AppSettings, ArchitectureSpec, AutoEnhanceLoop, ChatMessage, ChatSession, CuratedModel,
-  DatasetHit, FeasibilityEstimate, ModelArchitecture, ModelVersion, Project,
-  SystemInfo, Task, TrainingRun, VersionNode,
+  AppSettings, ArchitectureSpec, AutoEnhanceLoop, ChatMessage, ChatSession,
+  DatasetHit, DebugStatus, DownloadState, FeasibilityEstimate, HubModel,
+  ModelArchitecture, ModelVersion, Project, SystemInfo, Task, TrainingRun, VersionNode,
 } from './types';
 
 /** Base URL of the FastAPI backend. Same host in dev via proxy; override for prod. */
@@ -26,11 +26,11 @@ export class Api {
 
   // ── settings (onboarding, GPU choice, theme, API tokens) ──
   getSettings(): Observable<AppSettings> { return this.http.get<AppSettings>(`${API_BASE}/settings`); }
-  updateSettings(body: Partial<{ selected_gpu_index: number | null; gpu_vram_gb_override: number | null; theme: string; tokens: Record<string, string | null> }>): Observable<AppSettings> {
+  updateSettings(body: Partial<{ selected_gpu_index: number | null; selected_gpu_indices: number[] | null; gpu_vram_gb_override: number | null; theme: string; tokens: Record<string, string | null> }>): Observable<AppSettings> {
     return this.http.patch<AppSettings>(`${API_BASE}/settings`, body);
   }
-  onboard(selected_gpu_index: number | null): Observable<AppSettings> {
-    return this.http.post<AppSettings>(`${API_BASE}/settings/onboard`, { selected_gpu_index });
+  onboard(selected_gpu_indices: number[] | null): Observable<AppSettings> {
+    return this.http.post<AppSettings>(`${API_BASE}/settings/onboard`, { selected_gpu_indices });
   }
   /** Pre-load the project's active model into VRAM (background, local-only). */
   warmupModel(project_id: string): Observable<any> { return this.http.post(`${API_BASE}/inference/warmup`, { project_id }); }
@@ -49,7 +49,9 @@ export class Api {
   deleteProject(id: string): Observable<void> { return this.http.delete<void>(`${API_BASE}/projects/${id}`); }
 
   // ── models ──
-  curatedModels(): Observable<CuratedModel[]> { return this.http.get<CuratedModel[]>(`${API_BASE}/models/curated`); }
+  featuredModels(language?: string): Observable<HubModel[]> {
+    return this.http.get<HubModel[]>(`${API_BASE}/models/featured`, { params: language ? { language } : {} });
+  }
   searchModels(q: string): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/models/search`, { params: { query: q } }); }
   searchDatasets(q: string): Observable<DatasetHit[]> { return this.http.get<DatasetHit[]>(`${API_BASE}/models/datasets/search`, { params: { query: q } }); }
   datasetColumns(repo_id: string): Observable<{ configs: string[]; config: string | null; columns: string[]; text_field_candidates: string[] }> {
@@ -61,6 +63,16 @@ export class Api {
   downloadStatus(repo_id: string): Observable<any> { return this.http.get(`${API_BASE}/models/download/status`, { params: { repo_id } }); }
   downloadDataset(repo_id: string): Observable<any> { return this.http.post(`${API_BASE}/models/datasets/download`, { repo_id }); }
   datasetDownloadStatus(repo_id: string): Observable<any> { return this.http.get(`${API_BASE}/models/datasets/download/status`, { params: { repo_id } }); }
+  /** Every download tracked this session (drives the global status chip). */
+  listDownloads(): Observable<{ downloads: DownloadState[]; active: number }> {
+    return this.http.get<{ downloads: DownloadState[]; active: number }>(`${API_BASE}/models/downloads`);
+  }
+
+  // ── debug ──
+  debugStatus(): Observable<DebugStatus> { return this.http.get<DebugStatus>(`${API_BASE}/debug/status`); }
+  debugLogs(lines = 200): Observable<{ lines: string[] }> {
+    return this.http.get<{ lines: string[] }>(`${API_BASE}/debug/logs`, { params: { lines } });
+  }
   // HuggingFace access token (never returns the secret; status reports config only)
   hfTokenStatus(): Observable<{ configured: boolean; source: string | null; hint: string | null }> {
     return this.http.get<any>(`${API_BASE}/models/hf-token`);

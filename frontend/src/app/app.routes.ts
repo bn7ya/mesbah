@@ -17,6 +17,11 @@ export const routes: Routes = [
     title: 'الإعدادات · مِصباح',
   },
   {
+    path: 'debug',
+    loadComponent: () => import('./features/debug/debug-page').then((m) => m.DebugPage),
+    title: 'الحالة والتشخيص · مِصباح',
+  },
+  {
     path: 'projects/:id',
     loadComponent: () => import('./features/workspace/workspace-page').then((m) => m.WorkspacePage),
     title: 'مساحة العمل · مِصباح',

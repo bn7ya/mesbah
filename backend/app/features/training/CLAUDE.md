@@ -16,6 +16,15 @@ streams live metrics, and appends a `ModelVersion` on success.
 ## Two kinds (by `project.kind`)
 - **finetune** — `prepare()` builds the dataset from approved chat turns (as
   before), now written under `projects/<pid>/data/`; QLoRA via `train_qlora.py`.
+  - **HF datasets too:** `RunCreate` accepts `datasets` (same
+    `{repo, config, split, text_field, max_samples?}` list as scratch) and
+    `use_corrections` (default true). `train_qlora.build_train_dataset` merges the
+    corrections JSONL with each HF dataset, mapping known schemas to a single
+    `text` column (chat `messages`/`conversations` → chat template;
+    `instruction`[+`input`]/`output|response` and `prompt`/`completion|response` →
+    2-turn chat; else `text_field`/first string column raw). One bad dataset emits
+    `dataset_error` and is skipped; a run with 0 corrections but ≥1 dataset is
+    valid (the early-fail check only fires when both are empty).
 - **scratch** — no chat dataset; the config carries an `architecture` spec, an
   `embedding_mode` (`new`/`pretrained`, always trainable), a **`datasets`** corpus
   list, and offload knobs. `train_scratch.py` builds the model from config (random
@@ -60,10 +69,21 @@ adapter, for "enhance from node"), dataset/output/metrics paths, and a
 ## Backends & memory (scripts/train_qlora.py)
 - **Unsloth** is preferred for from-base runs (less VRAM, RAM activation offload).
   **HF path** is the fallback: used for resume runs, when Unsloth isn't installed,
-  or when Unsloth can't load — and it adds a **VRAM→RAM→disk** offload tier.
-- `load_with_offload_fallback`: tier 1 = whole model on GPU (`device_map={"":0}`);
-  tier 2 on CUDA OOM = `device_map="auto"` with `max_memory` (GPU cap + `cpu_offload_gb`
-  RAM) + `offload_folder` (disk). The manager injects `offload_folder` / `cpu_offload_gb`.
+  when Unsloth can't load — and **always when `num_gpus > 1`** (OSS Unsloth is
+  single-GPU) — and it adds a **VRAM→RAM→disk** offload tier.
+- `load_with_offload_fallback`: tier 1 = whole model on the GPU
+  (`device_map={"":dev}`), or with multiple visible GPUs `device_map="balanced"`
+  + per-GPU `max_memory` (naive model parallelism — layers spread across cards,
+  throughput does not scale); tier 2 on CUDA OOM = `device_map="auto"` with
+  `max_memory` (GPU caps + `cpu_offload_gb` RAM) + `offload_folder` (disk).
+  The manager injects `offload_folder` / `cpu_offload_gb`.
+
+## Multi-GPU
+`prepare()` injects `gpu_indices`/`num_gpus` (from `hardware.effective_gpus()`,
+i.e. the user's settings selection) into `config.json`; `launch()` sets
+`CUDA_VISIBLE_DEVICES` to those indices so the child sees them renumbered 0..N-1.
+Aggregate VRAM across the selection feeds `compute_train_defaults`. The
+one-trainer-at-a-time guard (`TrainingBusyError`) is unchanged.
 - Dataset is pre-formatted to a `text` column via the chat template (works for both
   trl and Unsloth). `assistant_only_loss` defaults OFF (many templates lack the
   `{% generation %}` mask and would hard-error).

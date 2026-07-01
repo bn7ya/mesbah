@@ -62,7 +62,7 @@ light up once `requirements-ml.txt` is installed.
 
 ## How a fine-tune happens
 
-1. **Create a project** and pick a base model from the curated Arabic-capable list.
+1. **Create a project** and pick a base model — listed live from the HuggingFace API (most-downloaded + Arabic sections, plus search).
 2. **Chat** in a session. When the model answers, **edit the answer** to what it
    *should* have said — that correction is now a training example.
 3. **Approve** examples; watch the counter grow.

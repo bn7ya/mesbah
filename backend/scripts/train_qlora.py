@@ -98,10 +98,122 @@ def gpu_mem() -> dict[str, float]:
 
 
 # ── data ──────────────────────────────────────────────────────────────────────
-def load_dataset(cfg: dict[str, Any]):
+def _chat_text(tokenizer, messages: list[dict[str, Any]]) -> str:
+    """Render a messages list through the chat template. Accepts both
+    ``{role, content}`` and ShareGPT-style ``{from, value}`` entries."""
+    norm = []
+    for m in messages:
+        if "role" in m:
+            norm.append({"role": m["role"], "content": m.get("content") or ""})
+        else:
+            role = {"human": "user", "gpt": "assistant", "system": "system"}.get(
+                str(m.get("from", "")).lower(), "user")
+            norm.append({"role": role, "content": m.get("value") or ""})
+    return tokenizer.apply_chat_template(norm, tokenize=False)
+
+
+def _to_text_dataset(ds, spec: dict[str, Any], tokenizer):
+    """Normalize one HF dataset to a single ``text`` column.
+
+    Recognized schemas (in order): chat (``messages``/``conversations``),
+    instruction (``instruction``[+``input``]/``output|response``),
+    prompt (``prompt``/``completion|response``), else the spec's ``text_field``
+    (fallback: first string column) taken as raw text.
+    """
+    cols = list(ds.column_names)
+
+    if "messages" in cols or "conversations" in cols:
+        col = "messages" if "messages" in cols else "conversations"
+        def fmt(ex):
+            return {"text": _chat_text(tokenizer, ex[col])}
+    elif "instruction" in cols and ("output" in cols or "response" in cols):
+        out_col = "output" if "output" in cols else "response"
+        def fmt(ex):
+            user = str(ex["instruction"] or "")
+            extra = ex.get("input") if "input" in cols else None
+            if extra:
+                user += "\n\n" + str(extra)
+            return {"text": _chat_text(tokenizer, [
+                {"role": "user", "content": user},
+                {"role": "assistant", "content": str(ex[out_col] or "")},
+            ])}
+    elif "prompt" in cols and ("completion" in cols or "response" in cols):
+        out_col = "completion" if "completion" in cols else "response"
+        def fmt(ex):
+            return {"text": _chat_text(tokenizer, [
+                {"role": "user", "content": str(ex["prompt"] or "")},
+                {"role": "assistant", "content": str(ex[out_col] or "")},
+            ])}
+    else:
+        field = spec.get("text_field")
+        if not field or field not in cols:
+            field = "text" if "text" in cols else None
+        if field is None:
+            # last resort: first column whose first row is a string
+            first = ds[0] if len(ds) else {}
+            for c in cols:
+                if isinstance(first.get(c), str):
+                    field = c
+                    break
+        if field is None:
+            raise ValueError(f"No usable text column among {cols}")
+        def fmt(ex):
+            return {"text": str(ex[field] or "")}
+
+    return ds.map(fmt, remove_columns=cols)
+
+
+def build_train_dataset(cfg: dict[str, Any], tokenizer, metrics: MetricsWriter):
+    """Assemble the training corpus: the corrections JSONL (chat approvals)
+    plus any HF datasets requested in ``cfg["datasets"]``. Everything ends up
+    as one shuffled dataset with a single ``text`` column.
+
+    Resilient like ``train_scratch.load_corpus``: one bad HF dataset emits a
+    ``dataset_error`` metric and is skipped; only an entirely empty corpus raises.
+    """
+    from datasets import concatenate_datasets
     from datasets import load_dataset as hf_load
-    ds = hf_load("json", data_files=cfg["dataset_path"], split="train")
-    return ds
+
+    parts = []
+    seed = int(cfg.get("seed", 42))
+
+    if cfg.get("use_corrections", True):
+        path = cfg.get("dataset_path")
+        if path and Path(path).exists() and Path(path).stat().st_size > 0:
+            ds = hf_load("json", data_files=path, split="train")
+            if len(ds):
+                parts.append(_to_text_dataset(ds, {}, tokenizer))
+                metrics.emit({"event": "dataset", "source": "corrections",
+                              "num_examples": len(ds)})
+
+    for spec in (cfg.get("datasets") or []):
+        repo = spec.get("repo")
+        if not repo:
+            continue
+        try:
+            ds = hf_load(repo, spec.get("config") or None,
+                         split=spec.get("split") or "train",
+                         cache_dir=cfg.get("hf_cache"))
+            cap = int(spec.get("max_samples") or 0)
+            if cap and len(ds) > cap:
+                ds = ds.shuffle(seed=seed).select(range(cap))
+            ds = _to_text_dataset(ds, spec, tokenizer)
+            parts.append(ds)
+            metrics.emit({"event": "dataset", "source": repo, "num_examples": len(ds)})
+            print(f"[train_qlora] dataset {repo}: {len(ds)} examples", flush=True)
+        except Exception as exc:  # noqa: BLE001 — skip the bad dataset, keep training
+            metrics.emit({"event": "dataset_error", "repo": repo, "error": str(exc)[:500]})
+            print(f"[train_qlora] dataset {repo} failed: {exc}", flush=True)
+
+    if not parts:
+        raise ValueError("Empty dataset — no approved examples and no usable HF dataset.")
+    combined = parts[0] if len(parts) == 1 else concatenate_datasets(parts)
+    combined = combined.shuffle(seed=seed)
+    cap = int(cfg.get("max_train_samples") or 0)
+    if cap and len(combined) > cap:
+        combined = combined.select(range(cap))
+    metrics.emit({"event": "dataset_total", "num_examples": len(combined)})
+    return combined
 
 
 # ── model loading: Unsloth (preferred) ────────────────────────────────────────
@@ -109,6 +221,12 @@ def try_load_unsloth(cfg: dict[str, Any]):
     """Return (model, tokenizer) via Unsloth, or None if unavailable/unsuitable."""
     # Resuming an existing adapter is handled more reliably on the HF path.
     if cfg.get("resume_adapter_path"):
+        return None
+    # Open-source Unsloth is single-GPU; with multiple visible GPUs use the HF
+    # path, which shards the model across them via device_map="auto".
+    if int(cfg.get("num_gpus", 1)) > 1:
+        print("[train_qlora] multiple GPUs selected — Unsloth (OSS) is single-GPU; "
+              "using transformers+peft with device_map=auto.", flush=True)
         return None
     try:
         from unsloth import FastLanguageModel
@@ -166,9 +284,11 @@ def load_with_offload_fallback(cfg: dict[str, Any], load_fn):
     """Load the 4-bit model on the GPU; if VRAM is exhausted, spill to CPU RAM
     then disk.
 
-    Tier 1 (fast): the whole model on GPU 0 (device_map={"":0}).
+    Tier 1 (fast): the whole model on the GPU (device_map={"":dev}) — or, with
+      multiple visible GPUs, sharded across all of them (device_map="balanced"
+      with a per-GPU ``max_memory`` cap and no cpu entry: naive model parallelism).
     Tier 2 (fallback on CUDA OOM): device_map="auto" with a per-device
-      ``max_memory`` cap — GPU first, then CPU RAM (``cpu_offload_gb``), then a
+      ``max_memory`` cap — GPU(s) first, then CPU RAM (``cpu_offload_gb``), then a
       disk ``offload_folder``. Slower, but lets an over-large model still train.
     """
     import gc
@@ -179,8 +299,23 @@ def load_with_offload_fallback(cfg: dict[str, Any], load_fn):
     if not torch.cuda.is_available():
         return load_fn(None)
 
+    n_gpus = torch.cuda.device_count()
+
+    def _gpu_max_memory() -> dict:
+        # ~1 GiB headroom per card
+        out = {}
+        for i in range(n_gpus):
+            total = torch.cuda.get_device_properties(i).total_memory
+            out[i] = f"{max(1, int(total / (1024 ** 3)) - 1)}GiB"
+        return out
+
     dev = torch.cuda.current_device()
     try:
+        if n_gpus > 1:
+            # "balanced" spreads layers over every visible GPU, so hf_device_map
+            # spans >1 device and the Trainer runs model-parallel (never wraps a
+            # 4-bit model in DataParallel).
+            return load_fn("balanced", max_memory=_gpu_max_memory())
         return load_fn({"": dev})
     except (torch.cuda.OutOfMemoryError, RuntimeError, ValueError) as exc:
         # Sniff the whole __cause__/__context__ chain: a real OOM is often wrapped
@@ -190,16 +325,14 @@ def load_with_offload_fallback(cfg: dict[str, Any], load_fn):
             raise
         gc.collect()
         torch.cuda.empty_cache()
-        total = torch.cuda.get_device_properties(dev).total_memory
-        gpu_gib = max(1, int(total / (1024 ** 3)) - 1)          # leave ~1 GiB headroom
         cpu_gib = int(cfg.get("cpu_offload_gb", 96))
         offload_dir = cfg.get("offload_folder") or "offload"
         _Path(offload_dir).mkdir(parents=True, exist_ok=True)
-        print(f"[train_qlora] VRAM full → offload fallback: GPU {gpu_gib}GiB + "
+        print(f"[train_qlora] VRAM full → offload fallback: {n_gpus} GPU(s) + "
               f"CPU {cpu_gib}GiB + disk {offload_dir} (slower)", flush=True)
         return load_fn(
             "auto",
-            max_memory={dev: f"{gpu_gib}GiB", "cpu": f"{cpu_gib}GiB"},
+            max_memory={**_gpu_max_memory(), "cpu": f"{cpu_gib}GiB"},
             offload_folder=offload_dir,
             offload_state_dict=True,
         )
@@ -382,7 +515,7 @@ def _free_gpu() -> None:
         pass
 
 
-def _one_attempt(cfg: dict[str, Any], dataset, metrics: MetricsWriter) -> dict[str, Any]:
+def _one_attempt(cfg: dict[str, Any], metrics: MetricsWriter) -> dict[str, Any]:
     """A single load→train→save attempt. Always releases GPU refs (so a retry
     starts from a clean slate). Raises on failure (OOM or otherwise)."""
     model = tokenizer = trainer = None
@@ -396,6 +529,9 @@ def _one_attempt(cfg: dict[str, Any], dataset, metrics: MetricsWriter) -> dict[s
         metrics.emit({"event": "loaded", "backend": backend, "max_seq_len": int(cfg.get("max_seq_len", 4096)), **gpu_mem()})
         print(f"[train_qlora] model loaded via {backend} @ seq_len={cfg.get('max_seq_len')}", flush=True)
 
+        # Built after the tokenizer exists (chat template needed); the HF
+        # datasets cache makes a rebuild on OOM retry cheap.
+        dataset = build_train_dataset(cfg, tokenizer, metrics)
         trainer = build_trainer(cfg, model, tokenizer, dataset, metrics)
         result = trainer.train()
 
@@ -429,11 +565,6 @@ def main() -> int:
     write_status(cfg, status="running")
 
     try:
-        dataset = load_dataset(cfg)
-        if len(dataset) == 0:
-            raise ValueError("Empty dataset — no approved examples to train on.")
-        metrics.emit({"event": "dataset", "num_examples": len(dataset)})
-
         # Auto-OOM recovery: on a CUDA out-of-memory, free VRAM, halve max_seq_len,
         # and retry — down to a floor — so a too-ambitious context self-corrects.
         min_seq = int(cfg.get("min_seq_len", 256))
@@ -441,7 +572,7 @@ def main() -> int:
         last_tb = ""
         for attempt in range(max_retries + 1):
             try:
-                final_metrics = _one_attempt(cfg, dataset, metrics)
+                final_metrics = _one_attempt(cfg, metrics)
                 metrics.emit({"event": "done", **final_metrics})
                 write_status(cfg, status="completed",
                              adapter_path=final_metrics["adapter_path"], metrics=final_metrics)

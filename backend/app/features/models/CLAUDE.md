@@ -1,13 +1,15 @@
 # feature: models (HuggingFace registry)
 
-Discover, curate, and download base models.
+Discover and download base models — listed **live from the HF API**, no
+hardcoded catalog.
 
 ## Files
-- `router.py` — `/api/models/curated|search|local|download|download/status`, plus
-  `datasets/search`, `datasets/preview`, `inspect`, and `hf-token` (GET/POST/DELETE).
-- `service.py` — curated list, HF model+dataset search, local registry, background
-  downloads, `inspect_model` (reads a repo's `config.json`), `dataset_preview`
-  (columns via the datasets-server HTTP API), and HF-token persistence.
+- `router.py` — `/api/models/featured|search|local|download|download/status|downloads`,
+  plus `datasets/search`, `datasets/preview`, `inspect`, and `hf-token` (GET/POST/DELETE).
+- `service.py` — live featured listing (`list_featured`), HF model+dataset search,
+  local registry, background downloads, `inspect_model` (reads a repo's
+  `config.json`), `dataset_preview` (columns via the datasets-server HTTP API),
+  and HF-token persistence.
 
 ## HuggingFace token (GUI-settable)
 - `GET /hf-token` → `{configured, source: env|file|null, hint}` (never the secret).
@@ -28,15 +30,23 @@ Discover, curate, and download base models.
   Still **no torch**: only the small config file is fetched, never a model.
 
 ## Behaviours
-- `CURATED_MODELS` is the hand-picked list shown in the new-project picker
-  (Qwen3-14B recommended, Qwen3-8B, DeepSeek-R1-0528-Qwen3-8B, ALLaM/Yehia Arabic
-  specialists). Each entry carries `default_seq_len` / `default_lora_r` hints. Keep
-  it in sync with `docs/MODEL_SELECTION.md`.
+- `list_featured(limit, language)` — `GET /featured` — lists the most-downloaded
+  `text-generation` models live via `HfApi.list_models(pipeline_tag=…,
+  filter=language, sort="downloads")` (`language=ar` powers the Arabic section;
+  hub 1.x dropped the `language=` kwarg, language codes are plain tags). Hits are
+  normalized to `{repo_id, label, downloads, likes, tags, license, params, gated,
+  source:"hub"}` (`params` best-effort from the repo name). Results are cached
+  in-process for ~15 min; on any hub error the endpoint degrades to `list_local()`
+  mapped to the same shape with `source:"local"` — it never 500s. Precise facts
+  (context length, model_type) come lazily from `GET /inspect` on selection.
+  `docs/MODEL_SELECTION.md` remains as *guidance* only.
 - `search` uses `huggingface_hub.HfApi.list_models`; falls back to filtering the
-  curated list when the hub is unreachable (offline-friendly).
+  local registry when the hub is unreachable (offline-friendly).
 - `DownloadManager` runs `snapshot_download` on a background thread; `status()`
   reports **bytes-on-disk** so the GUI can animate a progress bar. A 14B model is
   ~28 GB → downloads are long; status survives restarts by scanning the dir.
+  `list_all()` / `GET /downloads` reports every download tracked this session —
+  drives the global topbar chip and the debug page.
 
 ## Gotchas
 - Local models live in `data/models/<repo__with__double__underscore>`; the path

@@ -81,9 +81,9 @@ class TrainingBusyError(RuntimeError):
     def __init__(self, active_run_id: str) -> None:
         self.active_run_id = active_run_id
         super().__init__(
-            f"Another training run ({active_run_id}) is already using the GPU. "
-            "Only one run can train at a time on a single-GPU machine — wait for it "
-            "to finish or cancel it first."
+            f"Another training run ({active_run_id}) is already using the GPU(s). "
+            "Only one run can train at a time — wait for it to finish or cancel "
+            "it first."
         )
 
 
@@ -156,13 +156,20 @@ class TrainingManager:
             except Exception:
                 pass
         else:
-            examples = dataset.collect_examples(
-                db, run.project_id,
-                session_ids=run.config.get("session_ids"),
-                task_id=run.config.get("task_id"),
-                only_corrected=run.config.get("only_corrected", False),
-            )
-            n = dataset.write_jsonl(examples, ds_path)
+            use_corrections = bool(run.config.get("use_corrections", True))
+            if use_corrections:
+                examples = dataset.collect_examples(
+                    db, run.project_id,
+                    session_ids=run.config.get("session_ids"),
+                    task_id=run.config.get("task_id"),
+                    only_corrected=run.config.get("only_corrected", False),
+                )
+                n = dataset.write_jsonl(examples, ds_path)
+            else:
+                n = 0
+            # Optional HF datasets trained alongside (or instead of) corrections.
+            merged["datasets"] = run.config.get("datasets") or []
+            merged["use_corrections"] = use_corrections
             base_model = project.base_model_local_path or project.base_model_repo
             parent_adapter = None
             if run.parent_version_id:
@@ -187,6 +194,9 @@ class TrainingManager:
             # Real host RAM so the cpu-vs-nvme offload decision isn't a fixed 100 GB.
             "host_ram_gb": settings.resolved_ram_gb(),
             "num_examples": n,
+            # GPUs the trainer may use (drives CUDA_VISIBLE_DEVICES in launch()).
+            "gpu_indices": [g["index"] for g in hardware.effective_gpus()],
+            "num_gpus": len(hardware.effective_gpus()),
         }
         (run_dir / "config.json").write_text(json.dumps(cfg, ensure_ascii=False, indent=2))
 
@@ -208,6 +218,14 @@ class TrainingManager:
         bs = max(1, int(cfg.get("per_device_batch_size", 1)))
         ga = max(1, int(cfg.get("grad_accum_steps", 1)))
         epochs = max(1, int(cfg.get("epochs", 1)))
+        # HF datasets add examples the corrections count doesn't know about; use
+        # their max_samples caps as a rough contribution. The trainer corrects
+        # total_steps at on_train_begin anyway.
+        for spec in (cfg.get("datasets") or []):
+            try:
+                n_examples += int(spec.get("max_samples") or 0)
+            except (TypeError, ValueError):
+                pass
         per_epoch = math.ceil(n_examples / (bs * ga)) if n_examples else 0
         return per_epoch * epochs
 
@@ -236,15 +254,23 @@ class TrainingManager:
         # from-scratch training vs QLoRA fine-tuning.
         script = TRAIN_SCRIPT
         scratch_paged = False
+        gpu_indices: list[int] = []
         try:
             run_cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
             if run_cfg.get("kind") == "scratch":
                 script = SCRATCH_SCRIPT
                 scratch_paged = bool(run_cfg.get("paged_training"))
-        except (OSError, json.JSONDecodeError):
+            gpu_indices = [int(i) for i in (run_cfg.get("gpu_indices") or [])]
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
             pass
+        if not gpu_indices:
+            gpu_indices = [g["index"] for g in hardware.effective_gpus()]
         log_file = open(run_dir / "train.log", "a", encoding="utf-8")
         env = {"HF_HOME": str(settings.hf_home), "TOKENIZERS_PARALLELISM": "false"}
+        # Restrict the trainer to the user-selected GPU(s). Inside the child the
+        # visible devices are renumbered 0..N-1, so device_map logic stays simple.
+        if gpu_indices:
+            env["CUDA_VISIBLE_DEVICES"] = ",".join(str(i) for i in gpu_indices)
         # ZeRO-Infinity (from-scratch paged) runs as a single-process distributed
         # job; set the env DeepSpeed/HF Trainer need so no `deepspeed` CLI launcher
         # is required. (Alternative: `deepspeed --num_gpus=1 scripts/train_scratch.py`.)

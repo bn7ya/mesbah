@@ -22,6 +22,7 @@ from .core.config import BACKEND_DIR, settings
 from .core.db import init_db
 from .features.architect.router import router as architect_router
 from .features.auto_enhance.router import router as auto_enhance_router
+from .features.debug.router import router as debug_router
 from .features.inference.engine import engine
 from .features.inference.router import router as inference_router
 from .features.models.router import router as models_router
@@ -36,6 +37,9 @@ from .features.versioning.router import router as versioning_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    # Keep the last backend log lines in memory for GET /api/debug/logs.
+    from .features.debug.service import install_log_buffer
+    install_log_buffer()
     # Work around the huggingface_hub 1.x httpx/brotli download crash so model
     # and dataset downloads (and training subprocesses, which set it themselves)
     # don't fail mid-stream. Best-effort; see core/hf_http.py.
@@ -70,7 +74,7 @@ app.add_middleware(
 
 for r in (projects_router, tasks_router, sessions_router, models_router,
           inference_router, training_router, versioning_router, auto_enhance_router,
-          architect_router, settings_router):
+          architect_router, settings_router, debug_router):
     app.include_router(r)
 
 

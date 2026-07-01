@@ -42,7 +42,8 @@ class Settings(BaseSettings):
     # ── HuggingFace ──
     hf_token: str | None = None
     hf_home: Path = DATA_DIR / "hf_cache"
-    # Curated default base model — see docs/MODEL_SELECTION.md. Overridable per project.
+    # Last-resort default base model (the picker lists models live from the HF
+    # API). Env-overridable; guidance in docs/MODEL_SELECTION.md.
     default_base_model: str = "Qwen/Qwen3-14B"
 
     # ── Hardware budget (auto-detected; env only OVERRIDES the probe) ──

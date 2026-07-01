@@ -41,10 +41,14 @@ def clear_hf_token():
     return service.clear_hf_token()
 
 
-@router.get("/curated")
-def curated():
-    """Recommended base models for the new-project picker."""
-    return service.CURATED_MODELS
+@router.get("/featured")
+def featured(limit: int = 12, language: str | None = None):
+    """Most-downloaded text-generation models, live from the HF API.
+
+    ``language=ar`` gives the Arabic section. Degrades to the local registry
+    (``source: "local"``) when the Hub is unreachable — never 500s.
+    """
+    return service.list_featured(limit=limit, language=language)
 
 
 @router.get("/search")
@@ -92,6 +96,14 @@ def download(req: DownloadRequest):
 @router.get("/download/status")
 def download_status(repo_id: str):
     return service.manager.status(repo_id)
+
+
+@router.get("/downloads")
+def downloads():
+    """All downloads tracked this session (drives the global status chip)."""
+    items = service.manager.list_all()
+    active = sum(1 for d in items if d.get("status") in ("pending", "downloading"))
+    return {"downloads": items, "active": active}
 
 
 @router.post("/datasets/download")

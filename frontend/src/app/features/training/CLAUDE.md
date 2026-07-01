@@ -2,8 +2,12 @@
 
 `TrainingPanel` — launch QLoRA runs and watch them **live**.
 
-- Left: launcher (dataset-ready count from `api.datasetPreview`, run name,
-  "only corrected" toggle, start) + run history list.
+- Left: launcher (dataset-ready count from `api.datasetPreview`, an "استخدم
+  الردود المعتمدة" (`use_corrections`) toggle, an **HF dataset picker** — the same
+  search/add/remove block the scratch launcher uses (`datasets` signal,
+  `searchDs/addDs/removeDs`) — run name, "only corrected" toggle, start) + run
+  history list. Start is enabled when there are corrections **or** ≥1 HF dataset;
+  `start()` sends `{use_corrections, datasets:[{repo,config,split,text_field}]}`.
 - Right: live dashboard — KPI cards (step, loss, lr, VRAM), `p-progressBar`, and a
   **chart.js loss curve** (`p-chart`).
 
@@ -18,5 +22,6 @@
 ## Notes
 - Reassign `chartData.set({...})` with fresh arrays so `p-chart` re-renders.
 - Starting a run with 0 examples comes back `failed` → surfaced as an error toast.
-- `totalSteps()` comes from `run.progress.total_steps` (or the stream); progress %
-  = step/total.
+- `totalSteps()` comes from `run.progress.total_steps` **`||`** the stream value
+  (`||`, not `??`: an HF-dataset-only run can start with a 0 estimate that the
+  trainer corrects at `on_train_begin`); progress % = step/total.

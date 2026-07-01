@@ -14,9 +14,15 @@ replies. Used by the sessions feature; also exposed directly for diagnostics.
 - `router.py` — `/api/inference/status|unload|generate`.
 
 ## Engine rules
-- **One resident model on 16 GB.** Same base + different version → swap the LoRA
+- **One resident model.** Same base + different version → swap the LoRA
   adapter only; different base → full reload.
   `ensure_loaded(model_id, adapter_path, load_in_4bit=True)`.
+- **Placement follows the user's GPU selection** (`hardware.effective_gpus()`):
+  one selected GPU → pin the whole model on it (`device_map={"": idx}`); several
+  → `device_map="auto"` with a `max_memory` map covering only the selected
+  indices and **no cpu entry** (the API process has no `CUDA_VISIBLE_DEVICES`,
+  so `max_memory` is the restriction mechanism; bnb 4-bit rejects CPU-dispatched
+  modules).
 - `unload()` frees all VRAM — the **training manager calls it before a run**.
 - 4-bit NF4 + bf16 compute for pretrained bases. `status()` reports
   `runtime_available`, loaded model, and live VRAM via `torch.cuda.mem_get_info`.

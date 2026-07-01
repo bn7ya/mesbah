@@ -26,9 +26,10 @@ app/
     config.py        Settings (env prefix MISBAH_) + data-dir layout. Hardware fields
                      (gpu_vram_gb/host_ram_gb/max_train_seq_len) are env OVERRIDES only
                      (default None) — use resolved_vram_gb()/resolved_ram_gb().
-    hardware.py      Detect GPUs (pynvml→torch→nvidia-smi) + RAM; pick the effective GPU
-                     (user choice via features/settings); compute_train_defaults(vram,ram)
-                     derives seq-len/batch/grad-accum/lora_r/offload from real hardware.
+    hardware.py      Detect GPUs (pynvml→torch→nvidia-smi) + RAM; pick the effective GPU(s)
+                     (multi-select via features/settings; effective_gpus() / aggregate
+                     effective_vram_gb()); compute_train_defaults(vram,ram) derives
+                     seq-len/batch/grad-accum/lora_r/offload from real hardware.
     db.py            SQLite engine (WAL), init_db(), get_session() dependency
     models.py        ALL SQLModel tables (one place — see "Data rules")
     events.py        async pub/sub for live progress (currently the WS tails files)

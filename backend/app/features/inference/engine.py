@@ -186,13 +186,35 @@ class InferenceEngine:
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
 
-        # Pin the whole model on one GPU — "auto" can offload to CPU/disk, which
-        # bitsandbytes 4-bit rejects. Single-GPU box → force GPU 0.
-        device_map = {"": torch.cuda.current_device()} if torch.cuda.is_available() else "cpu"
+        # Placement honours the user's GPU selection (features/settings):
+        #  * one selected GPU → pin the whole model on it ("auto" could offload
+        #    to CPU/disk, which bitsandbytes 4-bit rejects);
+        #  * several selected GPUs → shard across exactly those via a max_memory
+        #    map with no cpu entry (the API process has no CUDA_VISIBLE_DEVICES,
+        #    so max_memory is the restriction mechanism).
+        device_map: Any = "cpu"
+        max_memory: Optional[dict] = None
+        if torch.cuda.is_available():
+            try:
+                from ...core import hardware
+                selected = [g["index"] for g in hardware.effective_gpus()]
+            except Exception:
+                selected = []
+            selected = [i for i in selected if i < torch.cuda.device_count()]
+            if len(selected) > 1:
+                device_map = "auto"
+                max_memory = {}
+                for i in selected:
+                    total = torch.cuda.get_device_properties(i).total_memory
+                    max_memory[i] = f"{max(1, int(total / (1024 ** 3)) - 1)}GiB"
+            else:
+                device_map = {"": selected[0] if selected else torch.cuda.current_device()}
         load_kwargs: dict[str, Any] = dict(
             dtype=torch.bfloat16, device_map=device_map,
             attn_implementation="sdpa", trust_remote_code=True,
         )
+        if max_memory:
+            load_kwargs["max_memory"] = max_memory
         if load_in_4bit:
             # Big pretrained base: 4-bit NF4 keeps a 14B near ~9–10 GB.
             load_kwargs["quantization_config"] = BitsAndBytesConfig(

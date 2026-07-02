@@ -17,6 +17,7 @@ from sqlmodel import Session, func, select
 
 from ...core.models import Message, MessageRole, Project
 from ...core.models import Session as ChatSession
+from ...core.think import join_think, split_think
 
 
 def _now() -> datetime:
@@ -62,7 +63,17 @@ def edit_message(db: Session, message: Message, new_content: str) -> Message:
     Preserves the first-seen draft in ``original_content`` and flips
     ``corrected``. Editing also auto-approves: a human bothered to fix it, so it
     is, by definition, the target the model should learn.
+
+    Thinking models: if the reply carried a ``<think>…</think>`` chain and the
+    correction dropped it, the previous chain is re-attached — a training example
+    without it teaches the fine-tuned model to stop thinking. An explicit (even
+    empty) ``<think></think>`` in the new content is respected as deliberate.
     """
+    if message.role == MessageRole.assistant:
+        prev_thinking, _ = split_think(message.content)
+        new_thinking, new_answer = split_think(new_content)
+        if prev_thinking is not None and new_thinking is None:
+            new_content = join_think(prev_thinking, new_answer)
     if message.role == MessageRole.assistant and message.original_content is None:
         message.original_content = message.content
     if message.content != new_content:

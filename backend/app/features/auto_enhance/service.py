@@ -15,29 +15,12 @@ from sqlmodel import Session, select
 from ...core.config import settings
 from ...core.models import Message, MessageRole, Project, Task
 from ...core.models import Session as ChatSession
+from ...core.think import strip_think  # noqa: F401  re-exported: manager.py calls service.strip_think
 
 SCORE_KEYS = ("logic", "language", "context", "factuality")
 
 # Persona for the responder side of every loop session.
 LOOP_ASSISTANT_PERSONA = "أنت مساعد عربي خبير، مفيد ودقيق، تُجيب بعمق ووضوح."
-
-_THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
-
-
-def strip_think(text: str) -> str:
-    """Remove hybrid-reasoning ``<think>…</think>`` blocks from model output.
-
-    Defensive: even with thinking disabled at the template level, some checkpoints
-    still emit a (possibly empty) think block. We never want it in stored training
-    data, the transcript, or the JSON the evaluator must return. A dangling unclosed
-    ``<think>`` (truncated output) drops everything from it onward.
-    """
-    if not text:
-        return text
-    text = _THINK_RE.sub("", text)
-    if "<think>" in text:                      # unclosed (truncated mid-think)
-        text = text.split("<think>", 1)[0]
-    return text.strip()
 
 
 # ── topic seeding ─────────────────────────────────────────────────────────────

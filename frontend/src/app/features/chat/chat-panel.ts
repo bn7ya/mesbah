@@ -9,14 +9,16 @@ import { TooltipModule } from 'primeng/tooltip';
 import { SelectModule } from 'primeng/select';
 import { DialogModule } from 'primeng/dialog';
 import { CheckboxModule } from 'primeng/checkbox';
+import { TabsModule } from 'primeng/tabs';
 import { MessageService } from 'primeng/api';
 import { Api } from '../../core/api';
 import { MarkdownPipe } from '../../core/markdown.pipe';
+import { splitThink, joinThink, ThinkParts } from '../../core/think';
 import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/types';
 
 @Component({
   selector: 'app-chat-panel',
-  imports: [NgClass, FormsModule, ButtonModule, InputTextModule, TextareaModule, TagModule, TooltipModule, SelectModule, DialogModule, CheckboxModule, MarkdownPipe],
+  imports: [NgClass, FormsModule, ButtonModule, InputTextModule, TextareaModule, TagModule, TooltipModule, SelectModule, DialogModule, CheckboxModule, TabsModule, MarkdownPipe],
   template: `
     <div class="flex gap-4 h-[calc(100vh-12rem)]">
       <!-- sessions rail -->
@@ -69,29 +71,28 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
 
           <div class="flex-1 overflow-auto p-4 flex flex-col gap-4">
             @for (m of s.messages; track m.id) {
-              <div class="flex gap-2"
-                   [ngClass]="{
-                     'flex-row-reverse ms-auto': m.role === 'user',
-                     'max-w-full w-full': editingId() === m.id,
-                     'max-w-[86%]': editingId() !== m.id
-                   }">
+              <div class="flex gap-2 max-w-[86%]"
+                   [ngClass]="{ 'flex-row-reverse ms-auto': m.role === 'user' }">
                 <div class="text-xl shrink-0">{{ m.role === 'user' ? '🧑' : '🕯️' }}</div>
                 <div class="rounded-2xl px-4 py-2"
                      [ngClass]="{
                        'bg-blue-600 text-white': m.role === 'user',
-                       'bg-neutral-100 dark:bg-neutral-800': m.role === 'assistant',
-                       'flex-1': editingId() === m.id
+                       'bg-neutral-100 dark:bg-neutral-800': m.role === 'assistant'
                      }">
-                  @if (editingId() === m.id) {
-                    <div class="flex items-center gap-1.5 mb-2 text-xs text-neutral-500 dark:text-neutral-400"><i class="pi pi-pencil"></i> تصحيح الرد — اكتب ما كان يجب أن يقوله النموذج</div>
-                    <textarea pTextarea [(ngModel)]="editText" class="w-full min-h-[260px] resize-y" autofocus></textarea>
-                    <div class="flex gap-2 mt-3">
-                      <p-button label="حفظ التصحيح" icon="pi pi-check" (onClick)="saveEdit(m)" />
-                      <p-button label="إلغاء" severity="secondary" [text]="true" (onClick)="editingId.set(null)" />
-                    </div>
-                  } @else {
                     @if (m.role === 'assistant') {
-                      <div class="leading-7 break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_h1]:text-lg [&_h1]:font-bold [&_h1]:my-2 [&_h2]:text-base [&_h2]:font-bold [&_h2]:my-2 [&_h3]:text-sm [&_h3]:font-bold [&_h3]:my-2 [&_p]:my-2 [&_ul]:my-2 [&_ul]:ps-6 [&_ul]:list-disc [&_ol]:my-2 [&_ol]:ps-6 [&_ol]:list-decimal [&_li]:my-0.5 [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_code]:font-mono [&_code]:text-[0.86em] [&_code]:bg-neutral-200/60 dark:[&_code]:bg-neutral-700/60 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_pre]:bg-neutral-50 dark:[&_pre]:bg-neutral-950 [&_pre]:border [&_pre]:border-neutral-200 dark:[&_pre]:border-neutral-800 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:overflow-auto [&_pre]:text-left [&_pre]:[direction:ltr] [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_blockquote]:border-s-2 [&_blockquote]:border-neutral-300 dark:[&_blockquote]:border-neutral-700 [&_blockquote]:ps-3 [&_blockquote]:text-neutral-500 [&_table]:w-full [&_table]:border-collapse [&_table]:my-2 [&_th]:border [&_th]:border-neutral-200 dark:[&_th]:border-neutral-800 [&_th]:p-2 [&_th]:bg-neutral-100 dark:[&_th]:bg-neutral-800 [&_th]:font-bold [&_th]:text-start [&_td]:border [&_td]:border-neutral-200 dark:[&_td]:border-neutral-800 [&_td]:p-2 [&_td]:text-start" [innerHTML]="displayContent(m) | markdown"></div>
+                      @if (parts(m); as p) {
+                        @if (p.thinking) {
+                          <details class="mb-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/60"
+                                   [open]="isThinkStreaming(m)">
+                            <summary class="cursor-pointer select-none px-3 py-1.5 text-xs text-neutral-500 dark:text-neutral-400">
+                              <i class="pi pi-lightbulb"></i> سلسلة التفكير · thinking
+                              @if (isThinkStreaming(m)) { <span class="animate-pulse">…يفكّر</span> }
+                            </summary>
+                            <p class="m-0 px-3 pb-2 text-sm leading-6 whitespace-pre-wrap text-neutral-500 dark:text-neutral-400" dir="auto">{{ p.thinking }}</p>
+                          </details>
+                        }
+                      <div class="leading-7 break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_h1]:text-lg [&_h1]:font-bold [&_h1]:my-2 [&_h2]:text-base [&_h2]:font-bold [&_h2]:my-2 [&_h3]:text-sm [&_h3]:font-bold [&_h3]:my-2 [&_p]:my-2 [&_ul]:my-2 [&_ul]:ps-6 [&_ul]:list-disc [&_ol]:my-2 [&_ol]:ps-6 [&_ol]:list-decimal [&_li]:my-0.5 [&_a]:text-blue-600 dark:[&_a]:text-blue-400 [&_a]:underline [&_code]:font-mono [&_code]:text-[0.86em] [&_code]:bg-neutral-200/60 dark:[&_code]:bg-neutral-700/60 [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_pre]:bg-neutral-50 dark:[&_pre]:bg-neutral-950 [&_pre]:border [&_pre]:border-neutral-200 dark:[&_pre]:border-neutral-800 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:overflow-auto [&_pre]:text-left [&_pre]:[direction:ltr] [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_blockquote]:border-s-2 [&_blockquote]:border-neutral-300 dark:[&_blockquote]:border-neutral-700 [&_blockquote]:ps-3 [&_blockquote]:text-neutral-500 [&_table]:w-full [&_table]:border-collapse [&_table]:my-2 [&_th]:border [&_th]:border-neutral-200 dark:[&_th]:border-neutral-800 [&_th]:p-2 [&_th]:bg-neutral-100 dark:[&_th]:bg-neutral-800 [&_th]:font-bold [&_th]:text-start [&_td]:border [&_td]:border-neutral-200 dark:[&_td]:border-neutral-800 [&_td]:p-2 [&_td]:text-start" [innerHTML]="p.answer | markdown"></div>
+                      }
                     } @else {
                       <p class="m-0 whitespace-pre-wrap leading-7">{{ m.content }}</p>
                     }
@@ -124,7 +125,6 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
                     } @else if (m.role === 'assistant' && !isPersisted(m)) {
                       <div class="mt-1 text-xs text-neutral-400">…سيمكن التصحيح بعد اكتمال الرد</div>
                     }
-                  }
                 </div>
               </div>
             }
@@ -192,6 +192,35 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
         <p-button label="استيراد المحدد" icon="pi pi-clone" [disabled]="picked().length === 0" [loading]="importing()" (onClick)="doImport()" />
       </ng-template>
     </p-dialog>
+
+    <!-- correction editor: thinking chain + response, kept separate so <think> survives training -->
+    <p-dialog header="تصحيح الرد · correction" [(visible)]="showEditDialog" [modal]="true"
+              [style]="{ width: '760px', maxWidth: '94vw' }" [dismissableMask]="true">
+      <p class="mt-0 mb-3 text-xs text-neutral-500 dark:text-neutral-400">اكتب ما كان يجب أن يقوله النموذج — يصبح الرد المصحّح مثال تدريب معتمدًا.</p>
+      @if (editHasThink) {
+        <p-tabs [(value)]="editTab">
+          <p-tablist>
+            <p-tab [value]="0"><i class="pi pi-lightbulb"></i> سلسلة التفكير · thinking</p-tab>
+            <p-tab [value]="1"><i class="pi pi-comment"></i> الرد · response</p-tab>
+          </p-tablist>
+          <p-tabpanels class="!bg-transparent !px-0">
+            <p-tabpanel [value]="0">
+              <p class="mt-0 mb-2 text-xs text-neutral-500 dark:text-neutral-400">اتركه فارغًا للاحتفاظ بسلسلة التفكير الأصلية — تُحفظ داخل وسم <code class="ltr">&lt;think&gt;</code> ليبقى النموذج مفكّرًا بعد الـ fine-tune.</p>
+              <textarea pTextarea [(ngModel)]="editThinking" class="w-full min-h-[300px] resize-y" dir="auto"></textarea>
+            </p-tabpanel>
+            <p-tabpanel [value]="1">
+              <textarea pTextarea [(ngModel)]="editAnswer" class="w-full min-h-[300px] resize-y" dir="auto" autofocus></textarea>
+            </p-tabpanel>
+          </p-tabpanels>
+        </p-tabs>
+      } @else {
+        <textarea pTextarea [(ngModel)]="editAnswer" class="w-full min-h-[300px] resize-y" dir="auto" autofocus></textarea>
+      }
+      <ng-template pTemplate="footer">
+        <p-button label="إلغاء" severity="secondary" [text]="true" (onClick)="cancelEdit()" />
+        <p-button label="حفظ التصحيح" icon="pi pi-check" (onClick)="saveEdit()" />
+      </ng-template>
+    </p-dialog>
   `,
 })
 export class ChatPanel implements OnInit {
@@ -202,10 +231,17 @@ export class ChatPanel implements OnInit {
   readonly sessions = signal<ChatSession[]>([]);
   readonly current = signal<ChatSession | null>(null);
   readonly thinking = signal(false);
-  readonly editingId = signal<string | null>(null);
   readonly versionOptions = signal<{ id: string; label: string }[]>([]);
   draft = '';
-  editText = '';
+
+  // correction dialog (thinking chain / response tabs)
+  showEditDialog = false;
+  editTab = 0;                          // 0 = thinking, 1 = response
+  editThinking = '';
+  editAnswer = '';
+  editHasThink = false;                 // message came from a thinking model?
+  private editOriginalThinking = '';    // auto-preserved when the tab is emptied
+  private editingMsg: ChatMessage | null = null;
 
   // system prompt editor
   showSysPrompt = false;
@@ -274,6 +310,14 @@ export class ChatPanel implements OnInit {
   }
   displayContent(m: ChatMessage): string {
     return this.isShowingOriginal(m) ? (m.original_content ?? m.content) : m.content;
+  }
+  /** Split the displayed content into its <think> chain and the answer. */
+  parts(m: ChatMessage): ThinkParts {
+    return splitThink(this.displayContent(m));
+  }
+  /** True while a streamed reply is still inside an unclosed <think> block. */
+  isThinkStreaming(m: ChatMessage): boolean {
+    return !this.parts(m).closed && this.showCaret(m);
   }
   showCaret(m: ChatMessage): boolean {
     return (this.thinking() && this.isLast(m) && m.role === 'assistant') || this.correcting() === m.id;
@@ -445,24 +489,44 @@ export class ChatPanel implements OnInit {
 
   startEdit(m: ChatMessage): void {
     if (!this.isPersisted(m)) return;       // can't edit a reply that's still streaming
-    this.editingId.set(m.id);
-    this.editText = m.content;
+    const p = splitThink(m.content);        // always edit the CURRENT content, even while viewing الأصل
+    this.editingMsg = m;
+    this.editHasThink = p.thinking !== null;
+    this.editOriginalThinking = p.thinking ?? '';
+    this.editThinking = p.thinking ?? '';
+    this.editAnswer = p.answer;
+    this.editTab = 0;
+    this.showEditDialog = true;
   }
 
-  saveEdit(m: ChatMessage): void {
+  cancelEdit(): void {
+    this.showEditDialog = false;
+    this.editingMsg = null;
+  }
+
+  saveEdit(): void {
+    const m = this.editingMsg;
+    if (!m) return;
     if (!this.isPersisted(m)) {
       this.toast.add({ severity: 'warn', summary: 'انتظر اكتمال الرد', detail: 'لا يمكن حفظ التصحيح قبل انتهاء التوليد.' });
       return;
     }
-    this.api.editMessage(m.id, { content: this.editText }).subscribe({
+    let content = this.editAnswer;
+    if (this.editHasThink) {
+      // empty thinking tab ⇒ keep the original chain, so the <think> block never gets lost
+      const chain = this.editThinking.trim() ? this.editThinking : this.editOriginalThinking;
+      content = joinThink(chain, this.editAnswer);
+    }
+    this.api.editMessage(m.id, { content }).subscribe({
       next: (upd) => {
-        this.editingId.set(null);
+        this.showEditDialog = false;
+        this.editingMsg = null;
         this.replace(upd);
         this.refreshList();
         this.toast.add({ severity: 'success', summary: 'حُفظ التصحيح', detail: 'أصبح هذا الرد مثال تدريب معتمد.' });
       },
       error: (e) => {
-        // keep the edit box open so the user's text isn't lost
+        // keep the dialog open so the user's text isn't lost
         this.toast.add({
           severity: 'error', summary: 'تعذّر حفظ التصحيح',
           detail: String(e?.error?.detail ?? e?.message ?? e), life: 7000,

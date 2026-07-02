@@ -13,6 +13,11 @@ the edited turn becomes a training example.**
 - `edit_message`: on the **first** edit of an assistant reply, the model's draft is
   saved into `original_content`; `corrected=True` and `approved=True`
   (a human bothered to fix it → it's the target). See `service.edit_message`.
+  **Thinking models**: if the previous content carried a `<think>…</think>` chain
+  and the new content has none, the previous chain is re-attached
+  (`core/think.py::split_think`/`join_think`) — training examples that lose the
+  block teach the fine-tuned model to stop thinking. An explicit (even empty)
+  `<think></think>` in the new content is respected as deliberate. Assistant-only.
 - `apply_self_correction`: the **"magic wand"** — the model rewrites its OWN reply.
   Preserves `original_content` and flips `corrected` like `edit_message`, but
   **deliberately does NOT touch `approved`**: a self-correction is the model's own

@@ -9,7 +9,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # ── Repo / data layout ────────────────────────────────────────────────────────
@@ -36,12 +36,16 @@ class Settings(BaseSettings):
     cors_origins: list[str] = Field(default=["http://localhost:4200", "http://127.0.0.1:4200"])
 
     # ── Storage ──
+    # database_url and hf_home default to None and are derived from data_dir in
+    # _derive_storage_paths, so MISBAH_DATA_DIR relocates the SQLite DB and the
+    # HF cache too (the desktop shell sets it for packaged installs). Explicit
+    # MISBAH_DATABASE_URL / MISBAH_HF_HOME still win.
     data_dir: Path = DATA_DIR
-    database_url: str = f"sqlite:///{DATA_DIR / 'misbah.db'}"
+    database_url: str | None = None
 
     # ── HuggingFace ──
     hf_token: str | None = None
-    hf_home: Path = DATA_DIR / "hf_cache"
+    hf_home: Path | None = None
     # Last-resort default base model (the picker lists models live from the HF
     # API). Env-overridable; guidance in docs/MODEL_SELECTION.md.
     default_base_model: str = "Qwen/Qwen3-14B"
@@ -113,6 +117,16 @@ class Settings(BaseSettings):
     auto_enhance_generations: int = 2
     auto_enhance_turns_per_generation: int = 5
     auto_enhance_score_scale: int = 10
+
+    # ── Derived storage paths ──────────────────────────────────────────────────
+    @model_validator(mode="after")
+    def _derive_storage_paths(self) -> Settings:
+        """Root the SQLite DB and HF cache under data_dir unless overridden."""
+        if self.database_url is None:
+            self.database_url = f"sqlite:///{self.data_dir / 'misbah.db'}"
+        if self.hf_home is None:
+            self.hf_home = self.data_dir / "hf_cache"
+        return self
 
     # ── Derived data sub-dirs (created on startup) ──
     @property

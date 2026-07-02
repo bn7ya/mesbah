@@ -5,6 +5,7 @@
   "identifier": "com.misbah.studio",
   "build": {
     "frontendDist": "splash",
+    "beforeDevCommand": "npm run build",
     "beforeBuildCommand": "npm run build"
   },
   "app": {
@@ -30,6 +31,20 @@
     "category": "DeveloperTool",
     "shortDescription": "LLM fine-tuning studio",
     "longDescription": "Misbah — a local studio for fine-tuning an Arabic long-context LLM via QLoRA. The desktop shell launches the local backend and opens the studio.",
+    "resources": {
+      "../../backend/app": "backend/app",
+      "../../backend/scripts": "backend/scripts",
+      "../../backend/requirements.txt": "backend/requirements.txt",
+      "../../backend/requirements-ml.txt": "backend/requirements-ml.txt",
+      "../dist/frontend/browser": "frontend/dist/frontend/browser"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["Arabic", "English"],
+        "displayLanguageSelector": true
+      }
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

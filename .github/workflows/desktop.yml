@@ -1,0 +1,58 @@
+# Builds the Windows desktop installers (NSIS .exe + MSI).
+#
+# Tauri cannot cross-compile the Windows webview, so this runs on a Windows
+# runner. The bundler downloads NSIS/WiX itself — no extra install steps.
+# Trigger manually (workflow_dispatch) to get artifacts, or push a v* tag to
+# also attach the installers to a GitHub Release.
+name: Desktop installers (Windows)
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write # attach installers to the tag's release
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22 # Angular 20 needs ^20.19 || ^22.12 || ^24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: frontend/src-tauri -> target
+
+      - run: npm ci
+        working-directory: frontend
+
+      # `ng build` runs first via beforeBuildCommand, then the bundle step
+      # packs backend/ + the built SPA into the installers (bundle.resources).
+      - run: npm run tauri:build
+        working-directory: frontend
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: misbah-windows-installers
+          path: |
+            frontend/src-tauri/target/release/bundle/nsis/*-setup.exe
+            frontend/src-tauri/target/release/bundle/msi/*.msi
+
+      - name: Attach to release (tag builds)
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" --clobber \
+            frontend/src-tauri/target/release/bundle/nsis/*-setup.exe \
+            frontend/src-tauri/target/release/bundle/msi/*.msi

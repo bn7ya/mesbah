@@ -5,11 +5,19 @@
 
 - Loads `api.listProjects()`, `api.featuredModels()` (live from the HF API),
   `api.localModels()`, `api.system()` (for the VRAM slider max + default model).
-- Step 0 picks the **kind**:
-  - **fine-tune** → model **search box** (`api.searchModels`) + a featured grid
-    (live, local models flagged) + custom repo; one step. Selecting a model calls
-    `api.inspectModel` (context length + validation) and `api.downloadStatus` —
-    if the model isn't local an inline warning offers a "تنزيل الآن" button with a
+- The wizard **opens directly on the fine-tune form** (`step` starts at **1**,
+  `kind='finetune'`) — there is no step-0 kind chooser. From-scratch is an
+  explicit opt-in: a subtle "خيارات متقدمة — بناء نموذج من الصفر" link at the
+  bottom of the fine-tune form calls `switchToScratch()` (→ `kind='scratch'`,
+  `step=1`, primes `onArchChange()`); a symmetric "الرجوع إلى fine-tune" link at
+  the top of scratch step 1 calls `switchToFinetune()`. Navigation floors at
+  `step===1` (`back()`/footer). `onArchChange()` re-sets the `spec` signal with a
+  fresh reference so the `isMoe`/estimate computeds recompute (picking a MoE
+  family reveals the `num_experts` fields).
+  - **fine-tune** (step 1) → model **search box** (`api.searchModels`) + a featured
+    grid (live, local models flagged) + custom repo; one step. Selecting a model
+    calls `api.inspectModel` (context length + validation) and `api.downloadStatus`
+    — if the model isn't local an inline warning offers a "تنزيل الآن" button with a
     progress bar (download continues globally). Default pick: first locally
     downloaded featured model → first featured → `SystemInfo.default_base_model`.
   - **scratch** → four steps:

@@ -27,7 +27,7 @@ import { AutoEnhancePanel } from '../auto-enhance/auto-enhance-panel';
             <h1 class="m-0 mb-1.5 text-2xl font-semibold">{{ p.name }}</h1>
             <div class="flex gap-2 items-center flex-wrap">
               <code class="ltr text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded">{{ p.base_model_repo }}</code>
-              <p-tag [value]="p.kind === 'scratch' ? 'من الصفر' : 'fine-tune'"
+              <p-tag [value]="p.kind === 'scratch' ? 'from scratch' : 'fine-tune'"
                      [severity]="p.kind === 'scratch' ? 'warn' : 'info'" />
               @if (activeLabel()) {
                 <p-tag [value]="'نشط: ' + activeLabel()" severity="success" icon="pi pi-bolt" />

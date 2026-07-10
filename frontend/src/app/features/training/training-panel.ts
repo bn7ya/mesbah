@@ -1,5 +1,5 @@
 import { Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild, computed, inject, signal } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -40,8 +40,32 @@ const VERDICT_SEV: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
 
 @Component({
   selector: 'app-training-panel',
-  imports: [DatePipe, DecimalPipe, FormsModule, ButtonModule, InputTextModule, InputNumberModule, SelectModule, CheckboxModule, ChartModule, ProgressBarModule, TagModule, DialogModule],
+  imports: [DatePipe, DecimalPipe, NgTemplateOutlet, FormsModule, ButtonModule, InputTextModule, InputNumberModule, SelectModule, CheckboxModule, ChartModule, ProgressBarModule, TagModule, DialogModule],
   template: `
+    <!-- shared HF dataset picker (search row + results + selected list), used by both launchers -->
+    <ng-template #dsPicker let-placeholder="placeholder">
+      <div class="flex items-center gap-2 rounded-lg border border-neutral-200 dark:border-neutral-800 px-2.5 py-1.5">
+        <i class="pi pi-search text-neutral-400"></i>
+        <input pInputText class="flex-1 min-w-0 border-0 bg-transparent ltr" [(ngModel)]="dsQuery" (keydown.enter)="searchDs()" [placeholder]="placeholder" />
+        <p-button label="بحث" [loading]="dsSearching()" (onClick)="searchDs()" size="small" />
+      </div>
+      @for (r of dsResults(); track r.repo_id) {
+        <button class="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border text-start transition-colors"
+                [class]="hasDs(r.repo_id) ? 'border-blue-400 ring-1 ring-blue-400/40 bg-blue-50/50 dark:bg-blue-950/20' : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'"
+                type="button" (click)="addDs(r.repo_id)">
+          <span class="ltr font-semibold text-[0.82rem] truncate">{{ r.repo_id }}</span>
+          <span class="text-neutral-400 ltr text-xs shrink-0">{{ hasDs(r.repo_id) ? '✓ مضافة' : '+ إضافة' }}</span>
+        </button>
+      }
+      @for (d of datasets(); track d.repo) {
+        <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800">
+          <span class="ltr font-semibold text-[0.82rem] flex-1 min-w-0 truncate">{{ d.repo }}</span>
+          <input pInputText class="ltr w-28 text-xs" [(ngModel)]="d.text_field" placeholder="text field" title="text field" />
+          <button class="text-red-500 hover:text-red-700 p-1 inline-flex" type="button" (click)="removeDs(d.repo)" title="إزالة"><i class="pi pi-times"></i></button>
+        </div>
+      }
+    </ng-template>
+
     <div class="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4">
       <!-- left: launcher + runs -->
       <div class="flex flex-col gap-4">
@@ -53,26 +77,7 @@ const VERDICT_SEV: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
 
             <!-- datasets (one or more) -->
             <div class="flex flex-col gap-1.5 mb-3">
-              <div class="flex items-center gap-2 rounded-lg border border-neutral-200 dark:border-neutral-800 px-2.5 py-1.5">
-                <i class="pi pi-search text-neutral-400"></i>
-                <input pInputText class="flex-1 min-w-0 border-0 bg-transparent ltr" [(ngModel)]="dsQuery" (keydown.enter)="searchDs()" placeholder="أضف مجموعة بيانات: wikitext, arabic…" />
-                <p-button label="بحث" [loading]="dsSearching()" (onClick)="searchDs()" size="small" />
-              </div>
-              @for (r of dsResults(); track r.repo_id) {
-                <button class="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border text-start transition-colors"
-                        [class]="hasDs(r.repo_id) ? 'border-blue-400 ring-1 ring-blue-400/40 bg-blue-50/50 dark:bg-blue-950/20' : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'"
-                        type="button" (click)="addDs(r.repo_id)">
-                  <span class="ltr font-semibold text-[0.82rem] truncate">{{ r.repo_id }}</span>
-                  <span class="text-neutral-400 ltr text-xs shrink-0">{{ hasDs(r.repo_id) ? '✓ مضافة' : '+ إضافة' }}</span>
-                </button>
-              }
-              @for (d of datasets(); track d.repo) {
-                <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800">
-                  <span class="ltr font-semibold text-[0.82rem] flex-1 min-w-0 truncate">{{ d.repo }}</span>
-                  <input pInputText class="ltr w-28 text-xs" [(ngModel)]="d.text_field" placeholder="text field" title="text field" />
-                  <button class="text-red-500 hover:text-red-700 p-1 inline-flex" type="button" (click)="removeDs(d.repo)" title="إزالة"><i class="pi pi-times"></i></button>
-                </div>
-              }
+              <ng-container *ngTemplateOutlet="dsPicker; context: { placeholder: 'أضف مجموعة بيانات: wikitext, arabic…' }" />
               @if (datasets().length) {
                 <span class="text-neutral-400 text-xs">{{ datasets().length }} مجموعة · حتى {{ scratchHyper.max_train_samples }} عيّنة (إجمالي بعد الدمج والخلط)</span>
               } @else {
@@ -101,28 +106,37 @@ const VERDICT_SEV: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
               المعمارية وإعدادات التدريب
             </button>
             @if (showAdvanced()) {
-              <div class="grid grid-cols-2 gap-3 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 mb-3">
+              <div class="flex flex-col gap-4 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 mb-3">
                 @if (spec(); as s) {
-                  <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">family</label>
-                    <p-select [options]="families" optionLabel="label" optionValue="value"
-                              [(ngModel)]="s.family" (ngModelChange)="onArchChange()" appendTo="body" styleClass="w-full" /></div>
-                  <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">layers</label><p-inputNumber [(ngModel)]="s.num_hidden_layers" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" styleClass="w-full" /></div>
-                  <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">hidden_size</label><p-inputNumber [(ngModel)]="s.hidden_size" (ngModelChange)="onArchChange()" [min]="8" [step]="64" [showButtons]="true" styleClass="w-full" /></div>
-                  <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">attn heads</label><p-inputNumber [(ngModel)]="s.num_attention_heads" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" styleClass="w-full" /></div>
-                  <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">kv heads</label><p-inputNumber [(ngModel)]="s.num_key_value_heads" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" styleClass="w-full" /></div>
-                  <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">vocab_size</label><p-inputNumber [(ngModel)]="s.vocab_size" (ngModelChange)="onArchChange()" [min]="1" [step]="1000" styleClass="w-full" /></div>
-                  <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">context</label><p-inputNumber [(ngModel)]="s.max_position_embeddings" (ngModelChange)="onArchChange()" [min]="8" [step]="512" styleClass="w-full" /></div>
-                  @if (isMoe()) {
-                    <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">num_experts</label><p-inputNumber [(ngModel)]="s.num_experts" (ngModelChange)="onArchChange()" [min]="1" [max]="1024" [showButtons]="true" styleClass="w-full" /></div>
-                    <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">experts/token</label><p-inputNumber [(ngModel)]="s.num_experts_per_tok" (ngModelChange)="onArchChange()" [min]="1" [max]="1024" [showButtons]="true" styleClass="w-full" /></div>
-                  }
+                  <section class="flex flex-col gap-2">
+                    <h4 class="m-0 text-xs font-semibold text-neutral-700 dark:text-neutral-200">المعمارية <code class="ltr">architecture</code></h4>
+                    <div class="grid grid-cols-2 gap-x-3 gap-y-3">
+                      <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">family</label>
+                        <p-select [options]="families" optionLabel="label" optionValue="value"
+                                  [(ngModel)]="s.family" (ngModelChange)="onArchChange()" appendTo="body" styleClass="w-full" /></div>
+                      <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">layers</label><p-inputNumber [(ngModel)]="s.num_hidden_layers" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" styleClass="w-full" /></div>
+                      <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">hidden_size</label><p-inputNumber [(ngModel)]="s.hidden_size" (ngModelChange)="onArchChange()" [min]="8" [step]="64" [showButtons]="true" styleClass="w-full" /></div>
+                      <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">attn heads</label><p-inputNumber [(ngModel)]="s.num_attention_heads" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" styleClass="w-full" /></div>
+                      <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">kv heads</label><p-inputNumber [(ngModel)]="s.num_key_value_heads" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" styleClass="w-full" /></div>
+                      <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">vocab_size</label><p-inputNumber [(ngModel)]="s.vocab_size" (ngModelChange)="onArchChange()" [min]="1" [step]="1000" styleClass="w-full" /></div>
+                      <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">context</label><p-inputNumber [(ngModel)]="s.max_position_embeddings" (ngModelChange)="onArchChange()" [min]="8" [step]="512" styleClass="w-full" /></div>
+                      @if (isMoe()) {
+                        <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">num_experts</label><p-inputNumber [(ngModel)]="s.num_experts" (ngModelChange)="onArchChange()" [min]="1" [max]="1024" [showButtons]="true" styleClass="w-full" /></div>
+                        <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">experts/token</label><p-inputNumber [(ngModel)]="s.num_experts_per_tok" (ngModelChange)="onArchChange()" [min]="1" [max]="1024" [showButtons]="true" styleClass="w-full" /></div>
+                      }
+                    </div>
+                  </section>
                 }
-                <div class="col-span-2 h-px bg-neutral-200 dark:bg-neutral-800"></div>
-                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">epochs</label><p-inputNumber [(ngModel)]="scratchHyper.epochs" [min]="1" [max]="50" [showButtons]="true" styleClass="w-full" /></div>
-                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">learning_rate</label><p-inputNumber [(ngModel)]="scratchHyper.learning_rate" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="6" [step]="0.00005" styleClass="w-full" /></div>
-                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">max_seq_len</label><p-inputNumber [(ngModel)]="scratchHyper.max_seq_len" [min]="128" [max]="32768" [step]="128" styleClass="w-full" /></div>
-                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">max_train_samples</label><p-inputNumber [(ngModel)]="scratchHyper.max_train_samples" [min]="1" [step]="500" styleClass="w-full" /></div>
-                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">grad_accum_steps</label><p-inputNumber [(ngModel)]="scratchHyper.grad_accum_steps" [min]="1" [max]="64" [showButtons]="true" styleClass="w-full" /></div>
+                <section class="flex flex-col gap-2">
+                  <h4 class="m-0 text-xs font-semibold text-neutral-700 dark:text-neutral-200">إعدادات التدريب</h4>
+                  <div class="grid grid-cols-2 gap-x-3 gap-y-3">
+                    <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">epochs</label><p-inputNumber [(ngModel)]="scratchHyper.epochs" [min]="1" [max]="50" [showButtons]="true" styleClass="w-full" /></div>
+                    <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">learning_rate</label><p-inputNumber [(ngModel)]="scratchHyper.learning_rate" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="6" [step]="0.00005" styleClass="w-full" /></div>
+                    <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">max_seq_len</label><p-inputNumber [(ngModel)]="scratchHyper.max_seq_len" [min]="128" [max]="32768" [step]="128" styleClass="w-full" /></div>
+                    <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">max_train_samples</label><p-inputNumber [(ngModel)]="scratchHyper.max_train_samples" [min]="1" [step]="500" styleClass="w-full" /></div>
+                    <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">grad_accum_steps</label><p-inputNumber [(ngModel)]="scratchHyper.grad_accum_steps" [min]="1" [max]="64" [showButtons]="true" styleClass="w-full" /></div>
+                  </div>
+                </section>
               </div>
             }
 
@@ -145,26 +159,7 @@ const VERDICT_SEV: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
 
             <!-- optional HF datasets (trained alongside / instead of corrections) -->
             <div class="flex flex-col gap-1.5 mb-3">
-              <div class="flex items-center gap-2 rounded-lg border border-neutral-200 dark:border-neutral-800 px-2.5 py-1.5">
-                <i class="pi pi-search text-neutral-400"></i>
-                <input pInputText class="flex-1 min-w-0 border-0 bg-transparent ltr" [(ngModel)]="dsQuery" (keydown.enter)="searchDs()" placeholder="أضف مجموعة بيانات من HuggingFace…" />
-                <p-button label="بحث" [loading]="dsSearching()" (onClick)="searchDs()" size="small" />
-              </div>
-              @for (r of dsResults(); track r.repo_id) {
-                <button class="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg border text-start transition-colors"
-                        [class]="hasDs(r.repo_id) ? 'border-blue-400 ring-1 ring-blue-400/40 bg-blue-50/50 dark:bg-blue-950/20' : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'"
-                        type="button" (click)="addDs(r.repo_id)">
-                  <span class="ltr font-semibold text-[0.82rem] truncate">{{ r.repo_id }}</span>
-                  <span class="text-neutral-400 ltr text-xs shrink-0">{{ hasDs(r.repo_id) ? '✓ مضافة' : '+ إضافة' }}</span>
-                </button>
-              }
-              @for (d of datasets(); track d.repo) {
-                <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800">
-                  <span class="ltr font-semibold text-[0.82rem] flex-1 min-w-0 truncate">{{ d.repo }}</span>
-                  <input pInputText class="ltr w-28 text-xs" [(ngModel)]="d.text_field" placeholder="text field" title="text field" />
-                  <button class="text-red-500 hover:text-red-700 p-1 inline-flex" type="button" (click)="removeDs(d.repo)" title="إزالة"><i class="pi pi-times"></i></button>
-                </div>
-              }
+              <ng-container *ngTemplateOutlet="dsPicker; context: { placeholder: 'أضف مجموعة بيانات من HuggingFace…' }" />
               @if (datasets().length) {
                 <span class="text-neutral-400 text-xs">{{ datasets().length }} مجموعة — الأعمدة المعروفة (<code class="ltr">messages/instruction/prompt/text</code>) تُحوَّل تلقائيًا.</span>
               }
@@ -178,14 +173,14 @@ const VERDICT_SEV: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
               إعدادات <code class="ltr">QLoRA</code> المتقدمة
             </button>
             @if (showAdvanced()) {
-              <div class="grid grid-cols-2 gap-3 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 mb-3">
-                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">epochs</label><p-inputNumber [(ngModel)]="hyper.epochs" [min]="1" [max]="20" [showButtons]="true" styleClass="w-full" /></div>
-                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">learning_rate</label><p-inputNumber [(ngModel)]="hyper.learning_rate" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="6" [step]="0.00005" styleClass="w-full" /></div>
-                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">lora_r</label><p-inputNumber [(ngModel)]="hyper.lora_r" [min]="4" [max]="128" [step]="4" [showButtons]="true" styleClass="w-full" /></div>
-                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">lora_alpha</label><p-inputNumber [(ngModel)]="hyper.lora_alpha" [min]="4" [max]="256" [step]="4" [showButtons]="true" styleClass="w-full" /></div>
-                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">max_seq_len</label><p-inputNumber [(ngModel)]="hyper.max_seq_len" [min]="512" [max]="32768" [step]="512" styleClass="w-full" /></div>
-                <div class="flex flex-col gap-1"><label class="ltr text-xs text-neutral-500">grad_accum_steps</label><p-inputNumber [(ngModel)]="hyper.grad_accum_steps" [min]="1" [max]="64" [showButtons]="true" styleClass="w-full" /></div>
-                <p class="col-span-2 text-neutral-400 text-xs m-0">القيم الافتراضية مضبوطة تلقائيًا حسب عتاد جهازك (VRAM/RAM المكتشفة). ارفع <code class="ltr">max_seq_len</code> بحذر.</p>
+              <div class="grid grid-cols-2 gap-x-3 gap-y-3 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 mb-3">
+                <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">epochs</label><p-inputNumber [(ngModel)]="hyper.epochs" [min]="1" [max]="20" [showButtons]="true" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">learning_rate</label><p-inputNumber [(ngModel)]="hyper.learning_rate" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="6" [step]="0.00005" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">lora_r</label><p-inputNumber [(ngModel)]="hyper.lora_r" [min]="4" [max]="128" [step]="4" [showButtons]="true" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">lora_alpha</label><p-inputNumber [(ngModel)]="hyper.lora_alpha" [min]="4" [max]="256" [step]="4" [showButtons]="true" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">max_seq_len</label><p-inputNumber [(ngModel)]="hyper.max_seq_len" [min]="512" [max]="32768" [step]="512" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">grad_accum_steps</label><p-inputNumber [(ngModel)]="hyper.grad_accum_steps" [min]="1" [max]="64" [showButtons]="true" styleClass="w-full" /></div>
+                <p class="col-span-full text-neutral-400 text-xs m-0">القيم الافتراضية مضبوطة تلقائيًا حسب عتاد جهازك (VRAM/RAM المكتشفة). ارفع <code class="ltr">max_seq_len</code> بحذر.</p>
               </div>
             }
 

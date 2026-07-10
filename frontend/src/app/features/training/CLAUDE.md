@@ -3,8 +3,9 @@
 `TrainingPanel` — launch QLoRA runs and watch them **live**.
 
 - Left: launcher (dataset-ready count from `api.datasetPreview`, an "استخدم
-  الردود المعتمدة" (`use_corrections`) toggle, an **HF dataset picker** — the same
-  search/add/remove block the scratch launcher uses (`datasets` signal,
+  الردود المعتمدة" (`use_corrections`) toggle, an **HF dataset picker** — one shared
+  `<ng-template #dsPicker>` (via `NgTemplateOutlet`, parameterized by placeholder)
+  rendered by both the scratch and QLoRA launchers (`datasets` signal,
   `searchDs/addDs/removeDs`) — run name, "only corrected" toggle, start) + run
   history list. Start is enabled when there are corrections **or** ≥1 HF dataset;
   `start()` sends `{use_corrections, datasets:[{repo,config,split,text_field}]}`.

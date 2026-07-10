@@ -98,22 +98,6 @@ function freshSpec(): ArchitectureSpec {
     <p-dialog [header]="dialogHeader()" [(visible)]="dialog" [modal]="true"
               [style]="{ width: '820px', maxWidth: '95vw' }" [dismissableMask]="true">
       <div class="min-h-[280px] overflow-x-hidden">
-        <!-- ── STEP 0: kind ── -->
-        @if (step() === 0) {
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <button class="text-start p-5 cursor-pointer rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex flex-col gap-2 transition-colors hover:border-neutral-300 dark:hover:border-neutral-700" [class.ring-2]="kind() === 'finetune'" [class.ring-blue-500]="kind() === 'finetune'" type="button" (click)="kind.set('finetune')">
-              <span class="text-3xl">🎯</span>
-              <h4 class="text-base font-semibold m-0">تدريب نموذج جاهز <code class="ltr">fine-tune</code></h4>
-              <p class="text-neutral-500 dark:text-neutral-400 text-sm m-0">اختر نموذجًا مُدرَّبًا مسبقًا من <code class="ltr">HuggingFace</code> وحسّنه عبر <code class="ltr">QLoRA</code>. مُوصى به ومجدٍ على 16GB.</p>
-            </button>
-            <button class="text-start p-5 cursor-pointer rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 flex flex-col gap-2 transition-colors hover:border-neutral-300 dark:hover:border-neutral-700" [class.ring-2]="kind() === 'scratch'" [class.ring-blue-500]="kind() === 'scratch'" type="button" (click)="kind.set('scratch')">
-              <span class="text-3xl">🧬</span>
-              <h4 class="text-base font-semibold m-0">بناء نموذج من الصفر <code class="ltr">from scratch</code></h4>
-              <p class="text-neutral-500 dark:text-neutral-400 text-sm m-0">صمّم المعمارية (عدد الـ experts، نافذة السياق، الطبقات) وابدأ من أوزان عشوائية. تجريبي — يعتمد على <code class="ltr">paged training</code>.</p>
-            </button>
-          </div>
-        }
-
         <!-- ── FINETUNE (single step) ── -->
         @if (step() === 1 && kind() === 'finetune') {
           <div class="flex flex-col gap-2">
@@ -177,37 +161,58 @@ function freshSpec(): ArchitectureSpec {
                 }
               </div>
             }
+            <button type="button"
+              class="mt-3 self-start inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+              (click)="switchToScratch()">
+              <i class="pi pi-cog text-xs"></i>
+              خيارات متقدمة — بناء نموذج من الصفر <code class="ltr">from scratch</code>
+            </button>
           </div>
         }
 
         <!-- ── SCRATCH step 1: name + architecture ── -->
         @if (step() === 1 && kind() === 'scratch') {
-          <div class="flex flex-col gap-2">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="min-w-0">
-                <label class="font-semibold mb-1 block">اسم المشروع</label>
-                <input pInputText class="w-full" [(ngModel)]="form.name" placeholder="نموذجي من الصفر" />
-              </div>
-              <div class="min-w-0">
-                <label class="font-semibold mb-1 block">العائلة <code class="ltr">family</code></label>
-                <p-select [options]="families" optionLabel="label" optionValue="value"
-                          [(ngModel)]="spec().family" (ngModelChange)="onArchChange()" appendTo="body" styleClass="w-full" />
-              </div>
-            </div>
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-1">
-              <div class="min-w-0"><label class="font-semibold ltr block text-sm mb-1">layers</label><p-inputNumber [(ngModel)]="spec().num_hidden_layers" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" styleClass="w-full" /></div>
-              <div class="min-w-0"><label class="font-semibold ltr block text-sm mb-1">hidden_size</label><p-inputNumber [(ngModel)]="spec().hidden_size" (ngModelChange)="onArchChange()" [min]="8" [step]="64" [showButtons]="true" styleClass="w-full" /></div>
-              <div class="min-w-0"><label class="font-semibold ltr block text-sm mb-1">attn heads</label><p-inputNumber [(ngModel)]="spec().num_attention_heads" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" styleClass="w-full" /></div>
-              <div class="min-w-0"><label class="font-semibold ltr block text-sm mb-1">kv heads</label><p-inputNumber [(ngModel)]="spec().num_key_value_heads" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" styleClass="w-full" /></div>
-              <div class="min-w-0"><label class="font-semibold ltr block text-sm mb-1">vocab_size</label><p-inputNumber [(ngModel)]="spec().vocab_size" (ngModelChange)="onArchChange()" [min]="1" [step]="1000" styleClass="w-full" /></div>
-              <div class="min-w-0"><label class="font-semibold block text-sm mb-1">نافذة السياق <code class="ltr">context</code></label><p-inputNumber [(ngModel)]="spec().max_position_embeddings" (ngModelChange)="onArchChange()" [min]="8" [step]="512" styleClass="w-full" /></div>
-              @if (isMoe()) {
-                <div class="min-w-0"><label class="font-semibold ltr block text-sm mb-1">num_experts</label><p-inputNumber [(ngModel)]="spec().num_experts" (ngModelChange)="onArchChange()" [min]="1" [max]="1024" [showButtons]="true" styleClass="w-full" /></div>
-                <div class="min-w-0"><label class="font-semibold ltr block text-sm mb-1">experts/token</label><p-inputNumber [(ngModel)]="spec().num_experts_per_tok" (ngModelChange)="onArchChange()" [min]="1" [max]="1024" [showButtons]="true" styleClass="w-full" /></div>
-              }
-            </div>
+          <div class="flex flex-col gap-5">
+            <button type="button"
+              class="self-start inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+              (click)="switchToFinetune()">
+              <i class="pi pi-arrow-right text-xs"></i>
+              الرجوع إلى تدريب نموذج جاهز <code class="ltr">fine-tune</code>
+            </button>
 
-            <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 p-4 flex flex-col gap-2 mt-2" [class.ring-1]="estimate()?.memory?.verdict !== 'fits_vram'" [class.ring-amber-400]="estimate()?.memory?.verdict !== 'fits_vram'">
+            <!-- أساسيات -->
+            <section class="flex flex-col gap-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+                <div class="flex flex-col gap-1 min-w-0">
+                  <label class="text-xs font-medium text-neutral-500 dark:text-neutral-400">اسم المشروع</label>
+                  <input pInputText class="w-full" [(ngModel)]="form.name" placeholder="نموذجي من الصفر" />
+                </div>
+                <div class="flex flex-col gap-1 min-w-0">
+                  <label class="text-xs font-medium text-neutral-500 dark:text-neutral-400">العائلة <code class="ltr">family</code></label>
+                  <p-select [options]="families" optionLabel="label" optionValue="value"
+                            [(ngModel)]="spec().family" (ngModelChange)="onArchChange()" appendTo="body" styleClass="w-full" />
+                </div>
+              </div>
+            </section>
+
+            <!-- المعمارية -->
+            <section class="flex flex-col gap-3">
+              <h4 class="m-0 text-sm font-semibold text-neutral-700 dark:text-neutral-200">المعمارية <code class="ltr">architecture</code></h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
+                <div class="flex flex-col gap-1 min-w-0"><label class="text-xs font-medium text-neutral-500 dark:text-neutral-400 ltr">layers</label><p-inputNumber [(ngModel)]="spec().num_hidden_layers" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1 min-w-0"><label class="text-xs font-medium text-neutral-500 dark:text-neutral-400 ltr">hidden_size</label><p-inputNumber [(ngModel)]="spec().hidden_size" (ngModelChange)="onArchChange()" [min]="8" [step]="64" [showButtons]="true" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1 min-w-0"><label class="text-xs font-medium text-neutral-500 dark:text-neutral-400 ltr">attn heads</label><p-inputNumber [(ngModel)]="spec().num_attention_heads" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1 min-w-0"><label class="text-xs font-medium text-neutral-500 dark:text-neutral-400 ltr">kv heads</label><p-inputNumber [(ngModel)]="spec().num_key_value_heads" (ngModelChange)="onArchChange()" [min]="1" [max]="256" [showButtons]="true" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1 min-w-0"><label class="text-xs font-medium text-neutral-500 dark:text-neutral-400 ltr">vocab_size</label><p-inputNumber [(ngModel)]="spec().vocab_size" (ngModelChange)="onArchChange()" [min]="1" [step]="1000" styleClass="w-full" /></div>
+                <div class="flex flex-col gap-1 min-w-0"><label class="text-xs font-medium text-neutral-500 dark:text-neutral-400">نافذة السياق <code class="ltr">context</code></label><p-inputNumber [(ngModel)]="spec().max_position_embeddings" (ngModelChange)="onArchChange()" [min]="8" [step]="512" styleClass="w-full" /></div>
+                @if (isMoe()) {
+                  <div class="flex flex-col gap-1 min-w-0"><label class="text-xs font-medium text-neutral-500 dark:text-neutral-400 ltr">num_experts</label><p-inputNumber [(ngModel)]="spec().num_experts" (ngModelChange)="onArchChange()" [min]="1" [max]="1024" [showButtons]="true" styleClass="w-full" /></div>
+                  <div class="flex flex-col gap-1 min-w-0"><label class="text-xs font-medium text-neutral-500 dark:text-neutral-400 ltr">experts/token</label><p-inputNumber [(ngModel)]="spec().num_experts_per_tok" (ngModelChange)="onArchChange()" [min]="1" [max]="1024" [showButtons]="true" styleClass="w-full" /></div>
+                }
+              </div>
+            </section>
+
+            <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 p-4 flex flex-col gap-2" [class.ring-1]="estimate()?.memory?.verdict !== 'fits_vram'" [class.ring-amber-400]="estimate()?.memory?.verdict !== 'fits_vram'">
               @if (estimating()) { <span class="text-neutral-500 dark:text-neutral-400">…تقدير الحجم</span> }
               @else if (estimate(); as e) {
                 <div class="flex items-center gap-3 flex-wrap">
@@ -224,7 +229,7 @@ function freshSpec(): ArchitectureSpec {
 
         <!-- ── SCRATCH step 2: embedding ── -->
         @if (step() === 2 && kind() === 'scratch') {
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-4">
             <label class="font-semibold mt-1 block">طبقة الـ <code class="ltr">embedding</code></label>
             <div class="flex flex-col gap-2">
               <label class="flex items-center gap-2"><p-radioButton name="emb" value="new" [(ngModel)]="embMode" (ngModelChange)="onEmbModeChange()" /> <span>طبقة جديدة قابلة للتدريب <code class="ltr">new</code></span></label>
@@ -255,7 +260,7 @@ function freshSpec(): ArchitectureSpec {
 
         <!-- ── SCRATCH step 3: corpus (one or more datasets) ── -->
         @if (step() === 3 && kind() === 'scratch') {
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-4">
             <label class="font-semibold mt-1 block">مجموعات بيانات التدريب <code class="ltr">corpora</code> من <code class="ltr">HuggingFace</code> <span class="text-neutral-400">(يمكن اختيار أكثر من واحدة)</span></label>
             <div class="flex items-center gap-2">
               <i class="pi pi-search text-neutral-400"></i>
@@ -288,16 +293,16 @@ function freshSpec(): ArchitectureSpec {
 
         <!-- ── SCRATCH step 4: ZeRO-Infinity offload ── -->
         @if (step() === 4 && kind() === 'scratch') {
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-4">
             <label class="flex items-center gap-2"><p-checkbox [(ngModel)]="paged" [binary]="true" /> <span>تدريب بالإزاحة <code class="ltr">ZeRO-Infinity</code> (GPU→RAM→NVMe)</span></label>
             <p class="text-xs text-neutral-500 dark:text-neutral-400 m-0">يبثّ الأوزان والـ optimizer إلى الـ RAM ثم الـ NVMe، ويبقي طبقة واحدة فقط على الـ GPU. يجعل نموذجًا أكبر من الـ VRAM <strong>يُكمل التدريب</strong> — أبطأ بكثير، لكنه ينتهي.</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div class="min-w-0">
-                <label class="font-semibold ltr block mb-1">offload target</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+              <div class="flex flex-col gap-1 min-w-0">
+                <label class="text-xs font-medium text-neutral-500 dark:text-neutral-400 ltr">offload target</label>
                 <p-select [options]="offloadTargets" optionLabel="label" optionValue="value" [(ngModel)]="offloadTarget" appendTo="body" styleClass="w-full" />
               </div>
-              <div class="min-w-0">
-                <label class="font-semibold ltr block mb-1">gpu_budget_gb: {{ gpuBudget() }}</label>
+              <div class="flex flex-col gap-1 min-w-0">
+                <label class="text-xs font-medium text-neutral-500 dark:text-neutral-400 ltr">gpu_budget_gb: {{ gpuBudget() }}</label>
                 <p-slider [(ngModel)]="gpuBudgetModel" [min]="1" [max]="vram()" [step]="1" styleClass="w-full" />
               </div>
             </div>
@@ -312,7 +317,7 @@ function freshSpec(): ArchitectureSpec {
       </div>
 
       <ng-template pTemplate="footer">
-        <p-button label="رجوع" severity="secondary" [text]="true" [disabled]="step() === 0" (onClick)="back()" />
+        <p-button label="رجوع" severity="secondary" [text]="true" [disabled]="step() === 1" (onClick)="back()" />
         @if (!isLastStep()) {
           <p-button label="التالي" icon="pi pi-arrow-left" [disabled]="!canNext()" (onClick)="next()" />
         } @else {
@@ -390,7 +395,6 @@ export class ProjectsPage implements OnInit {
   set gpuBudgetModel(v: number) { this.gpuBudget.set(v); }
 
   dialogHeader(): string {
-    if (this.step() === 0) return 'مشروع جديد';
     return this.kind() === 'scratch' ? 'بناء نموذج من الصفر' : 'تدريب نموذج جاهز';
   }
 
@@ -473,7 +477,6 @@ export class ProjectsPage implements OnInit {
   }
 
   openNew(): void {
-    this.step.set(0);
     this.kind.set('finetune');
     this.customRepo.set('');
     this.mQuery = ''; this.mResults.set([]);
@@ -484,6 +487,7 @@ export class ProjectsPage implements OnInit {
     this.embMode = 'new'; this.embSource.set(''); this.embArch.set(null); this.embResults.set([]); this.embQuery = '';
     this.dsSelected.set([]); this.dsResults.set([]); this.dsQuery = '';
     this.paged = true; this.cpuOffload = 96; this.offloadTarget = 'auto';
+    this.step.set(1);                        // open straight on the fine-tune form (no step-0 chooser)
     this.dialog.set(true);
   }
 
@@ -491,14 +495,22 @@ export class ProjectsPage implements OnInit {
   lastStep(): number { return this.kind() === 'scratch' ? 4 : 1; }
   isLastStep(): boolean { return this.step() === this.lastStep(); }
 
-  next(): void {
-    if (this.step() === 0 && this.kind() === 'scratch') this.onArchChange();
-    this.step.update((s) => s + 1);
+  next(): void { this.step.update((s) => s + 1); }
+  back(): void { this.step.update((s) => Math.max(1, s - 1)); }
+
+  /** Opt into the from-scratch flow (tucked out of the default fine-tune path). */
+  switchToScratch(): void {
+    this.kind.set('scratch');
+    this.step.set(1);
+    this.onArchChange();                                      // prime the feasibility estimate
   }
-  back(): void { this.step.update((s) => Math.max(0, s - 1)); }
+  /** Return from the from-scratch flow to the default fine-tune form. */
+  switchToFinetune(): void {
+    this.kind.set('finetune');
+    this.step.set(1);
+  }
 
   canNext(): boolean {
-    if (this.step() === 0) return true;                       // a kind is always selected
     if (this.kind() === 'scratch' && this.step() === 1) return !!this.form.name.trim();
     return true;
   }
@@ -512,6 +524,10 @@ export class ProjectsPage implements OnInit {
 
   // ── architecture estimate ──
   onArchChange(): void {
+    // ngModel mutates the spec object in place; re-set the signal with a fresh
+    // reference so the isMoe/estimate computeds recompute (e.g. picking a MoE
+    // family must reveal the num_experts fields).
+    this.spec.set({ ...this.spec() });
     this.estimating.set(true);
     this.api.estimateArchitecture(this.spec()).subscribe({
       next: (e) => { this.estimate.set(e); this.estimating.set(false); },

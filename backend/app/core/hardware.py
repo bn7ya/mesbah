@@ -261,6 +261,29 @@ def compute_train_defaults(vram_gb: float, ram_gb: float, *, kind: str = "finetu
     }
 
 
+# ── model size → "does it fit my GPU" (for the beginner-facing model picker) ──
+
+def estimate_model_fit(params_b: Optional[float], vram_gb: float) -> dict[str, Any]:
+    """Rough "will this model train well on my GPU" verdict for the model picker.
+
+    Heuristic, not a precise memory model (real usage depends on seq length,
+    batch size, and the exact quantization/offload path chosen at train time —
+    see ``compute_train_defaults``). 4-bit QLoRA weights cost ~0.5 GB per billion
+    params; ``0.6`` leaves room for the adapter, optimizer state and activations.
+    """
+    if not params_b or params_b <= 0:
+        return {"tier": "unknown", "required_gb": None}
+    required = round(params_b * 0.6 + 3, 1)
+    vram = float(vram_gb or 0)
+    if vram >= required * 1.3:
+        tier = "comfortable"
+    elif vram >= required:
+        tier = "tight"
+    else:
+        tier = "too_large"
+    return {"tier": tier, "required_gb": required}
+
+
 def train_defaults(kind: str = "finetune", model_params_b: Optional[float] = None) -> dict[str, Any]:
     """``compute_train_defaults`` fed with this machine's effective VRAM + RAM.
 

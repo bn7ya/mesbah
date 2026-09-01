@@ -8,6 +8,7 @@ import { TagModule } from 'primeng/tag';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { MessageService } from 'primeng/api';
 import { Api } from '../../core/api';
+import { ModelFitBadge } from '../../core/model-fit-badge';
 import { DatasetHit, HubModel } from '../../core/types';
 
 interface DownloadState {
@@ -21,7 +22,7 @@ interface DownloadState {
 
 @Component({
   selector: 'app-models-page',
-  imports: [DecimalPipe, NgTemplateOutlet, RouterLink, FormsModule, ButtonModule, InputTextModule, TagModule, ProgressBarModule],
+  imports: [DecimalPipe, NgTemplateOutlet, RouterLink, FormsModule, ButtonModule, InputTextModule, TagModule, ProgressBarModule, ModelFitBadge],
   template: `
     <section class="max-w-4xl mx-auto px-4 py-2">
       <div class="mb-5">
@@ -52,6 +53,7 @@ interface DownloadState {
               <div class="flex items-center justify-between gap-4 px-4 py-3 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900">
                 <div class="flex items-center gap-2 flex-wrap min-w-0">
                   <span class="ltr font-semibold text-sm truncate">{{ r.repo_id }}</span>
+                  @if (r.fit && r.fit.tier !== 'unknown') { <app-model-fit-badge [fit]="r.fit" /> }
                   <span class="flex gap-3 text-xs text-neutral-400 ltr">
                     @if (r.downloads != null) { <span><i class="pi pi-download"></i> {{ r.downloads | number }}</span> }
                     @if (r.likes != null) { <span><i class="pi pi-heart"></i> {{ r.likes }}</span> }
@@ -138,6 +140,7 @@ interface DownloadState {
         <div class="flex items-center gap-2 flex-wrap min-w-0">
           <span class="ltr font-semibold text-sm truncate">{{ m.repo_id }}</span>
           @if (m.gated) { <p-tag value="gated" severity="warn" /> }
+          @if (m.fit && m.fit.tier !== 'unknown') { <app-model-fit-badge [fit]="m.fit" /> }
           <span class="flex gap-1 flex-wrap items-center">
             @if (m.params) { <span class="text-[0.66rem] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 ltr">{{ m.params }}</span> }
             @if (m.license) { <span class="text-[0.66rem] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 ltr">{{ m.license }}</span> }
@@ -178,7 +181,7 @@ export class ModelsPage implements OnInit {
   private api = inject(Api);
   private toast = inject(MessageService);
 
-  readonly results = signal<any[]>([]);
+  readonly results = signal<HubModel[]>([]);
   readonly featured = signal<HubModel[]>([]);
   readonly featuredAr = signal<HubModel[]>([]);
   readonly offlineNote = signal(false);

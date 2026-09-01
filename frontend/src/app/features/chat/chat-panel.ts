@@ -14,6 +14,7 @@ import { MessageService } from 'primeng/api';
 import { Api } from '../../core/api';
 import { MarkdownPipe } from '../../core/markdown.pipe';
 import { splitThink, joinThink, ThinkParts } from '../../core/think';
+import { UiModeService } from '../../core/ui-mode';
 import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/types';
 
 @Component({
@@ -52,8 +53,10 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
           <header class="flex items-center justify-between gap-3 px-4 py-3 border-b border-neutral-200 dark:border-neutral-800">
             <input pInputText class="flex-1 min-w-0 bg-transparent border-0 px-0 font-bold text-base focus:outline-none" [(ngModel)]="s.title" (blur)="renameSession(s)" />
             <div class="flex items-center gap-3 shrink-0">
-              <p-button icon="pi pi-cog" [text]="true" size="small" label="تعليمات النظام" pTooltip="تعليمات النظام (system prompt)" (onClick)="openSysPrompt(s)" />
-              <p-button icon="pi pi-sparkles" [text]="true" size="small" label="تعليمات التحسين" pTooltip="تعليمات التحسين الذاتي (correction prompt)" (onClick)="openCorrectionPrompt(s)" />
+              @if (!uiMode.isSimple()) {
+                <p-button icon="pi pi-cog" [text]="true" size="small" label="تعليمات النظام" pTooltip="تعليمات النظام (system prompt)" (onClick)="openSysPrompt(s)" />
+                <p-button icon="pi pi-sparkles" [text]="true" size="small" label="تعليمات التحسين" pTooltip="تعليمات التحسين الذاتي (correction prompt)" (onClick)="openCorrectionPrompt(s)" />
+              }
               <!-- which model is this chat talking to -->
               <div class="flex items-center gap-2" pTooltip="النموذج الذي تحادثه في هذه الجلسة">
                 @if (s.is_base_model) {
@@ -61,9 +64,11 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
                 } @else {
                   <p-tag value="نموذج مُدرَّب" severity="success" icon="pi pi-sparkles" />
                 }
-                <p-select [options]="versionOptions()" optionLabel="label" optionValue="id"
-                          [ngModel]="s.model_version_id" (onChange)="switchModel(s, $event.value)"
-                          styleClass="ver-sel" appendTo="body" />
+                @if (!uiMode.isSimple()) {
+                  <p-select [options]="versionOptions()" optionLabel="label" optionValue="id"
+                            [ngModel]="s.model_version_id" (onChange)="switchModel(s, $event.value)"
+                            styleClass="ver-sel" appendTo="body" />
+                }
               </div>
               <span class="text-xs whitespace-nowrap text-neutral-500 dark:text-neutral-400"><i class="pi pi-database"></i> {{ s.approved_count }} مثال تدريب</span>
             </div>
@@ -104,16 +109,19 @@ import { ChatMessage, ChatSession, ModelVersion, Project } from '../../core/type
                     </div>
                     @if (m.role === 'assistant' && isPersisted(m)) {
                       <div class="flex flex-wrap gap-1 mt-1">
-                        <p-button icon="pi pi-pencil" [text]="true" size="small" label="تصحيح"
+                        <p-button icon="pi pi-pencil" [text]="true" size="small"
+                                  [label]="uiMode.isSimple() ? 'علّم المساعد بردّ أفضل' : 'تصحيح'"
                                   [disabled]="correcting() !== null" (onClick)="startEdit(m)" />
-                        <p-button icon="pi pi-sparkles" [text]="true" size="small" label="تحسين ذاتي"
-                                  pTooltip="اطلب من النموذج تحسين رده بنفسه"
-                                  [loading]="correcting() === m.id" [disabled]="correcting() !== null || thinking()"
-                                  (onClick)="selfCorrect(m)" />
+                        @if (!uiMode.isSimple()) {
+                          <p-button icon="pi pi-sparkles" [text]="true" size="small" label="تحسين ذاتي"
+                                    pTooltip="اطلب من النموذج تحسين رده بنفسه"
+                                    [loading]="correcting() === m.id" [disabled]="correcting() !== null || thinking()"
+                                    (onClick)="selfCorrect(m)" />
+                        }
                         <p-button [icon]="m.approved ? 'pi pi-star-fill' : 'pi pi-star'" [text]="true" size="small"
-                                  [label]="m.approved ? 'إلغاء الاعتماد' : 'اعتماد'"
+                                  [label]="m.approved ? (uiMode.isSimple() ? 'تراجع' : 'إلغاء الاعتماد') : (uiMode.isSimple() ? '👍 استخدم هذا الرد للتدريب' : 'اعتماد')"
                                   [disabled]="correcting() !== null" (onClick)="toggleApprove(m)" />
-                        @if (m.corrected && m.original_content) {
+                        @if (!uiMode.isSimple() && m.corrected && m.original_content) {
                           <p-button [icon]="isShowingOriginal(m) ? 'pi pi-eye-slash' : 'pi pi-history'" [text]="true" size="small"
                                     [label]="isShowingOriginal(m) ? 'عرض المُحسّن' : 'عرض الأصل'" (onClick)="toggleOriginal(m)" />
                         }
@@ -227,6 +235,7 @@ export class ChatPanel implements OnInit {
   @Input() projectId!: string;
   private api = inject(Api);
   private toast = inject(MessageService);
+  readonly uiMode = inject(UiModeService);
 
   readonly sessions = signal<ChatSession[]>([]);
   readonly current = signal<ChatSession | null>(null);

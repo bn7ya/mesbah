@@ -215,6 +215,12 @@ export interface AutoEnhanceEvent {
   message?: string;
 }
 
+/** "Does this model fit my GPU" verdict (core/hardware.estimate_model_fit). */
+export interface ModelFit {
+  tier: 'comfortable' | 'tight' | 'too_large' | 'unknown';
+  required_gb: number | null;
+}
+
 /** A model listed live from the HuggingFace API (or the local registry offline). */
 export interface HubModel {
   repo_id: string;
@@ -224,6 +230,7 @@ export interface HubModel {
   tags?: string[];
   license?: string | null;
   params?: string | null;
+  fit?: ModelFit;
   pipeline_tag?: string | null;
   gated?: boolean;
   source?: 'hub' | 'local';
@@ -278,6 +285,8 @@ export interface AppSettings {
   selected_gpu_indices: number[] | null;      // null ⇒ auto (largest GPU)
   gpu_vram_gb_override: number | null;
   theme: 'light' | 'dark';
+  /** 'simple' hides advanced/technical controls app-wide; default for new installs. */
+  ui_mode: 'simple' | 'expert';
   tokens: Record<string, { configured: boolean; hint: string }>;
 }
 

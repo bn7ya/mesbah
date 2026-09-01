@@ -16,6 +16,7 @@ class SettingsPatch(BaseModel):
     selected_gpu_indices: Optional[list[int]] = None  # multi-GPU selection
     gpu_vram_gb_override: Optional[float] = None
     theme: Optional[str] = None
+    ui_mode: Optional[str] = None                     # "simple" | "expert"
     # {name: secret} — empty/null secret removes that token. Never echoed back raw.
     tokens: Optional[dict[str, Optional[str]]] = None
 

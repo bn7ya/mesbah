@@ -2,6 +2,23 @@
 
 `TrainingPanel` — launch QLoRA runs and watch them **live**.
 
+## Simple/Expert mode (`core/ui-mode.ts`)
+Expert mode is the launcher and dashboard described below, unchanged. **Simple
+mode** (the default) reduces both sides to what a non-technical user needs:
+- Left: name field + the ready-count banner (no link, no toggles, no dataset
+  picker) + one "درّب المساعد الآن 🚀" button. `useCorrections`/`onlyCorrected`
+  keep their default values (`true`/`false`) — just not exposed — and the
+  "إعدادات QLoRA المتقدمة" collapsible isn't rendered at all, so hardware-derived
+  defaults from `project.default_train_config` always apply.
+- Right: a plain status sentence (`simpleStatus()`, from `STATUS_SIMPLE_AR`) +
+  the same `p-progressBar` + an approximate "N دقائق متبقية" (`etaMinutes()`,
+  derived from the observed steps/sec since `watch()` started via `etaStart`) —
+  no KPI cards, no loss chart, no raw terminal log.
+- A `project.kind === 'scratch'` project (only reachable by having been created
+  in Expert mode — see `features/projects`) shows a one-line "بدّل إلى وضع
+  الخبير" notice in Simple mode instead of the from-scratch wizard-like launcher.
+
+## Expert-mode launcher and dashboard
 - Left: launcher (dataset-ready count from `api.datasetPreview`, a "راجع البيانات
   في مختبر البيانات" link that emits `(reviewData)` — the workspace switches to
   the **Data Lab** tab (`app-data-lab-panel`) so the count links to a real,

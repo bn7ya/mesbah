@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TabsModule } from 'primeng/tabs';
 import { ButtonModule } from 'primeng/button';
@@ -6,6 +6,7 @@ import { TagModule } from 'primeng/tag';
 import { forkJoin } from 'rxjs';
 import { Api } from '../../core/api';
 import { ModelVersion, Project } from '../../core/types';
+import { UiModeService } from '../../core/ui-mode';
 import { ChatPanel } from '../chat/chat-panel';
 import { TasksPanel } from '../tasks/tasks-panel';
 import { DataLabPanel } from '../data-lab/data-lab-panel';
@@ -50,14 +51,18 @@ const TAB = { chat: 0, tasks: 1, dataLab: 2, training: 3, autoEnhance: 4, versio
           <p-tablist>
             <p-tab [value]="TAB.chat"><i class="pi pi-comments"></i> المحادثات والتصحيح</p-tab>
             <p-tab [value]="TAB.tasks"><i class="pi pi-check-square"></i> المهام</p-tab>
-            <p-tab [value]="TAB.dataLab"><i class="pi pi-filter"></i> مختبر البيانات</p-tab>
+            @if (!uiMode.isSimple()) {
+              <p-tab [value]="TAB.dataLab"><i class="pi pi-filter"></i> مختبر البيانات</p-tab>
+            }
             <p-tab [value]="TAB.training">
               <i class="pi pi-bolt"></i> التدريب
               @if (p.kind === 'scratch') { <span class="ltr">from scratch</span> }
               @else { <span class="ltr">QLoRA</span> }
             </p-tab>
-            <p-tab [value]="TAB.autoEnhance"><i class="pi pi-sync"></i> التحسين التلقائي</p-tab>
-            <p-tab [value]="TAB.versions"><i class="pi pi-sitemap"></i> شجرة الإصدارات</p-tab>
+            @if (!uiMode.isSimple()) {
+              <p-tab [value]="TAB.autoEnhance"><i class="pi pi-sync"></i> التحسين التلقائي</p-tab>
+              <p-tab [value]="TAB.versions"><i class="pi pi-sitemap"></i> شجرة الإصدارات</p-tab>
+            }
           </p-tablist>
           <p-tabpanels class="!bg-transparent !px-0">
             <p-tabpanel [value]="TAB.chat">
@@ -73,12 +78,16 @@ const TAB = { chat: 0, tasks: 1, dataLab: 2, training: 3, autoEnhance: 4, versio
               }
             </p-tabpanel>
             <p-tabpanel [value]="TAB.tasks"><app-tasks-panel [projectId]="p.id" /></p-tabpanel>
-            <p-tabpanel [value]="TAB.dataLab"><app-data-lab-panel [projectId]="p.id" (changed)="onDataLabChanged()" /></p-tabpanel>
+            @if (!uiMode.isSimple()) {
+              <p-tabpanel [value]="TAB.dataLab"><app-data-lab-panel [projectId]="p.id" (changed)="onDataLabChanged()" /></p-tabpanel>
+            }
             <p-tabpanel [value]="TAB.training">
               <app-training-panel [projectId]="p.id" (changed)="reload()" (reviewData)="tab = TAB.dataLab" />
             </p-tabpanel>
-            <p-tabpanel [value]="TAB.autoEnhance"><app-auto-enhance-panel [projectId]="p.id" (changed)="reload()" /></p-tabpanel>
-            <p-tabpanel [value]="TAB.versions"><app-versions-panel [projectId]="p.id" (changed)="reload()" /></p-tabpanel>
+            @if (!uiMode.isSimple()) {
+              <p-tabpanel [value]="TAB.autoEnhance"><app-auto-enhance-panel [projectId]="p.id" (changed)="reload()" /></p-tabpanel>
+              <p-tabpanel [value]="TAB.versions"><app-versions-panel [projectId]="p.id" (changed)="reload()" /></p-tabpanel>
+            }
           </p-tabpanels>
         </p-tabs>
       </section>
@@ -90,7 +99,17 @@ const TAB = { chat: 0, tasks: 1, dataLab: 2, training: 3, autoEnhance: 4, versio
 export class WorkspacePage implements OnInit, OnDestroy {
   @Input() id!: string;                       // bound from route param
   private api = inject(Api);
+  readonly uiMode = inject(UiModeService);
   readonly TAB = TAB;
+
+  constructor() {
+    // If Simple mode hides the tab the user is currently on (e.g. Data Lab),
+    // fall back to Chat instead of leaving an unmatched/blank tab selected.
+    effect(() => {
+      const hidden = new Set<number>([TAB.dataLab, TAB.autoEnhance, TAB.versions]);
+      if (this.uiMode.isSimple() && hidden.has(this.tab)) this.tab = TAB.chat;
+    });
+  }
 
   @ViewChild(TrainingPanel) private trainingPanel?: TrainingPanel;
 

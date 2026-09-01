@@ -5,6 +5,7 @@ import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { Api } from './core/api';
 import { DownloadState, SystemInfo } from './core/types';
+import { UiModeService } from './core/ui-mode';
 
 type Theme = 'light' | 'dark';
 const THEME_KEY = 'misbah-theme';
@@ -16,11 +17,13 @@ const THEME_KEY = 'misbah-theme';
 })
 export class App implements OnInit {
   private api = inject(Api);
+  readonly uiMode = inject(UiModeService);
   readonly sys = signal<SystemInfo | null>(null);
   readonly theme = signal<Theme>('light');
   // First-run GPU onboarding — shown once until the user picks GPU(s).
   readonly showOnboarding = signal(false);
   readonly onboardSelection = signal<number[]>([]);
+  readonly onboardManual = signal(false);   // "أو اختر يدويًا" reveal
   private onboardChecked = false;
   // Global download status (topbar chip).
   readonly downloads = signal<DownloadState[]>([]);
@@ -35,6 +38,7 @@ export class App implements OnInit {
     // Saved choice wins; otherwise default to a clean light theme (Notion-like).
     const saved = localStorage.getItem(THEME_KEY) as Theme | null;
     this.applyTheme(saved ?? 'light');
+    this.uiMode.load();
     this.poll();
     setInterval(() => this.poll(), 5000);
   }
@@ -48,9 +52,14 @@ export class App implements OnInit {
   /** Record the first-run GPU choice (or null for CPU-only/auto), then dismiss. */
   onboard(indices: number[] | null): void {
     this.api.onboard(indices?.length ? indices : null).subscribe({
-      next: () => { this.showOnboarding.set(false); this.poll(); },
+      next: () => { this.showOnboarding.set(false); this.onboardManual.set(false); this.poll(); },
       error: () => {},
     });
+  }
+
+  /** Sum of every detected GPU's VRAM (the one-click onboarding path's aggregate). */
+  totalVram(s: SystemInfo): number {
+    return s.gpus.reduce((sum, g) => sum + (g.total_vram_gb || 0), 0);
   }
 
   toggleTheme(): void {
@@ -71,7 +80,9 @@ export class App implements OnInit {
         if (!this.onboardChecked) {
           this.onboardChecked = true;
           this.showOnboarding.set(!s.onboarded);
-          if (!s.onboarded && s.gpus.length) this.onboardSelection.set([s.gpus[0].index]);
+          // Default the one-click path to *every* detected GPU (aggregate VRAM) —
+          // the beginner's "استخدام الموارد المتاحة تلقائيًا" button just accepts this.
+          if (!s.onboarded && s.gpus.length) this.onboardSelection.set(s.gpus.map((g) => g.index));
         }
       },
       error: () => {},

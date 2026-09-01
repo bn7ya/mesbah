@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
+from ...core import hardware
 from ...core.config import settings
 
 
@@ -269,10 +270,28 @@ def _license_from_tags(tags: list[str]) -> Optional[str]:
     return None
 
 
+def _params_b(params: Optional[str]) -> Optional[float]:
+    """``"14B"`` → ``14.0`` (feeds :func:`hardware.estimate_model_fit`)."""
+    if not params:
+        return None
+    try:
+        return float(params.rstrip("bB"))
+    except ValueError:
+        return None
+
+
+def _fit(params: Optional[str]) -> dict[str, Any]:
+    """Best-effort "does this fit my GPU" verdict for the beginner-facing picker.
+    Best-effort only: ``params`` is parsed from the repo name, not the real
+    config, and this machine's effective VRAM may itself be undetected (0)."""
+    return hardware.estimate_model_fit(_params_b(params), hardware.effective_vram_gb())
+
+
 def _hub_model(m: Any) -> dict[str, Any]:
     """Normalize a ``huggingface_hub`` model hit to the shape the GUI renders."""
     repo_id = m.id
     tags = list(getattr(m, "tags", []) or [])
+    params = _params_from_name(repo_id)
     return {
         "repo_id": repo_id,
         "label": repo_id.rsplit("/", 1)[-1],
@@ -280,7 +299,8 @@ def _hub_model(m: Any) -> dict[str, Any]:
         "likes": getattr(m, "likes", None),
         "tags": tags,
         "license": _license_from_tags(tags),
-        "params": _params_from_name(repo_id),
+        "params": params,
+        "fit": _fit(params),
         "pipeline_tag": getattr(m, "pipeline_tag", None),
         "gated": bool(getattr(m, "gated", False)),
         "source": "hub",
@@ -291,6 +311,7 @@ def _local_as_hub_models(note: str | None = None) -> list[dict[str, Any]]:
     """Locally downloaded models mapped to the featured shape (offline fallback)."""
     out = []
     for m in list_local():
+        params = _params_from_name(m["repo_id"])
         out.append({
             "repo_id": m["repo_id"],
             "label": m["repo_id"].rsplit("/", 1)[-1],
@@ -298,7 +319,8 @@ def _local_as_hub_models(note: str | None = None) -> list[dict[str, Any]]:
             "likes": None,
             "tags": [],
             "license": None,
-            "params": _params_from_name(m["repo_id"]),
+            "params": params,
+            "fit": _fit(params),
             "pipeline_tag": None,
             "gated": False,
             "source": "local",
@@ -345,18 +367,14 @@ def search(query: str, limit: int = 20) -> list[dict[str, Any]]:
         # huggingface_hub 1.x dropped the ``direction`` arg; sort="downloads"
         # already returns most-downloaded first.
         models = api.list_models(search=query, limit=limit, sort="downloads")
-        return [{
-            "repo_id": m.id,
-            "downloads": getattr(m, "downloads", None),
-            "likes": getattr(m, "likes", None),
-            "tags": getattr(m, "tags", []) or [],
-        } for m in models]
+        return [_hub_model(m) for m in models]
     except Exception as exc:  # pragma: no cover
         # Fall back to filtering the local registry so the picker still works offline.
         q = query.lower()
         local = [m for m in _local_as_hub_models() if q in m["repo_id"].lower()]
         return local or [
-            {"repo_id": query, "downloads": None, "likes": None, "tags": [], "note": str(exc)}
+            {"repo_id": query, "downloads": None, "likes": None, "tags": [],
+             "fit": {"tier": "unknown", "required_gb": None}, "note": str(exc)}
         ]
 
 

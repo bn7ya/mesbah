@@ -6,6 +6,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { Api } from '../../core/api';
+import { UiModeService } from '../../core/ui-mode';
 import { AppSettings, GpuInfo, SystemInfo } from '../../core/types';
 
 type Theme = 'light' | 'dark';
@@ -19,6 +20,24 @@ const THEME_KEY = 'misbah-theme';
       <div class="mb-6">
         <h1 class="text-2xl font-semibold m-0 mb-1">الإعدادات <code class="ltr">settings</code></h1>
         <p class="text-neutral-500 text-sm m-0">العتاد، الرموز (API tokens)، والمظهر — كلها محفوظة محليًا على جهازك.</p>
+      </div>
+
+      <!-- ── Mode ── -->
+      <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-5 mb-5">
+        <h2 class="text-base font-semibold m-0 mb-1">الوضع <code class="ltr">mode</code></h2>
+        <p class="text-neutral-500 text-sm mb-4">الوضع المبسّط يخفي الإعدادات التقنية (المعاملات، السجلّات الخام، الأدوات المتقدمة) ويُظهر فقط ما يلزم لتدريب مساعد. وضع الخبير يُظهر كل شيء.</p>
+        <div class="flex gap-2">
+          <button type="button" (click)="uiMode.set('simple')"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg border text-sm transition-colors"
+            [class]="uiMode.isSimple() ? 'border-blue-400 ring-1 ring-blue-400/40 bg-blue-50/50 dark:bg-blue-950/20' : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'">
+            <i class="pi pi-user"></i> وضع مبسّط
+          </button>
+          <button type="button" (click)="uiMode.set('expert')"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg border text-sm transition-colors"
+            [class]="!uiMode.isSimple() ? 'border-blue-400 ring-1 ring-blue-400/40 bg-blue-50/50 dark:bg-blue-950/20' : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'">
+            <i class="pi pi-sliders-h"></i> وضع الخبير
+          </button>
+        </div>
       </div>
 
       <!-- ── Hardware ── -->
@@ -133,6 +152,7 @@ const THEME_KEY = 'misbah-theme';
 export class SettingsPage implements OnInit {
   private api = inject(Api);
   private toast = inject(MessageService);
+  readonly uiMode = inject(UiModeService);
 
   readonly sys = signal<SystemInfo | null>(null);
   readonly settings = signal<AppSettings | null>(null);

@@ -16,6 +16,8 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { MessageService } from 'primeng/api';
 import { Api } from '../../core/api';
+import { ModelFitBadge } from '../../core/model-fit-badge';
+import { UiModeService } from '../../core/ui-mode';
 import {
   ArchitectureSpec, DatasetHit, FeasibilityEstimate, HubModel, Project,
 } from '../../core/types';
@@ -51,7 +53,7 @@ function freshSpec(): ArchitectureSpec {
     DatePipe, FormsModule, RouterLink, ButtonModule, DialogModule,
     InputTextModule, TextareaModule, TagModule, SelectModule, InputNumberModule,
     SliderModule, CheckboxModule, RadioButtonModule, ProgressSpinnerModule,
-    ProgressBarModule,
+    ProgressBarModule, ModelFitBadge,
   ],
   template: `
     <section class="max-w-6xl mx-auto px-4 pt-2 pb-8">
@@ -118,6 +120,9 @@ function freshSpec(): ArchitectureSpec {
                     <span class="ltr font-bold text-sm truncate">{{ m.repo_id }}</span>
                     @if (m.gated) { <p-tag value="gated" severity="warn" /> }
                   </div>
+                  @if (m.fit && m.fit.tier !== 'unknown') {
+                    <app-model-fit-badge [fit]="m.fit" />
+                  }
                   <div class="flex flex-wrap gap-1.5 items-center">
                     @if (m.params) { <span class="text-xs px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800 ltr">{{ m.params }}</span> }
                     @if (m.license) { <span class="text-xs px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800 ltr">{{ m.license }}</span> }
@@ -161,12 +166,14 @@ function freshSpec(): ArchitectureSpec {
                 }
               </div>
             }
-            <button type="button"
-              class="mt-3 self-start inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
-              (click)="switchToScratch()">
-              <i class="pi pi-cog text-xs"></i>
-              خيارات متقدمة — بناء نموذج من الصفر <code class="ltr">from scratch</code>
-            </button>
+            @if (!uiMode.isSimple()) {
+              <button type="button"
+                class="mt-3 self-start inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                (click)="switchToScratch()">
+                <i class="pi pi-cog text-xs"></i>
+                خيارات متقدمة — بناء نموذج من الصفر <code class="ltr">from scratch</code>
+              </button>
+            }
           </div>
         }
 
@@ -331,6 +338,7 @@ export class ProjectsPage implements OnInit {
   private api = inject(Api);
   private router = inject(Router);
   private toast = inject(MessageService);
+  readonly uiMode = inject(UiModeService);
 
   readonly families = FAMILIES;
   readonly offloadTargets = OFFLOAD_TARGETS;

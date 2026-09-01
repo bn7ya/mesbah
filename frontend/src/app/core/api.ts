@@ -27,7 +27,7 @@ export class Api {
 
   // ── settings (onboarding, GPU choice, theme, API tokens) ──
   getSettings(): Observable<AppSettings> { return this.http.get<AppSettings>(`${API_BASE}/settings`); }
-  updateSettings(body: Partial<{ selected_gpu_index: number | null; selected_gpu_indices: number[] | null; gpu_vram_gb_override: number | null; theme: string; tokens: Record<string, string | null> }>): Observable<AppSettings> {
+  updateSettings(body: Partial<{ selected_gpu_index: number | null; selected_gpu_indices: number[] | null; gpu_vram_gb_override: number | null; theme: string; ui_mode: string; tokens: Record<string, string | null> }>): Observable<AppSettings> {
     return this.http.patch<AppSettings>(`${API_BASE}/settings`, body);
   }
   onboard(selected_gpu_indices: number[] | null): Observable<AppSettings> {
@@ -53,7 +53,7 @@ export class Api {
   featuredModels(language?: string): Observable<HubModel[]> {
     return this.http.get<HubModel[]>(`${API_BASE}/models/featured`, { params: language ? { language } : {} });
   }
-  searchModels(q: string): Observable<any[]> { return this.http.get<any[]>(`${API_BASE}/models/search`, { params: { query: q } }); }
+  searchModels(q: string): Observable<HubModel[]> { return this.http.get<HubModel[]>(`${API_BASE}/models/search`, { params: { query: q } }); }
   searchDatasets(q: string): Observable<DatasetHit[]> { return this.http.get<DatasetHit[]>(`${API_BASE}/models/datasets/search`, { params: { query: q } }); }
   datasetColumns(repo_id: string): Observable<{ configs: string[]; config: string | null; columns: string[]; text_field_candidates: string[] }> {
     return this.http.get<any>(`${API_BASE}/models/datasets/preview`, { params: { repo_id } });

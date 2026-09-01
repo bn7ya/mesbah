@@ -1,0 +1,9 @@
+# Dev/test tooling for the Django side, on top of requirements-django.txt.
+-r requirements-django.txt
+
+pytest==8.*
+pytest-django==4.*
+pytest-cov==6.*
+model-bakery==1.*
+ruff==0.12.*
+django-debug-toolbar==5.*

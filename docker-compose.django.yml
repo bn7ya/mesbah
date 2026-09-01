@@ -1,0 +1,115 @@
+# The Django/DRF side of Mesbah's in-progress backend migration — see the
+# root plan and backend/apps/common/CLAUDE.md. This is deliberately its OWN
+# compose file, separate from how the FastAPI backend + Angular frontend run
+# today (bare-metal per root CLAUDE.md's "Run it"): the two stacks run
+# side by side until this one reaches feature parity and the FastAPI side
+# is retired (a later migration phase), so neither file assumes the other
+# exists.
+#
+# Brings up just Postgres + Redis + Django + Celery — no frontend service
+# yet, since the Angular app doesn't talk to this backend yet either.
+#
+#   cp .env.django.example .env.django
+#   docker compose -f docker-compose.django.yml up --build
+#
+# API           http://localhost:8000/api/
+# Swagger UI    http://localhost:8000/api/schema/swagger-ui/
+# Django admin  http://localhost:8000/admin/
+
+name: misbah-django
+
+services:
+  db:
+    image: pgvector/pgvector:0.8.6-pg18
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-misbah}
+      POSTGRES_USER: ${POSTGRES_USER:-misbah}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-misbah}
+    volumes:
+      - misbah-django-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - misbah-django-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.django
+      target: dev
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    env_file: [.env.django]
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+    volumes:
+      - misbah-django-static:/app/staticfiles
+      - misbah-django-media:/app/media
+    ports:
+      - "${DJANGO_PORT:-8000}:8000"
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.django
+      target: dev
+    command: ["celery", "-A", "config", "worker", "-l", "info"]
+    env_file: [.env.django]
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    restart: unless-stopped
+
+  beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.django
+      target: dev
+    command:
+      - celery
+      - -A
+      - config
+      - beat
+      - -l
+      - info
+      - --scheduler
+      - django_celery_beat.schedulers:DatabaseScheduler
+    env_file: [.env.django]
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      backend: { condition: service_healthy }
+    restart: unless-stopped
+
+volumes:
+  misbah-django-db-data:
+  misbah-django-redis-data:
+  misbah-django-static:
+  misbah-django-media:

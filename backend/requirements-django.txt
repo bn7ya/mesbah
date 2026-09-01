@@ -1,0 +1,23 @@
+# Django/DRF side of Mesbah's in-progress backend migration (see root plan
+# and apps/common/CLAUDE.md). Independent of requirements.txt/
+# requirements-ml.txt, which are the FastAPI side still actually wired to
+# the Angular frontend and the training pipeline.
+#
+#   pip install -r requirements-django.txt
+#   python manage.py migrate
+#   python manage.py seed_default_operator
+#   python manage.py runserver 0.0.0.0:8000
+
+Django==5.2.*
+djangorestframework==3.16.*
+drf-spectacular==0.28.*
+django-filter==25.*
+psycopg[binary]==3.2.*
+pgvector==0.4.*
+redis==6.*
+django-redis==6.*
+celery==5.6.*
+django-celery-beat==2.8.*
+gunicorn==23.*
+whitenoise==6.*
+python-dotenv==1.*

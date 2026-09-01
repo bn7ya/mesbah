@@ -37,11 +37,32 @@ backend/   FastAPI app — see backend/CLAUDE.md
   app/core/        config, db, models (all SQLModel tables), events (live pub/sub)
   app/features/*/  one folder per feature, each with its own CLAUDE.md
   scripts/         train_qlora.py (subprocess), download_model.py
+  apps/ config/    Django/DRF side of an in-progress migration — see below
 frontend/  Angular app — see frontend/CLAUDE.md
   src/app/core/        api gateway + types
   src/app/features/*/  one folder per feature, each with its own CLAUDE.md
 docs/      ARCHITECTURE.md · MODEL_SELECTION.md · HARDWARE.md
 ```
+
+## In-progress migration: Django/DRF + Angular 22
+
+Mesbah is being migrated off FastAPI/SQLModel/SQLite onto Django + DRF +
+PostgreSQL/pgvector + Redis + Celery + Docker Compose, following the Vertical
+Slice + Service/Repository pattern from the `bn7ya/template` repo (one
+Django app per Angular feature, `BaseModel` UUID+soft-delete, Django
+auth/Groups with a single seeded operator account since Mesbah stays
+single-user). This is a **strangler migration**: the FastAPI backend above
+and the Angular frontend it serves are untouched and remain the actual
+product — nothing in `backend/apps/`/`backend/config/` is wired to the
+Angular app yet. Foundations (`apps/common`, `apps/accounts`, `config/`,
+`docker-compose.django.yml`) are in place and independently verified
+(migrations, DRF schema, tests all pass against a real Postgres+Redis); see
+`backend/apps/common/CLAUDE.md` for what exists, what's deliberately
+deferred (Channels, backups), and the phase-by-phase plan for porting the
+rest of the feature list (projects → sessions/chat → training → a new
+**Data Lab** curation feature → UX pass → cutover). Don't start new FastAPI
+features assuming this is finished, and don't build new Django features
+assuming the frontend can reach them yet.
 
 ## Run it
 

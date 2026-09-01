@@ -298,6 +298,41 @@ export interface DebugStatus {
   env: { python: string; torch: string | null; transformers: string | null; ml_available: boolean };
 }
 
+/** Derived review state of a Data Lab example (see backend data_lab/service.py). */
+export type DataLabStatus = 'pending' | 'approved' | 'excluded';
+
+/** One candidate training example (an assistant turn) shown in the Data Lab. */
+export interface DataLabExample {
+  id: string;
+  session_id: string;
+  session_title: string;
+  task_id: string | null;
+  task_title: string | null;
+  user_content: string;
+  assistant_content: string;
+  corrected: boolean;
+  approved: boolean;
+  include_in_training: boolean;
+  status: DataLabStatus;
+  /** Would this example be pulled into the next training run right now? */
+  would_include: boolean;
+  created_at: string;
+}
+
+export interface DataLabListResponse {
+  items: DataLabExample[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface DataLabSummary {
+  total_candidates: number;
+  approved_count: number;
+  included_count: number;
+  would_include_count: number;
+}
+
 /** One live point streamed over the training WebSocket. */
 export interface MetricPoint {
   event?: string;

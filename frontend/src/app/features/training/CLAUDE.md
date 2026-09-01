@@ -2,13 +2,16 @@
 
 `TrainingPanel` — launch QLoRA runs and watch them **live**.
 
-- Left: launcher (dataset-ready count from `api.datasetPreview`, an "استخدم
-  الردود المعتمدة" (`use_corrections`) toggle, an **HF dataset picker** — one shared
-  `<ng-template #dsPicker>` (via `NgTemplateOutlet`, parameterized by placeholder)
-  rendered by both the scratch and QLoRA launchers (`datasets` signal,
-  `searchDs/addDs/removeDs`) — run name, "only corrected" toggle, start) + run
-  history list. Start is enabled when there are corrections **or** ≥1 HF dataset;
-  `start()` sends `{use_corrections, datasets:[{repo,config,split,text_field}]}`.
+- Left: launcher (dataset-ready count from `api.datasetPreview`, a "راجع البيانات
+  في مختبر البيانات" link that emits `(reviewData)` — the workspace switches to
+  the **Data Lab** tab (`app-data-lab-panel`) so the count links to a real,
+  actionable curation screen instead of the old read-only preview dialog — an
+  "استخدم الردود المعتمدة" (`use_corrections`) toggle, an **HF dataset picker** —
+  one shared `<ng-template #dsPicker>` (via `NgTemplateOutlet`, parameterized by
+  placeholder) rendered by both the scratch and QLoRA launchers (`datasets`
+  signal, `searchDs/addDs/removeDs`) — run name, "only corrected" toggle, start)
+  + run history list. Start is enabled when there are corrections **or** ≥1 HF
+  dataset; `start()` sends `{use_corrections, datasets:[{repo,config,split,text_field}]}`.
 - Right: live dashboard — KPI cards (step, loss, lr, VRAM), `p-progressBar`, and a
   **chart.js loss curve** (`p-chart`).
 

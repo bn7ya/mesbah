@@ -9,7 +9,6 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { ChartModule } from 'primeng/chart';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { TagModule } from 'primeng/tag';
-import { DialogModule } from 'primeng/dialog';
 import { MessageService } from 'primeng/api';
 import { Api } from '../../core/api';
 import { ArchitectureSpec, FeasibilityEstimate, MetricPoint, RunStatus, TrainingRun } from '../../core/types';
@@ -40,7 +39,7 @@ const VERDICT_SEV: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
 
 @Component({
   selector: 'app-training-panel',
-  imports: [DatePipe, DecimalPipe, NgTemplateOutlet, FormsModule, ButtonModule, InputTextModule, InputNumberModule, SelectModule, CheckboxModule, ChartModule, ProgressBarModule, TagModule, DialogModule],
+  imports: [DatePipe, DecimalPipe, NgTemplateOutlet, FormsModule, ButtonModule, InputTextModule, InputNumberModule, SelectModule, CheckboxModule, ChartModule, ProgressBarModule, TagModule],
   template: `
     <!-- shared HF dataset picker (search row + results + selected list), used by both launchers -->
     <ng-template #dsPicker let-placeholder="placeholder">
@@ -153,7 +152,7 @@ const VERDICT_SEV: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
             <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-sm mb-3">
               <i class="pi pi-database"></i>
               <span>{{ preview() }} مثال جاهز للتدريب</span>
-              <button class="ms-auto text-xs underline" (click)="openPreview()" type="button">معاينة</button>
+              <button class="ms-auto text-xs underline" (click)="reviewData.emit()" type="button">راجع البيانات في مختبر البيانات</button>
             </div>
             <label class="flex items-center gap-2 text-sm mb-2 cursor-pointer"><p-checkbox [(ngModel)]="useCorrections" [binary]="true" /> استخدم الردود المعتمدة</label>
 
@@ -259,26 +258,13 @@ const VERDICT_SEV: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
         }
       </div>
     </div>
-
-    <p-dialog header="معاينة بيانات التدريب" [(visible)]="showPreview" [modal]="true" [style]="{ width: '720px', maxWidth: '94vw' }" [dismissableMask]="true">
-      <p class="text-neutral-500 text-sm">عيّنة من الأمثلة المبنيّة من الردود المعتمدة (آخر رسالة هي الهدف الذي يتعلّمه النموذج).</p>
-      @for (ex of previewSample(); track $index) {
-        <div class="flex flex-col gap-1.5 p-3 mb-2 rounded-lg border border-neutral-200 dark:border-neutral-800">
-          @for (m of ex.messages; track $index) {
-            <div class="flex gap-2 text-[0.82rem]" [class.border-t]="$last" [class.border-dashed]="$last" [class.border-neutral-200]="$last" [class.dark:border-neutral-700]="$last" [class.pt-1.5]="$last">
-              <span class="ltr text-[0.68rem] text-blue-600 dark:text-blue-400 min-w-[70px]">{{ m.role }}</span>
-              <span class="whitespace-pre-wrap">{{ m.content }}</span>
-            </div>
-          }
-        </div>
-      }
-      @if (previewSample().length === 0) { <p class="text-neutral-500">لا أمثلة بعد.</p> }
-    </p-dialog>
   `,
 })
 export class TrainingPanel implements OnInit, OnDestroy {
   @Input() projectId!: string;
   @Output() changed = new EventEmitter<void>();
+  /** User asked to review/curate the training data before starting a run. */
+  @Output() reviewData = new EventEmitter<void>();
   private api = inject(Api);
   private toast = inject(MessageService);
 
@@ -289,8 +275,6 @@ export class TrainingPanel implements OnInit, OnDestroy {
   readonly live = signal<MetricPoint>({});
   readonly chartData = signal<any>(this.emptyChart());
   readonly showAdvanced = signal(false);
-  readonly previewSample = signal<any[]>([]);
-  showPreview = false;
 
   // live terminal logs (trainer stdout/stderr streamed over the run WS)
   readonly logs = signal<string[]>([]);
@@ -496,14 +480,6 @@ export class TrainingPanel implements OnInit, OnDestroy {
         const active = r.find((x) => x.status === 'running' || x.status === 'preparing');
         if (active) this.watch(active);
       }
-    });
-  }
-
-  openPreview(): void {
-    this.api.datasetPreview(this.projectId).subscribe((p) => {
-      this.preview.set(p.count);
-      this.previewSample.set(p.sample ?? []);
-      this.showPreview = true;
     });
   }
 

@@ -3,8 +3,9 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   AppSettings, ArchitectureSpec, AutoEnhanceLoop, ChatMessage, ChatSession,
-  DatasetHit, DebugStatus, DownloadState, FeasibilityEstimate, HubModel,
-  ModelArchitecture, ModelVersion, Project, SystemInfo, Task, TrainingRun, VersionNode,
+  DataLabListResponse, DataLabStatus, DataLabSummary, DatasetHit, DebugStatus,
+  DownloadState, FeasibilityEstimate, HubModel, ModelArchitecture, ModelVersion,
+  Project, SystemInfo, Task, TrainingRun, VersionNode,
 } from './types';
 
 /** Base URL of the FastAPI backend. Same host in dev via proxy; override for prod. */
@@ -218,6 +219,29 @@ export class Api {
   createRun(pid: string, body: Record<string, unknown>): Observable<TrainingRun> { return this.http.post<TrainingRun>(`${API_BASE}/projects/${pid}/training/runs`, body); }
   getRun(id: string): Observable<TrainingRun> { return this.http.get<TrainingRun>(`${API_BASE}/training/runs/${id}`); }
   cancelRun(id: string): Observable<{ cancelled: boolean }> { return this.http.post<{ cancelled: boolean }>(`${API_BASE}/training/runs/${id}/cancel`, {}); }
+
+  // ── data lab (review + bulk-curate training examples before a run) ──
+  private queryParams(obj: Record<string, unknown>): Record<string, string | number | boolean> {
+    const out: Record<string, string | number | boolean> = {};
+    for (const [k, v] of Object.entries(obj)) if (v !== undefined && v !== null && v !== '') out[k] = v as never;
+    return out;
+  }
+  dataLabExamples(pid: string, params: {
+    task_id?: string; session_id?: string; status?: DataLabStatus;
+    only_corrected?: boolean; page?: number; page_size?: number;
+  } = {}): Observable<DataLabListResponse> {
+    return this.http.get<DataLabListResponse>(`${API_BASE}/projects/${pid}/data-lab/examples`, {
+      params: this.queryParams(params),
+    });
+  }
+  dataLabSummary(pid: string, params: { task_id?: string; session_id?: string; only_corrected?: boolean } = {}): Observable<DataLabSummary> {
+    return this.http.get<DataLabSummary>(`${API_BASE}/projects/${pid}/data-lab/summary`, {
+      params: this.queryParams(params),
+    });
+  }
+  dataLabBulkUpdate(pid: string, body: { message_ids: string[]; approved?: boolean; include_in_training?: boolean }): Observable<{ updated: number }> {
+    return this.http.patch<{ updated: number }>(`${API_BASE}/projects/${pid}/data-lab/examples`, body);
+  }
 
   // ── versioning ──
   versionTree(pid: string): Observable<VersionNode[]> { return this.http.get<VersionNode[]>(`${API_BASE}/projects/${pid}/version-tree`); }

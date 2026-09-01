@@ -1,4 +1,4 @@
-import { Component, Input, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TabsModule } from 'primeng/tabs';
 import { ButtonModule } from 'primeng/button';
@@ -8,15 +8,21 @@ import { Api } from '../../core/api';
 import { ModelVersion, Project } from '../../core/types';
 import { ChatPanel } from '../chat/chat-panel';
 import { TasksPanel } from '../tasks/tasks-panel';
+import { DataLabPanel } from '../data-lab/data-lab-panel';
 import { TrainingPanel } from '../training/training-panel';
 import { VersionsPanel } from '../versions/versions-panel';
 import { AutoEnhancePanel } from '../auto-enhance/auto-enhance-panel';
+
+/** PrimeNG Tabs `[value]` indices — kept as named constants since the training
+ * panel's "review data" link and the untrained-scratch redirect both jump to a
+ * specific tab by number. */
+const TAB = { chat: 0, tasks: 1, dataLab: 2, training: 3, autoEnhance: 4, versions: 5 } as const;
 
 @Component({
   selector: 'app-workspace-page',
   imports: [
     RouterLink, TabsModule, ButtonModule, TagModule,
-    ChatPanel, TasksPanel, TrainingPanel, VersionsPanel, AutoEnhancePanel,
+    ChatPanel, TasksPanel, DataLabPanel, TrainingPanel, VersionsPanel, AutoEnhancePanel,
   ],
   template: `
     @if (project(); as p) {
@@ -42,33 +48,37 @@ import { AutoEnhancePanel } from '../auto-enhance/auto-enhance-panel';
 
         <p-tabs [(value)]="tab">
           <p-tablist>
-            <p-tab [value]="0"><i class="pi pi-comments"></i> المحادثات والتصحيح</p-tab>
-            <p-tab [value]="1"><i class="pi pi-check-square"></i> المهام</p-tab>
-            <p-tab [value]="2">
+            <p-tab [value]="TAB.chat"><i class="pi pi-comments"></i> المحادثات والتصحيح</p-tab>
+            <p-tab [value]="TAB.tasks"><i class="pi pi-check-square"></i> المهام</p-tab>
+            <p-tab [value]="TAB.dataLab"><i class="pi pi-filter"></i> مختبر البيانات</p-tab>
+            <p-tab [value]="TAB.training">
               <i class="pi pi-bolt"></i> التدريب
               @if (p.kind === 'scratch') { <span class="ltr">from scratch</span> }
               @else { <span class="ltr">QLoRA</span> }
             </p-tab>
-            <p-tab [value]="3"><i class="pi pi-sync"></i> التحسين التلقائي</p-tab>
-            <p-tab [value]="4"><i class="pi pi-sitemap"></i> شجرة الإصدارات</p-tab>
+            <p-tab [value]="TAB.autoEnhance"><i class="pi pi-sync"></i> التحسين التلقائي</p-tab>
+            <p-tab [value]="TAB.versions"><i class="pi pi-sitemap"></i> شجرة الإصدارات</p-tab>
           </p-tablist>
           <p-tabpanels class="!bg-transparent !px-0">
-            <p-tabpanel [value]="0">
+            <p-tabpanel [value]="TAB.chat">
               @if (mustTrainFirst()) {
                 <div class="flex flex-col items-center gap-2 text-center rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-8 py-12">
                   <span class="text-5xl">🧬</span>
                   <h3 class="m-0 text-lg font-semibold">هذا النموذج مبنيّ من الصفر ولم يُدرَّب بعد</h3>
                   <p class="text-neutral-500 max-w-md">لا توجد أوزان بعد — درّب النموذج أولًا لتوليد الإصدار الأول، ثم تصبح المحادثة والتصحيح متاحَين.</p>
-                  <p-button label="انتقل إلى التدريب" icon="pi pi-bolt" (onClick)="tab = 2" />
+                  <p-button label="انتقل إلى التدريب" icon="pi pi-bolt" (onClick)="tab = TAB.training" />
                 </div>
               } @else {
                 <app-chat-panel [projectId]="p.id" />
               }
             </p-tabpanel>
-            <p-tabpanel [value]="1"><app-tasks-panel [projectId]="p.id" /></p-tabpanel>
-            <p-tabpanel [value]="2"><app-training-panel [projectId]="p.id" (changed)="reload()" /></p-tabpanel>
-            <p-tabpanel [value]="3"><app-auto-enhance-panel [projectId]="p.id" (changed)="reload()" /></p-tabpanel>
-            <p-tabpanel [value]="4"><app-versions-panel [projectId]="p.id" (changed)="reload()" /></p-tabpanel>
+            <p-tabpanel [value]="TAB.tasks"><app-tasks-panel [projectId]="p.id" /></p-tabpanel>
+            <p-tabpanel [value]="TAB.dataLab"><app-data-lab-panel [projectId]="p.id" (changed)="onDataLabChanged()" /></p-tabpanel>
+            <p-tabpanel [value]="TAB.training">
+              <app-training-panel [projectId]="p.id" (changed)="reload()" (reviewData)="tab = TAB.dataLab" />
+            </p-tabpanel>
+            <p-tabpanel [value]="TAB.autoEnhance"><app-auto-enhance-panel [projectId]="p.id" (changed)="reload()" /></p-tabpanel>
+            <p-tabpanel [value]="TAB.versions"><app-versions-panel [projectId]="p.id" (changed)="reload()" /></p-tabpanel>
           </p-tabpanels>
         </p-tabs>
       </section>
@@ -80,12 +90,15 @@ import { AutoEnhancePanel } from '../auto-enhance/auto-enhance-panel';
 export class WorkspacePage implements OnInit, OnDestroy {
   @Input() id!: string;                       // bound from route param
   private api = inject(Api);
+  readonly TAB = TAB;
+
+  @ViewChild(TrainingPanel) private trainingPanel?: TrainingPanel;
 
   readonly project = signal<Project | null>(null);
   readonly versions = signal<ModelVersion[]>([]);
-  // PrimeNG Tabs active value (two-way). Defaults to chat (0); for an untrained
-  // scratch model we flip to the training tab (2) once the data loads.
-  tab = 0;
+  // PrimeNG Tabs active value (two-way). Defaults to chat; for an untrained
+  // scratch model we flip to the training tab once the data loads.
+  tab: number = TAB.chat;
   private decidedInitialTab = false;
 
   /** A trained model has at least one non-base version (a real checkpoint). */
@@ -116,7 +129,7 @@ export class WorkspacePage implements OnInit, OnDestroy {
       if (!this.decidedInitialTab) {
         this.decidedInitialTab = true;
         if (this.mustTrainFirst()) {
-          this.tab = 2;                        // land on Training for untrained scratch
+          this.tab = TAB.training;             // land on Training for untrained scratch
         } else {
           // Warm-load the active model in the background (local-only) — only when
           // there are real weights to load (skip the random-init base node).
@@ -124,6 +137,11 @@ export class WorkspacePage implements OnInit, OnDestroy {
         }
       }
     });
+  }
+
+  /** Keep the training panel's "N examples ready" count in sync with Data Lab edits. */
+  onDataLabChanged(): void {
+    this.trainingPanel?.loadPreview();
   }
 
   activeLabel(): string | null {

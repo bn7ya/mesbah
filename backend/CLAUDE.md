@@ -82,6 +82,33 @@ feature estimates params/memory before creation (pure-Python, no torch).
   `features/projects/service.py::delete_project` and
   `features/versioning/service.py::delete_version` for the pattern — copy it.
 
+## Django/DRF side (`apps/`, `config/`) — in progress, not yet live
+
+A separate, independent Django project lives alongside this one at
+`backend/apps/` + `backend/config/` (own `manage.py`, own
+`requirements-django.txt`/`requirements-django-dev.txt`) — the start of a
+planned migration to Django+DRF+PostgreSQL+Celery, ported from the
+`bn7ya/template` architecture. It does **not** replace anything here yet:
+the Angular frontend still talks only to this FastAPI app, and nothing
+below this line is affected by it. See `apps/common/CLAUDE.md` for what's
+built, verified, and deliberately deferred.
+
+```bash
+# Django side only — separate from the `pip install -r requirements.txt` above
+cd backend
+python3 -m venv .venv-django && .venv-django/bin/pip install -r requirements-django-dev.txt
+# needs a real Postgres + Redis reachable at POSTGRES_HOST/REDIS_URL (env, or docker):
+docker compose -f ../docker-compose.django.yml up -d db redis
+DJANGO_SETTINGS_MODULE=config.settings.dev POSTGRES_HOST=localhost REDIS_URL=redis://localhost:6379/0 \
+  DJANGO_SECRET_KEY=dev-only-not-a-secret .venv-django/bin/python manage.py migrate
+DJANGO_SETTINGS_MODULE=config.settings.dev POSTGRES_HOST=localhost REDIS_URL=redis://localhost:6379/0 \
+  DJANGO_SECRET_KEY=dev-only-not-a-secret .venv-django/bin/python manage.py seed_default_operator
+DJANGO_SETTINGS_MODULE=config.settings.dev POSTGRES_HOST=localhost REDIS_URL=redis://localhost:6379/0 \
+  DJANGO_SECRET_KEY=dev-only-not-a-secret .venv-django/bin/python -m pytest apps
+```
+
+Or the whole thing via Docker: `cp ../.env.django.example ../.env.django && docker compose -f ../docker-compose.django.yml up --build`.
+
 ## Feature pattern
 
 Each feature is `router.py` (HTTP/WS) + `service.py` (logic) [+ `schemas.py`].

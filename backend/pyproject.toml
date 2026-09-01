@@ -1,0 +1,9 @@
+# Test config for the Django/DRF side only (backend/apps/, backend/config/).
+# The FastAPI side (backend/app/) has no pytest suite of its own yet — see
+# backend/CLAUDE.md's "Verify" section for its smoke-flow check instead.
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.dev"
+python_files = ["test_*.py", "*_test.py"]
+addopts = "--reuse-db --strict-markers"
+testpaths = ["apps"]

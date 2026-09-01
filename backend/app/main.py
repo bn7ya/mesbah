@@ -22,6 +22,7 @@ from .core.config import BACKEND_DIR, settings
 from .core.db import init_db
 from .features.architect.router import router as architect_router
 from .features.auto_enhance.router import router as auto_enhance_router
+from .features.data_lab.router import router as data_lab_router
 from .features.debug.router import router as debug_router
 from .features.inference.engine import engine
 from .features.inference.router import router as inference_router
@@ -73,8 +74,8 @@ app.add_middleware(
 )
 
 for r in (projects_router, tasks_router, sessions_router, models_router,
-          inference_router, training_router, versioning_router, auto_enhance_router,
-          architect_router, settings_router, debug_router):
+          inference_router, training_router, data_lab_router, versioning_router,
+          auto_enhance_router, architect_router, settings_router, debug_router):
     app.include_router(r)
 
 

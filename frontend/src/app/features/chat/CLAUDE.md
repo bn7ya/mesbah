@@ -18,16 +18,26 @@
     `api.editMessage({content})` (marks corrected + approved; shows "معدّل" /
     "معتمد للتدريب" tags). The `<think>` block must survive corrections or the
     fine-tuned model stops thinking (backend re-attaches it as a safety net).
+    In **Simple mode** (`core/ui-mode.ts`) this is the one plain-language "teach"
+    action, labeled "علّم المساعد بردّ أفضل" — the backend already auto-approves
+    on edit, so no separate approve step is needed.
   - **تحسين ذاتي (self-correct / "magic wand")** → `api.selfCorrectStream` → the
     SAME model rewrites its own reply (SSE stream, replaces content in place). Marks
     **corrected but NOT approved** — pending human review — and shows a "تحسين ذاتي"
     tag (`meta.self_corrected`). The original draft is kept; a **عرض الأصل/المُحسّن**
-    toggle (`showOriginalIds`) swaps between them.
-  - **اعتماد (approve toggle)** → `api.editMessage({approved})`.
-  - **إعادة توليد (regenerate)** on the last reply → `api.regenerate`.
+    toggle (`showOriginalIds`) swaps between them. **Expert mode only** — reviewing
+    a model-generated rewrite before approving it isn't part of the beginner flow.
+  - **اعتماد (approve toggle)** → `api.editMessage({approved})`. Relabeled
+    "👍 استخدم هذا الرد للتدريب" / "تراجع" in Simple mode — same call;
+    `include_in_training` already defaults `true` at message creation, so one tap
+    is a complete training-inclusion action.
+  - **إعادة توليد (regenerate)** on the last reply → `api.regenerate` (both modes).
 - The editable per-session **correction prompt** lives behind the header's "تعليمات
   التحسين" button (`openCorrectionPrompt`/`saveCorrectionPrompt` → `updateSession
-  ({correction_prompt})`); empty means the backend default is used.
+  ({correction_prompt})`); empty means the backend default is used. Like the
+  system-prompt button and the raw model-version `p-select`, it's **Expert-mode
+  only** — a Simple-mode session silently uses the project's active version (the
+  backend default when `model_version_id` is unset).
 - Composer: Enter sends (`api.chat`); a "…النموذج يكتب" placeholder shows while waiting.
 - **503 handling**: if the ML runtime isn't installed, shows a friendly warn toast
   and reloads the session (keeps the user's message visible).

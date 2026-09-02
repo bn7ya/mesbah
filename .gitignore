@@ -70,6 +70,10 @@ npm-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# ===== Claude Code local-only files =====
+.claude/settings.local.json
+prompt.txt
+
 # ===== Tooling scratch =====
 .playwright-mcp/
 **/.playwright-mcp/

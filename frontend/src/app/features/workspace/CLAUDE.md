@@ -11,6 +11,14 @@ binds to the `@Input() id` (component input binding).
   rather than magic numbers, since two flows jump to a specific tab: the
   untrained-scratch redirect (`tab = TAB.training`) and the training panel's
   `(reviewData)` link (`tab = TAB.dataLab`).
+- **Simple/Expert mode** (`core/ui-mode.ts`): in Simple mode (the default) only
+  Chat, Tasks and Training are rendered — Data Lab, Auto-Enhance and Versions
+  are power-user tabs (manual curation, automated loops, rollback) hidden
+  behind `@if (!uiMode.isSimple())` on both the `<p-tab>` and its
+  `<p-tabpanel>`. A `constructor()` `effect()` resets `tab` back to `TAB.chat`
+  if Simple mode is toggled on while a now-hidden tab is active (PrimeNG Tabs
+  matches by `[value]`, not position, so a stray value just shows nothing
+  without this).
 - `reload()` re-fetches project + versions; wired to the training/versions panels'
   `(changed)` output so activating/finishing a run refreshes the header badge.
 - `DataLabPanel`'s `(changed)` calls `onDataLabChanged()`, which reaches into

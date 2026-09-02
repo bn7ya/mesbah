@@ -34,14 +34,21 @@ hardcoded catalog.
   `text-generation` models live via `HfApi.list_models(pipeline_tag=…,
   filter=language, sort="downloads")` (`language=ar` powers the Arabic section;
   hub 1.x dropped the `language=` kwarg, language codes are plain tags). Hits are
-  normalized to `{repo_id, label, downloads, likes, tags, license, params, gated,
-  source:"hub"}` (`params` best-effort from the repo name). Results are cached
-  in-process for ~15 min; on any hub error the endpoint degrades to `list_local()`
-  mapped to the same shape with `source:"local"` — it never 500s. Precise facts
-  (context length, model_type) come lazily from `GET /inspect` on selection.
+  normalized to `{repo_id, label, downloads, likes, tags, license, params, fit,
+  gated, source:"hub"}` (`params` best-effort from the repo name; `fit` — see
+  below) via the shared `_hub_model()` normalizer. Results are cached in-process
+  for ~15 min; on any hub error the endpoint degrades to `list_local()` mapped to
+  the same shape with `source:"local"` — it never 500s. Precise facts (context
+  length, model_type) come lazily from `GET /inspect` on selection.
   `docs/MODEL_SELECTION.md` remains as *guidance* only.
-- `search` uses `huggingface_hub.HfApi.list_models`; falls back to filtering the
-  local registry when the hub is unreachable (offline-friendly).
+- `search` also goes through `_hub_model()` (same shape as `featured`, `fit`
+  included) via `huggingface_hub.HfApi.list_models(search=…)`; falls back to
+  filtering the local registry when the hub is unreachable (offline-friendly).
+- **`fit`** (`{tier: "comfortable"|"tight"|"too_large"|"unknown", required_gb}`) —
+  `core/hardware.estimate_model_fit(params_b, effective_vram_gb())`, a rough
+  "does this fit my GPU" verdict for the beginner-facing model picker (Simple UI
+  mode). Heuristic only: `params_b` comes from the repo-name regex, not a real
+  config read, so it degrades to `unknown` for oddly-named repos.
 - `DownloadManager` runs `snapshot_download` on a background thread; `status()`
   reports **bytes-on-disk** so the GUI can animate a progress bar. A 14B model is
   ~28 GB → downloads are long; status survives restarts by scanning the dir.

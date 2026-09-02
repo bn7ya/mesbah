@@ -11,6 +11,7 @@ import { ProgressBarModule } from 'primeng/progressbar';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { Api } from '../../core/api';
+import { UiModeService } from '../../core/ui-mode';
 import { ArchitectureSpec, FeasibilityEstimate, MetricPoint, RunStatus, TrainingRun } from '../../core/types';
 
 const STATUS_SEV: Record<RunStatus, 'secondary' | 'info' | 'success' | 'danger' | 'warn'> = {
@@ -20,6 +21,15 @@ const STATUS_SEV: Record<RunStatus, 'secondary' | 'info' | 'success' | 'danger' 
 const STATUS_AR: Record<RunStatus, string> = {
   pending: 'بانتظار', preparing: 'تحضير', running: 'يتدرّب',
   completed: 'مكتمل', failed: 'فشل', cancelled: 'أُلغي',
+};
+/** Plain-language status line for the Simple-mode progress view (no jargon). */
+const STATUS_SIMPLE_AR: Record<RunStatus, string> = {
+  pending: '⏳ بانتظار الدور…',
+  preparing: '🧠 يتجهّز للتعلّم من الأمثلة…',
+  running: '📖 يتعلّم من الأمثلة…',
+  completed: '✅ اكتمل! المساعد أصبح أذكى.',
+  failed: '⚠️ حدث خطأ أثناء التدريب.',
+  cancelled: '⏹️ أُلغي التدريب.',
 };
 
 const FAMILIES = [
@@ -68,7 +78,16 @@ const VERDICT_SEV: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
     <div class="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4">
       <!-- left: launcher + runs -->
       <div class="flex flex-col gap-4">
-        @if (isScratch()) {
+        @if (isScratch() && uiMode.isSimple()) {
+          <!-- Simple mode never lets you CREATE a scratch project, but an
+               existing one (made earlier in Expert mode) still needs a safe
+               Simple-mode view instead of the full technical wizard below. -->
+          <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4 flex flex-col items-center gap-2 text-center">
+            <span class="text-3xl">🧬</span>
+            <h3 class="m-0 text-base font-semibold">هذا مشروع متقدم</h3>
+            <p class="text-sm text-neutral-500 m-0">تدريب نموذج من الصفر يحتاج إعدادات تقنية. بدّل إلى وضع الخبير من أعلى الصفحة لإدارته.</p>
+          </div>
+        } @else if (isScratch()) {
           <!-- ── from-scratch full-training launcher ── -->
           <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
             <h3 class="m-0 mb-1 text-base font-semibold">تدريب النموذج من الصفر</h3>
@@ -147,44 +166,56 @@ const VERDICT_SEV: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
         } @else {
           <!-- ── QLoRA fine-tune launcher ── -->
           <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 p-4">
-            <h3 class="m-0 mb-1 text-base font-semibold">جلسة تدريب جديدة</h3>
-            <p class="text-sm text-neutral-500 mb-3">يبني مجموعة بيانات من الردود المعتمدة و/أو مجموعات <code class="ltr">HuggingFace</code>، ثم يضبط النموذج بـ <code class="ltr">QLoRA</code> انطلاقًا من الإصدار النشط.</p>
-            <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-sm mb-3">
-              <i class="pi pi-database"></i>
-              <span>{{ preview() }} مثال جاهز للتدريب</span>
-              <button class="ms-auto text-xs underline" (click)="reviewData.emit()" type="button">راجع البيانات في مختبر البيانات</button>
-            </div>
-            <label class="flex items-center gap-2 text-sm mb-2 cursor-pointer"><p-checkbox [(ngModel)]="useCorrections" [binary]="true" /> استخدم الردود المعتمدة</label>
-
-            <!-- optional HF datasets (trained alongside / instead of corrections) -->
-            <div class="flex flex-col gap-1.5 mb-3">
-              <ng-container *ngTemplateOutlet="dsPicker; context: { placeholder: 'أضف مجموعة بيانات من HuggingFace…' }" />
-              @if (datasets().length) {
-                <span class="text-neutral-400 text-xs">{{ datasets().length }} مجموعة — الأعمدة المعروفة (<code class="ltr">messages/instruction/prompt/text</code>) تُحوَّل تلقائيًا.</span>
-              }
-            </div>
-
-            <input pInputText [(ngModel)]="runName" placeholder="اسم الإصدار، مثال: v1 — تحسين اللهجة" class="w-full mb-3" />
-            <label class="flex items-center gap-2 text-sm mb-3 cursor-pointer"><p-checkbox [(ngModel)]="onlyCorrected" [binary]="true" /> الأمثلة المُصحّحة فقط</label>
-
-            <button class="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 py-1 mb-1" (click)="showAdvanced.set(!showAdvanced())" type="button">
-              <i class="pi" [class.pi-chevron-down]="showAdvanced()" [class.pi-chevron-left]="!showAdvanced()"></i>
-              إعدادات <code class="ltr">QLoRA</code> المتقدمة
-            </button>
-            @if (showAdvanced()) {
-              <div class="grid grid-cols-2 gap-x-3 gap-y-3 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 mb-3">
-                <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">epochs</label><p-inputNumber [(ngModel)]="hyper.epochs" [min]="1" [max]="20" [showButtons]="true" styleClass="w-full" /></div>
-                <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">learning_rate</label><p-inputNumber [(ngModel)]="hyper.learning_rate" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="6" [step]="0.00005" styleClass="w-full" /></div>
-                <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">lora_r</label><p-inputNumber [(ngModel)]="hyper.lora_r" [min]="4" [max]="128" [step]="4" [showButtons]="true" styleClass="w-full" /></div>
-                <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">lora_alpha</label><p-inputNumber [(ngModel)]="hyper.lora_alpha" [min]="4" [max]="256" [step]="4" [showButtons]="true" styleClass="w-full" /></div>
-                <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">max_seq_len</label><p-inputNumber [(ngModel)]="hyper.max_seq_len" [min]="512" [max]="32768" [step]="512" styleClass="w-full" /></div>
-                <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">grad_accum_steps</label><p-inputNumber [(ngModel)]="hyper.grad_accum_steps" [min]="1" [max]="64" [showButtons]="true" styleClass="w-full" /></div>
-                <p class="col-span-full text-neutral-400 text-xs m-0">القيم الافتراضية مضبوطة تلقائيًا حسب عتاد جهازك (VRAM/RAM المكتشفة). ارفع <code class="ltr">max_seq_len</code> بحذر.</p>
+            @if (uiMode.isSimple()) {
+              <h3 class="m-0 mb-1 text-base font-semibold">تدريب المساعد</h3>
+              <p class="text-sm text-neutral-500 mb-3">يتعلّم المساعد من الردود التي علّمتها له في المحادثة — بإعدادات مضبوطة تلقائيًا حسب عتاد جهازك.</p>
+              <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-sm mb-3">
+                <i class="pi pi-database"></i>
+                <span>🗂️ {{ preview() }} ردود جاهزة لتعليم المساعد</span>
               </div>
-            }
+              <input pInputText [(ngModel)]="runName" placeholder="اسم الإصدار، مثال: v1 — تحسين اللهجة" class="w-full mb-3" />
+              <p-button label="درّب المساعد الآن 🚀" icon="pi pi-bolt" [disabled]="!canStartFinetune()" [loading]="starting()" (onClick)="start()" styleClass="w-full" />
+              @if (!canStartFinetune() && !starting()) { <p class="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-sm mt-2"><i class="pi pi-info-circle"></i> علّم المساعد بعض الردود أولًا في المحادثة.</p> }
+            } @else {
+              <h3 class="m-0 mb-1 text-base font-semibold">جلسة تدريب جديدة</h3>
+              <p class="text-sm text-neutral-500 mb-3">يبني مجموعة بيانات من الردود المعتمدة و/أو مجموعات <code class="ltr">HuggingFace</code>، ثم يضبط النموذج بـ <code class="ltr">QLoRA</code> انطلاقًا من الإصدار النشط.</p>
+              <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-sm mb-3">
+                <i class="pi pi-database"></i>
+                <span>{{ preview() }} مثال جاهز للتدريب</span>
+                <button class="ms-auto text-xs underline" (click)="reviewData.emit()" type="button">راجع البيانات في مختبر البيانات</button>
+              </div>
+              <label class="flex items-center gap-2 text-sm mb-2 cursor-pointer"><p-checkbox [(ngModel)]="useCorrections" [binary]="true" /> استخدم الردود المعتمدة</label>
 
-            <p-button label="ابدأ التدريب" icon="pi pi-bolt" [disabled]="!canStartFinetune()" [loading]="starting()" (onClick)="start()" styleClass="w-full" />
-            @if (!canStartFinetune() && !starting()) { <p class="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-sm mt-2"><i class="pi pi-info-circle"></i> صحّح واعتمد بعض الردود أولًا، أو أضف مجموعة بيانات من <code class="ltr">HuggingFace</code>.</p> }
+              <!-- optional HF datasets (trained alongside / instead of corrections) -->
+              <div class="flex flex-col gap-1.5 mb-3">
+                <ng-container *ngTemplateOutlet="dsPicker; context: { placeholder: 'أضف مجموعة بيانات من HuggingFace…' }" />
+                @if (datasets().length) {
+                  <span class="text-neutral-400 text-xs">{{ datasets().length }} مجموعة — الأعمدة المعروفة (<code class="ltr">messages/instruction/prompt/text</code>) تُحوَّل تلقائيًا.</span>
+                }
+              </div>
+
+              <input pInputText [(ngModel)]="runName" placeholder="اسم الإصدار، مثال: v1 — تحسين اللهجة" class="w-full mb-3" />
+              <label class="flex items-center gap-2 text-sm mb-3 cursor-pointer"><p-checkbox [(ngModel)]="onlyCorrected" [binary]="true" /> الأمثلة المُصحّحة فقط</label>
+
+              <button class="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200 py-1 mb-1" (click)="showAdvanced.set(!showAdvanced())" type="button">
+                <i class="pi" [class.pi-chevron-down]="showAdvanced()" [class.pi-chevron-left]="!showAdvanced()"></i>
+                إعدادات <code class="ltr">QLoRA</code> المتقدمة
+              </button>
+              @if (showAdvanced()) {
+                <div class="grid grid-cols-2 gap-x-3 gap-y-3 p-3 rounded-lg border border-neutral-200 dark:border-neutral-800 mb-3">
+                  <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">epochs</label><p-inputNumber [(ngModel)]="hyper.epochs" [min]="1" [max]="20" [showButtons]="true" styleClass="w-full" /></div>
+                  <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">learning_rate</label><p-inputNumber [(ngModel)]="hyper.learning_rate" mode="decimal" [minFractionDigits]="0" [maxFractionDigits]="6" [step]="0.00005" styleClass="w-full" /></div>
+                  <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">lora_r</label><p-inputNumber [(ngModel)]="hyper.lora_r" [min]="4" [max]="128" [step]="4" [showButtons]="true" styleClass="w-full" /></div>
+                  <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">lora_alpha</label><p-inputNumber [(ngModel)]="hyper.lora_alpha" [min]="4" [max]="256" [step]="4" [showButtons]="true" styleClass="w-full" /></div>
+                  <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">max_seq_len</label><p-inputNumber [(ngModel)]="hyper.max_seq_len" [min]="512" [max]="32768" [step]="512" styleClass="w-full" /></div>
+                  <div class="flex flex-col gap-1 min-w-0"><label class="ltr text-xs font-medium text-neutral-500 dark:text-neutral-400">grad_accum_steps</label><p-inputNumber [(ngModel)]="hyper.grad_accum_steps" [min]="1" [max]="64" [showButtons]="true" styleClass="w-full" /></div>
+                  <p class="col-span-full text-neutral-400 text-xs m-0">القيم الافتراضية مضبوطة تلقائيًا حسب عتاد جهازك (VRAM/RAM المكتشفة). ارفع <code class="ltr">max_seq_len</code> بحذر.</p>
+                </div>
+              }
+
+              <p-button label="ابدأ التدريب" icon="pi pi-bolt" [disabled]="!canStartFinetune()" [loading]="starting()" (onClick)="start()" styleClass="w-full" />
+              @if (!canStartFinetune() && !starting()) { <p class="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-sm mt-2"><i class="pi pi-info-circle"></i> صحّح واعتمد بعض الردود أولًا، أو أضف مجموعة بيانات من <code class="ltr">HuggingFace</code>.</p> }
+            }
           </div>
         }
 
@@ -216,39 +247,54 @@ const VERDICT_SEV: Record<string, 'success' | 'info' | 'warn' | 'danger'> = {
             }
           </div>
 
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-4">
-            <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/40 px-3 py-2.5 flex flex-col gap-0.5"><span class="text-xs text-neutral-500">الخطوة</span><span class="text-base font-bold ltr">{{ live().step ?? 0 }} / {{ totalSteps() || '—' }}</span></div>
-            <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/40 px-3 py-2.5 flex flex-col gap-0.5"><span class="text-xs text-neutral-500">الخسارة <code class="ltr">loss</code></span><span class="text-base font-bold ltr">{{ live().loss != null ? (live().loss | number:'1.4-4') : '—' }}</span></div>
-            <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/40 px-3 py-2.5 flex flex-col gap-0.5"><span class="text-xs text-neutral-500"><code class="ltr">lr</code></span><span class="text-base font-bold ltr">{{ live().learning_rate != null ? (live().learning_rate | number:'1.2-7') : '—' }}</span></div>
-            <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/40 px-3 py-2.5 flex flex-col gap-0.5"><span class="text-xs text-neutral-500"><code class="ltr">VRAM</code></span><span class="text-base font-bold ltr">{{ live().vram_reserved_gb != null ? (live().vram_reserved_gb | number:'1.1-1') + ' GB' : '—' }}</span></div>
-          </div>
-
-          <p-progressBar [value]="progressPct()" [showValue]="true" styleClass="w-full" />
-
-          <div class="mt-4">
-            <p-chart type="line" [data]="chartData()" [options]="chartOptions" height="260px" />
-          </div>
-
-          <!-- live terminal logs (trainer stdout/stderr) -->
-          <div class="mt-4">
-            <button class="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200" (click)="showLogs.set(!showLogs())" type="button">
-              <i class="pi" [class.pi-chevron-down]="showLogs()" [class.pi-chevron-left]="!showLogs()"></i>
-              سجلّ التدريب <code class="ltr">terminal</code>
-              @if (logs().length) { <span class="text-neutral-400">· {{ logs().length }}</span> }
-            </button>
-            @if (showLogs()) {
-              <div #logBox class="ltr mt-2 h-56 overflow-auto rounded-lg bg-neutral-950 text-neutral-200 text-xs leading-relaxed p-3 whitespace-pre-wrap">
-                @for (l of logs(); track $index) { <div>{{ l }}</div> }
-                @if (logs().length === 0) { <div class="text-neutral-500">…بانتظار خرج التدريب</div> }
-              </div>
+          @if (uiMode.isSimple()) {
+            <!-- ── plain-language progress (no hyperparameters, charts, or raw logs) ── -->
+            <p class="text-base font-medium mb-3">{{ simpleStatus(r) }}</p>
+            <p-progressBar [value]="progressPct()" [showValue]="true" styleClass="w-full" />
+            @if (r.status === 'running' && etaMinutes(); as eta) {
+              <p class="text-xs text-neutral-400 mt-2">تقريبًا {{ eta }} دقيقة متبقية</p>
             }
-          </div>
+            @if (r.status === 'failed' && r.error) {
+              <pre class="ltr bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-xs max-h-40 overflow-auto whitespace-pre-wrap mt-3">{{ r.error }}</pre>
+            }
+            @if (r.status === 'completed') {
+              <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mt-3"><i class="pi pi-check-circle"></i> اكتمل التدريب وأصبح المساعد أذكى. جرّب المساعد الآن في المحادثة.</div>
+            }
+          } @else {
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-4">
+              <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/40 px-3 py-2.5 flex flex-col gap-0.5"><span class="text-xs text-neutral-500">الخطوة</span><span class="text-base font-bold ltr">{{ live().step ?? 0 }} / {{ totalSteps() || '—' }}</span></div>
+              <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/40 px-3 py-2.5 flex flex-col gap-0.5"><span class="text-xs text-neutral-500">الخسارة <code class="ltr">loss</code></span><span class="text-base font-bold ltr">{{ live().loss != null ? (live().loss | number:'1.4-4') : '—' }}</span></div>
+              <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/40 px-3 py-2.5 flex flex-col gap-0.5"><span class="text-xs text-neutral-500"><code class="ltr">lr</code></span><span class="text-base font-bold ltr">{{ live().learning_rate != null ? (live().learning_rate | number:'1.2-7') : '—' }}</span></div>
+              <div class="rounded-lg border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800/40 px-3 py-2.5 flex flex-col gap-0.5"><span class="text-xs text-neutral-500"><code class="ltr">VRAM</code></span><span class="text-base font-bold ltr">{{ live().vram_reserved_gb != null ? (live().vram_reserved_gb | number:'1.1-1') + ' GB' : '—' }}</span></div>
+            </div>
 
-          @if (r.status === 'failed' && r.error) {
-            <pre class="ltr bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-xs max-h-40 overflow-auto whitespace-pre-wrap mt-3">{{ r.error }}</pre>
-          }
-          @if (r.status === 'completed') {
-            <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mt-3"><i class="pi pi-check-circle"></i> اكتمل التدريب وأصبح الإصدار الجديد نشطًا. راجع شجرة الإصدارات.</div>
+            <p-progressBar [value]="progressPct()" [showValue]="true" styleClass="w-full" />
+
+            <div class="mt-4">
+              <p-chart type="line" [data]="chartData()" [options]="chartOptions" height="260px" />
+            </div>
+
+            <!-- live terminal logs (trainer stdout/stderr) -->
+            <div class="mt-4">
+              <button class="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200" (click)="showLogs.set(!showLogs())" type="button">
+                <i class="pi" [class.pi-chevron-down]="showLogs()" [class.pi-chevron-left]="!showLogs()"></i>
+                سجلّ التدريب <code class="ltr">terminal</code>
+                @if (logs().length) { <span class="text-neutral-400">· {{ logs().length }}</span> }
+              </button>
+              @if (showLogs()) {
+                <div #logBox class="ltr mt-2 h-56 overflow-auto rounded-lg bg-neutral-950 text-neutral-200 text-xs leading-relaxed p-3 whitespace-pre-wrap">
+                  @for (l of logs(); track $index) { <div>{{ l }}</div> }
+                  @if (logs().length === 0) { <div class="text-neutral-500">…بانتظار خرج التدريب</div> }
+                </div>
+              }
+            </div>
+
+            @if (r.status === 'failed' && r.error) {
+              <pre class="ltr bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 p-3 rounded-lg text-xs max-h-40 overflow-auto whitespace-pre-wrap mt-3">{{ r.error }}</pre>
+            }
+            @if (r.status === 'completed') {
+              <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mt-3"><i class="pi pi-check-circle"></i> اكتمل التدريب وأصبح الإصدار الجديد نشطًا. راجع شجرة الإصدارات.</div>
+            }
           }
         } @else {
           <div class="flex flex-col items-center justify-center gap-2 text-neutral-500 min-h-[420px]">
@@ -267,6 +313,7 @@ export class TrainingPanel implements OnInit, OnDestroy {
   @Output() reviewData = new EventEmitter<void>();
   private api = inject(Api);
   private toast = inject(MessageService);
+  readonly uiMode = inject(UiModeService);
 
   readonly runs = signal<TrainingRun[]>([]);
   readonly selected = signal<TrainingRun | null>(null);
@@ -335,6 +382,8 @@ export class TrainingPanel implements OnInit, OnDestroy {
   private steps: number[] = [];
   private losses: number[] = [];
   private estTimer: any = null;
+  /** First (step, timestamp) seen for the current watch — feeds the Simple-mode ETA. */
+  private etaStart: { step: number; ts: number } | null = null;
 
   chartOptions = {
     responsive: true, maintainAspectRatio: false, animation: { duration: 250 },
@@ -512,6 +561,7 @@ export class TrainingPanel implements OnInit, OnDestroy {
     this.resetChart();
     this.logs.set([]);
     this.socket?.close();
+    this.etaStart = null;
     this.live.set({ step: r.progress?.step ?? 0 });
     if (r.status === 'running' || r.status === 'preparing') {
       this.connect(r.id);
@@ -560,6 +610,7 @@ export class TrainingPanel implements OnInit, OnDestroy {
       // GPU ran out of memory → backend halved seq_len and is retrying. Reset
       // the curve so the new attempt draws cleanly.
       this.resetChart();
+      this.etaStart = null;
       this.toast.add({
         severity: 'warn', summary: 'نفاد ذاكرة GPU',
         detail: `قلّصنا طول السياق إلى ${(p as any).new_seq_len} وأعدنا المحاولة تلقائيًا.`,
@@ -568,6 +619,7 @@ export class TrainingPanel implements OnInit, OnDestroy {
       return;
     }
     if (p.event === 'log' && p.step != null && p.loss != null) {
+      if (!this.etaStart) this.etaStart = { step: p.step, ts: Date.now() };
       this.steps.push(p.step);
       this.losses.push(p.loss);
       this.chartData.set({
@@ -606,6 +658,20 @@ export class TrainingPanel implements OnInit, OnDestroy {
     return total ? Math.min(100, Math.round((step / total) * 100)) : 0;
   }
   statusAr(s: RunStatus): string { return STATUS_AR[s]; }
+  simpleStatus(r: TrainingRun): string { return STATUS_SIMPLE_AR[r.status]; }
+
+  /** Rough remaining-time estimate from the observed steps/sec since watch()
+   * started — Simple mode's only nod to "how long will this take". */
+  etaMinutes(): number | null {
+    const total = this.totalSteps();
+    const step = this.live().step ?? 0;
+    const start = this.etaStart;
+    if (!total || !start || step <= start.step) return null;
+    const remaining = total - step;
+    if (remaining <= 0) return null;
+    const msPerStep = (Date.now() - start.ts) / (step - start.step);
+    return Math.max(1, Math.round((remaining * msPerStep) / 60000));
+  }
   sev(s: RunStatus) { return STATUS_SEV[s]; }
 
   private resetChart(): void { this.steps = []; this.losses = []; this.chartData.set(this.emptyChart()); }

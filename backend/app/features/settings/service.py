@@ -24,12 +24,13 @@ _DEFAULTS: dict[str, Any] = {
     "selected_gpu_indices": None,  # None => use the largest detected GPU
     "gpu_vram_gb_override": None,   # None => use the detected VRAM
     "theme": "light",              # "light" | "dark"
+    "ui_mode": "simple",           # "simple" | "expert" — hides/reveals technical controls
     "tokens": {},                  # generic {name: secret} API tokens (HF has its own file)
 }
 
 # Keys a PATCH is allowed to set directly (``tokens`` is merged separately).
 _ALLOWED = {"onboarded", "selected_gpu_index", "selected_gpu_indices",
-            "gpu_vram_gb_override", "theme"}
+            "gpu_vram_gb_override", "theme", "ui_mode"}
 
 
 def _path() -> Path:
@@ -89,6 +90,11 @@ def is_onboarded() -> bool:
     return bool(_read_raw().get("onboarded"))
 
 
+def ui_mode() -> str:
+    v = _read_raw().get("ui_mode")
+    return v if v in ("simple", "expert") else "simple"
+
+
 def get_token(name: str) -> Optional[str]:
     tok = (_read_raw().get("tokens") or {}).get(name)
     return tok or None
@@ -110,6 +116,7 @@ def public() -> dict[str, Any]:
         "selected_gpu_indices": selected_gpu_indices(),
         "gpu_vram_gb_override": data.get("gpu_vram_gb_override"),
         "theme": data.get("theme", "light"),
+        "ui_mode": ui_mode(),
         "tokens": {name: {"configured": True, "hint": _hint(secret)}
                    for name, secret in tokens.items() if secret},
     }

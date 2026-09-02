@@ -14,9 +14,16 @@
   `step===1` (`back()`/footer). `onArchChange()` re-sets the `spec` signal with a
   fresh reference so the `isMoe`/estimate computeds recompute (picking a MoE
   family reveals the `num_experts` fields).
+  - **Simple mode** (`core/ui-mode.ts`, the default): the "خيارات متقدمة — بناء
+    نموذج من الصفر" link is hidden entirely (`@if (!uiMode.isSimple())`), so
+    `kind` can never become `'scratch'` — the from-scratch steps below are
+    unreachable but stay unchanged (no need to gate them individually).
   - **fine-tune** (step 1) → model **search box** (`api.searchModels`) + a featured
-    grid (live, local models flagged) + custom repo; one step. Selecting a model
-    calls `api.inspectModel` (context length + validation) and `api.downloadStatus`
+    grid (live, local models flagged) + custom repo; one step. Each card shows an
+    `<app-model-fit-badge [fit]="m.fit">` (`core/model-fit-badge.ts`) — a plain
+    "does this fit my GPU" verdict from the backend (`HubModel.fit`), rendering
+    nothing for an unparsed/`unknown` model size. Selecting a model calls
+    `api.inspectModel` (context length + validation) and `api.downloadStatus`
     — if the model isn't local an inline warning offers a "تنزيل الآن" button with a
     progress bar (download continues globally). Default pick: first locally
     downloaded featured model → first featured → `SystemInfo.default_base_model`.

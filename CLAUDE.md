@@ -96,6 +96,22 @@ Chat/training return a clear 503/“not installed” until `requirements-ml.txt`
 - **Arabic UI, English technical terms.** Don't translate `loss`, `adapter`, etc.
 - Each feature directory has a **`CLAUDE.md`** — read it before changing that feature.
 
+## Claude Code tooling (`.claude/`)
+
+Specialist agents, hooks and the Django-side design pattern doc, ported and
+adapted from `bn7ya/template` (the architecture source for the Django
+migration). `.claude/docs/design-pattern.md` is the contract for
+`backend/apps/` + the existing Angular conventions; `.claude/agents/` are
+the specialists that cite it (`architect` plans, `django_engineer`/
+`angular_engineer`/`db_engineer` implement and review, `cleaner`/`unifier`
+sweep, `goldenizer`/`copywriter`/`translator` own presentation and Arabic
+copy). Two hooks enforce parts of it mechanically and **can block**:
+`guard-checks.py` (PostToolUse — layering violations) and `memory-sync.py`
+(Stop — a touched feature's `CLAUDE.md` wasn't updated); `git-flow-gate.py`
+(UserPromptSubmit) is advisory only. See `.claude/skills/git-flow/SKILL.md`
+for the optional issue-first workflow these assume when a session isn't
+already working a pre-assigned branch.
+
 ## Verify
 
 `backend/`: the smoke flow (project → task → session → correction → dataset →

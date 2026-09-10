@@ -42,7 +42,19 @@ frontend/  Angular app — see frontend/CLAUDE.md
   src/app/core/        api gateway + types
   src/app/features/*/  one folder per feature, each with its own CLAUDE.md
 docs/      ARCHITECTURE.md · MODEL_SELECTION.md · HARDWARE.md
+research/  self-contained research, wired to neither backend — see below
 ```
+
+### research/ — CAWA
+
+`research/cawa/` holds the design for **CAWA (Cross-Architecture Weight
+Adaptation)**: transferring parameters from one LLM into another, across
+different Transformer architectures, with **no gradient training** — closed-form
+linear algebra, assignment problems and forward passes only. Design stage; no
+pipeline code, no API surface, imported by neither backend. See
+`research/cawa/CLAUDE.md` before touching it. If it ever produces a positive
+result, the product surface already exists: a CAWA run is a `TrainingRun`
+yielding a `ModelVersion` — a node in the version tree with no GPU training step.
 
 ## In-progress migration: Django/DRF + Angular 22
 

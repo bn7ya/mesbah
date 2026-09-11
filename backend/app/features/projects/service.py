@@ -10,7 +10,6 @@ import json
 import shutil
 from datetime import datetime, timezone
 
-from sqlalchemy import text
 from sqlmodel import Session, select
 
 from ...core import hardware

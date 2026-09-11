@@ -13,7 +13,8 @@ change is a "complete slice") are not checked here -- they belong to
 Scoped to what mesbah's own conventions actually require: there is no
 `.scss`-token styling system here (Tailwind utility classes only, see
 frontend/CLAUDE.md), so there is no raw-px rule to enforce -- only the
-Angular/PrimeNG and Django/DRF layering rules that apply to this codebase.
+Angular/PrimeNG and Django/DRF layering rules that apply to this codebase,
+plus the one language rule a regex can see (.claude/docs/language.md).
 """
 
 from __future__ import annotations
@@ -44,6 +45,15 @@ def is_frontend_markup(path: Path) -> bool:
     return path.suffix in {".ts", ".html"} and ".spec." not in path.name
 
 
+def is_user_facing_arabic(path: Path) -> bool:
+    # The Arabic catalogues (the i18n bundles that land at the Angular-22
+    # cutover), and the seed migrations that carry an `_ar` column. Test
+    # fixtures may quote a source as it was printed, so they are not checked.
+    if path.name == "ar.json":
+        return True
+    return path.suffix == ".py" and "migrations" in path.parts
+
+
 def is_django_app_python(path: Path) -> bool:
     if path.suffix != ".py":
         return False
@@ -72,7 +82,12 @@ RULES: tuple[Rule, ...] = (
     ),
     Rule(
         id="Angular: no native dialogs",
-        pattern=re.compile(r"(?:\bwindow\s*\.\s*)?\b(?:confirm|alert|prompt)\s*\("),
+        # Bare globals and window.confirm()/alert()/prompt() only. A member call
+        # (this.confirm.confirm(...) on the PrimeNG service, any other object's
+        # .confirm()) is preceded by a dot, so the negative lookbehind skips it.
+        pattern=re.compile(
+            r"\bwindow\s*\.\s*(?:confirm|alert|prompt)\s*\(|(?<![\w$.])(?:confirm|alert|prompt)\s*\("
+        ),
         message=(
             "native browser dialog.\n"
             "  Use the PrimeNG equivalent: p-confirmdialog for confirm(), p-toast or\n"
@@ -109,6 +124,17 @@ RULES: tuple[Rule, ...] = (
             "  sign off with benchmark numbers."
         ),
         applies=is_django_app_python,
+    ),
+    Rule(
+        id="Language: no tashkeel in Arabic a user reads",
+        pattern=re.compile("[\u064b-\u0652\u0670]"),
+        message=(
+            "tashkeel in Arabic a user reads.\n"
+            "  No diacritic in any ar.json value or seeded _ar column. A word that needs\n"
+            "  a vowel mark to be read is the wrong word - replace it, do not strip the\n"
+            "  mark. See .claude/docs/language.md."
+        ),
+        applies=is_user_facing_arabic,
     ),
     Rule(
         id="Django: soft delete only",

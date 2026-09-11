@@ -12,7 +12,6 @@ from typing import Any, Optional
 
 from sqlmodel import Session, select
 
-from ...core.config import settings
 from ...core.models import Message, MessageRole, Project, Task
 from ...core.models import Session as ChatSession
 from ...core.think import strip_think  # noqa: F401  re-exported: manager.py calls service.strip_think

@@ -8,8 +8,8 @@ roles table.
 - `repositories/user_repository.py` — the only place this app touches the
   ORM: `find_by_username`/`find_by_email`, `with_groups` (prefetches
   groups+permissions for `/me/`), `group_names`/`permission_codenames`,
-  `create`/`add_to_group`/`grant_to_group`/`deactivate` (users are
-  deactivated, never removed).
+  `exists`/`create`/`create_superuser`/`add_to_group`/`grant_to_group`/
+  `deactivate` (users are deactivated, never removed).
 - `services/account_service.py` — `AccountService(user=None)`: `sign_in`
   (same error message for a bad password and an unknown username, on
   purpose — see `INVALID_CREDENTIALS`), `sign_out`, `identity()` (what

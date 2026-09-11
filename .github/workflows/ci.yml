@@ -1,0 +1,217 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hooks:
+    name: Guard hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # The hooks enforce the mechanical rules during a session. Running them
+      # here catches anything committed from an environment without them.
+      - name: Check the hooks parse
+        run: |
+          python -m compileall -q .claude/hooks
+
+      # The session hooks fabricate a HOME and a real short-lived process, so
+      # this asserts liveness, the conflict warning and -- the one that keeps
+      # the feature alive -- that a peer who merely goes on existing is silent.
+      - name: Check the session hooks
+        run: |
+          python3 .claude/hooks/test_session_hooks.py
+
+      - name: Run guard-checks over the tree
+        run: |
+          fail=0
+          while IFS= read -r file; do
+            printf '{"tool_input":{"file_path":"%s"}}' "$file" \
+              | python3 .claude/hooks/guard-checks.py || fail=1
+          done < <(git ls-files 'backend/**/*.py' 'frontend/src/**/*.ts' \
+                                'frontend/src/**/*.html')
+          exit $fail
+        shell: bash
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+
+    services:
+      db:
+        image: pgvector/pgvector:0.8.6-pg18
+        env:
+          POSTGRES_DB: misbah
+          POSTGRES_USER: misbah
+          POSTGRES_PASSWORD: misbah
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U misbah -d misbah"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:8-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DJANGO_SECRET_KEY: ci-only-not-a-secret
+      DJANGO_DEBUG: "1"
+      POSTGRES_DB: misbah
+      POSTGRES_USER: misbah
+      POSTGRES_PASSWORD: misbah
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      REDIS_URL: redis://localhost:6379/0
+      CELERY_BROKER_URL: redis://localhost:6379/1
+      CELERY_RESULT_BACKEND: redis://localhost:6379/2
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install
+        run: pip install -r requirements-django-dev.txt
+
+      - name: Lint
+        run: ruff check .
+
+      # A model changed without a migration is a broken deploy, not a review note.
+      - name: No missing migrations
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Migrate
+        run: python manage.py migrate --noinput
+
+      # Rule: every endpoint documents itself. A spectacular warning means a
+      # missing @extend_schema, not a noisy tool.
+      - name: OpenAPI schema
+        run: python manage.py spectacular --fail-on-warn --file /dev/null
+
+      - name: Tests
+        run: pytest --cov=apps --cov-report=term-missing
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # Must be warning-clean, per frontend/CLAUDE.md.
+      - name: Build
+        run: npm run build
+
+  i18n:
+    name: Translation parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # The i18n standard (.claude/docs/language.md): every key exists in both
+      # languages, and no Arabic value carries tashkeel. Mechanical, so it is
+      # a check rather than a review comment. Until the Angular-22 cutover
+      # lands the bundles, there is nothing to check yet.
+      - name: en and ar have the same keys
+        shell: python
+        run: |
+          import json, pathlib, re, sys
+
+          # A word that needs a vowel mark to be read is the wrong
+          # word (.claude/docs/language.md).
+          TASHKEEL = re.compile("[\u064b-\u0652\u0670]")
+
+          def leaves(node, prefix=""):
+              for key, value in node.items():
+                  path = f"{prefix}.{key}" if prefix else key
+                  if isinstance(value, dict):
+                      yield from leaves(value, path)
+                  else:
+                      yield path, value
+
+          def keys(node, prefix=""):
+              out = set()
+              for key, value in node.items():
+                  path = f"{prefix}.{key}" if prefix else key
+                  out |= keys(value, path) if isinstance(value, dict) else {path}
+              return out
+
+          failed = False
+          for en_path in pathlib.Path("frontend/src").rglob("en.json"):
+              ar_path = en_path.with_name("ar.json")
+              if not ar_path.exists():
+                  print(f"::error file={en_path}::no ar.json beside it")
+                  failed = True
+                  continue
+              en = keys(json.loads(en_path.read_text(encoding="utf-8")))
+              ar = keys(json.loads(ar_path.read_text(encoding="utf-8")))
+              for key in sorted(en - ar):
+                  print(f"::error file={ar_path}::missing key: {key}")
+                  failed = True
+              for key in sorted(ar - en):
+                  print(f"::error file={en_path}::missing key: {key}")
+                  failed = True
+              for key, value in leaves(json.loads(ar_path.read_text(encoding="utf-8"))):
+                  if isinstance(value, str) and TASHKEEL.search(value):
+                      print(f"::error file={ar_path}::{key} carries tashkeel - replace the word")
+                      failed = True
+
+          sys.exit(1 if failed else 0)
+
+  memory:
+    name: Feature memory
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Root CLAUDE.md: every feature directory carries a CLAUDE.md — on all
+      # three sides: the Angular frontend, the live FastAPI backend and the
+      # Django migration target.
+      - name: Every feature has a CLAUDE.md
+        shell: bash
+        run: |
+          fail=0
+          for dir in frontend/src/app/features/*/ backend/app/features/*/ backend/apps/*/; do
+            [ -d "$dir" ] || continue
+            case "$(basename "$dir")" in __pycache__|.*) continue ;; esac
+            [ -f "$dir/CLAUDE.md" ] || { echo "::error::$dir has no CLAUDE.md"; fail=1; }
+          done
+          exit $fail

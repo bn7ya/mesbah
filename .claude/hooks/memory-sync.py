@@ -17,9 +17,12 @@ the feature's CLAUDE.md was not.
 from __future__ import annotations
 
 import json
-import os
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from session_registry import project_root
 
 FEATURE_ROOTS = (
     ("frontend", "src", "app", "features"),
@@ -28,13 +31,6 @@ FEATURE_ROOTS = (
 )
 IGNORED_APPS = {"common"}
 WRITE_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
-
-
-def project_root() -> Path:
-    root = os.environ.get("CLAUDE_PROJECT_DIR")
-    if root:
-        return Path(root)
-    return Path(__file__).resolve().parents[2]
 
 
 def feature_dir_for(path: Path, root: Path) -> Path | None:

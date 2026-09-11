@@ -7,28 +7,27 @@ to log in as. Idempotent: a no-op once any user exists.
 """
 from __future__ import annotations
 
+import os
 import secrets
 
-from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-UserModel = get_user_model()
+from apps.accounts.repositories import UserRepository
 
 
 class Command(BaseCommand):
     help = "Create the single default operator account, if no user exists yet."
 
     def handle(self, *args, **options) -> None:
-        if UserModel.objects.exists():
+        repo = UserRepository()
+        if repo.exists():
             self.stdout.write("An account already exists — nothing to seed.")
             return
-
-        import os
 
         username = os.environ.get("MISBAH_ADMIN_USERNAME", "operator")
         password = os.environ.get("MISBAH_ADMIN_PASSWORD") or secrets.token_urlsafe(12)
 
-        UserModel.objects.create_superuser(username=username, password=password, email="")
+        repo.create_superuser(username=username, password=password, email="")
 
         self.stdout.write(self.style.SUCCESS(f"Created operator account: {username}"))
         if "MISBAH_ADMIN_PASSWORD" not in os.environ:

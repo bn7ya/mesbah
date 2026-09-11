@@ -9,7 +9,6 @@ Exit code 0 = ready to fine-tune.
 """
 from __future__ import annotations
 
-import sys
 
 
 def main() -> int:

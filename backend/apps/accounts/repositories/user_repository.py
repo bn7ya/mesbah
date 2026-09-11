@@ -14,6 +14,10 @@ UserModel = get_user_model()
 class UserRepository:
     """Reads and writes for users, groups and permissions."""
 
+    def exists(self) -> bool:
+        """True once any account exists — the seed command's idempotency check."""
+        return UserModel.objects.exists()
+
     def find_by_username(self, username: str) -> User | None:
         return UserModel.objects.filter(username__iexact=username).first()
 
@@ -45,6 +49,10 @@ class UserRepository:
     def create(self, *, username: str, password: str, **fields) -> User:
         """Create a user with a hashed password (never stored in plain text)."""
         return UserModel.objects.create_user(username=username, password=password, **fields)
+
+    def create_superuser(self, *, username: str, password: str, **fields) -> User:
+        """Create an account with the superuser flags (the local operator)."""
+        return UserModel.objects.create_superuser(username=username, password=password, **fields)
 
     def add_to_group(self, user: User, name: str) -> User:
         user.groups.add(self.ensure_group(name))

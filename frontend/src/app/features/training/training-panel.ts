@@ -10,6 +10,7 @@ import { ChartModule } from 'primeng/chart';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
+import { debounceTime, Subject } from 'rxjs';
 import { Api } from '../../core/api';
 import { UiModeService } from '../../core/ui-mode';
 import { ArchitectureSpec, FeasibilityEstimate, MetricPoint, RunStatus, TrainingRun } from '../../core/types';
@@ -381,7 +382,18 @@ export class TrainingPanel implements OnInit, OnDestroy {
   private socket: WebSocket | null = null;
   private steps: number[] = [];
   private losses: number[] = [];
-  private estTimer: any = null;
+  /** Debounced architecture-estimate trigger; `debounceTime` is the delay. */
+  private readonly archEstimate$ = new Subject<void>();
+  private readonly archEstimateSub = this.archEstimate$.pipe(debounceTime(350)).subscribe({
+    next: () => {
+      const s = this.spec();
+      if (!s) return;
+      this.api.estimateArchitecture(s).subscribe({
+        next: (e) => { this.estimate.set(e); this.estimating.set(false); },
+        error: () => this.estimating.set(false),
+      });
+    },
+  });
   /** First (step, timestamp) seen for the current watch — feeds the Simple-mode ETA. */
   private etaStart: { step: number; ts: number } | null = null;
 
@@ -414,7 +426,7 @@ export class TrainingPanel implements OnInit, OnDestroy {
       }
     });
   }
-  ngOnDestroy(): void { this.socket?.close(); clearTimeout(this.estTimer); }
+  ngOnDestroy(): void { this.socket?.close(); this.archEstimateSub.unsubscribe(); }
 
   verdictAr(v: string): string { return VERDICT_AR[v] ?? v; }
   verdictSev(v: string) { return VERDICT_SEV[v] ?? 'info'; }
@@ -466,14 +478,8 @@ export class TrainingPanel implements OnInit, OnDestroy {
     // reference so the archErrors/isMoe/archValid computeds recompute.
     const s = { ...cur };
     this.spec.set(s);
-    clearTimeout(this.estTimer);
     this.estimating.set(true);
-    this.estTimer = setTimeout(() => {
-      this.api.estimateArchitecture(s).subscribe({
-        next: (e) => { this.estimate.set(e); this.estimating.set(false); },
-        error: () => this.estimating.set(false),
-      });
-    }, 350);
+    this.archEstimate$.next();
   }
 
   /** Persist the (possibly edited) architecture + knobs, then launch a full run. */

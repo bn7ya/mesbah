@@ -114,8 +114,8 @@ what makes `#12`'s commit unreturnable.
 
 ## 6. The gate — run it before every commit
 
-Mesbah has no `.github/workflows/ci.yml` yet — these are the closest equivalent to
-what a CI gate would run, taken from each side's own `CLAUDE.md`.
+This is the same set of checks `.github/workflows/ci.yml` runs, so a green
+gate is a commit CI accepts.
 
 ```bash
 # Django migration target — from backend/, with the docker-compose.django.yml stack
@@ -220,7 +220,7 @@ Closes #14"
 ```
 
 One `Closes` per line — GitHub only parses the keyword when it precedes each number.
-Then let CI (once it exists) or manual review run and report the result.
+Then let CI run and report the result.
 
 ## Never
 

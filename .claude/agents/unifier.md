@@ -18,9 +18,18 @@ finding is always a divergence, never a single file.
 
 **Vocabulary.** The same concept must have the same Arabic word everywhere.
 If one screen says "جلسة" and another "محادثة" for the same entity, pick
-one and change the other. Build the list of terms as you go; it is the
-most valuable thing you produce. Also check the English-technical-term
-boundary is drawn the same way everywhere (see `translator`).
+one and change the other. The list of terms lives in
+`.claude/docs/language.md`; add to it as you go, never keep a private one.
+It is the most valuable thing you produce. Also check the
+English-technical-term boundary is drawn the same way everywhere (see
+`translator`).
+
+**Register.** The Arabic is written to `.claude/docs/language.md`: no
+tashkeel, no verb that gives the product intent, no aside for a sceptic,
+no count before a noun, a title that names the page. A string that passes
+on one screen and fails on the next is a divergence, and the Arabic is read
+as Arabic — whether a native professional would write it in a product of
+their own, not whether it matches the English it was rendered from.
 
 **Actions.** The same action reads the same way everywhere. A delete
 confirms the same way on every screen; saves report the same way.

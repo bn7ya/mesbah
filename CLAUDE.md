@@ -96,6 +96,17 @@ Chat/training return a clear 503/“not installed” until `requirements-ml.txt`
 - **Arabic UI, English technical terms.** Don't translate `loss`, `adapter`, etc.
 - Each feature directory has a **`CLAUDE.md`** — read it before changing that feature.
 
+## Language
+
+Every user-facing string is Arabic written to `.claude/docs/language.md` —
+the standard: no tashkeel, the product has no intent, no aside for a
+sceptic, a count never precedes a noun, a title names the page, one word per
+concept. `copywriter` and `translator` write to it, `unifier` keeps its
+vocabulary, and the guard hook enforces the tashkeel rule mechanically in
+the one place a regex can see it — the `ar.json` catalogues and seed
+migrations, which land with the i18n bundles at the Angular-22 cutover —
+with the same check in the `i18n` CI job.
+
 ## Claude Code tooling (`.claude/`)
 
 Specialist agents, hooks and the Django-side design pattern doc, ported and
@@ -106,7 +117,8 @@ the specialists that cite it (`architect` plans, `django_engineer`/
 `angular_engineer`/`db_engineer` implement and review, `cleaner`/`unifier`
 sweep, `goldenizer`/`copywriter`/`translator` own presentation and Arabic
 copy). Two hooks enforce parts of it mechanically and **can block**:
-`guard-checks.py` (PostToolUse — layering violations) and `memory-sync.py`
+`guard-checks.py` (PostToolUse — layering violations and tashkeel in Arabic
+a user reads) and `memory-sync.py`
 (Stop — a touched feature's `CLAUDE.md` wasn't updated); `git-flow-gate.py`
 (UserPromptSubmit) is advisory only. See `.claude/skills/git-flow/SKILL.md`
 for the optional issue-first workflow these assume when a session isn't

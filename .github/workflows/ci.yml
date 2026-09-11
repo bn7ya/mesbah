@@ -25,6 +25,13 @@ jobs:
         run: |
           python -m compileall -q .claude/hooks
 
+      # The session hooks fabricate a HOME and a real short-lived process, so
+      # this asserts liveness, the conflict warning and -- the one that keeps
+      # the feature alive -- that a peer who merely goes on existing is silent.
+      - name: Check the session hooks
+        run: |
+          python3 .claude/hooks/test_session_hooks.py
+
       - name: Run guard-checks over the tree
         run: |
           fail=0

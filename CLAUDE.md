@@ -124,6 +124,16 @@ a user reads) and `memory-sync.py`
 for the optional issue-first workflow these assume when a session isn't
 already working a pre-assigned branch.
 
+## Session awareness
+
+Several Claude sessions run on this machine at once, often in different worktrees, so before you edit a file, commit to a branch, or start the gate, know who else is doing it. Every session writes a short document about itself — its worktree, branch, issue, and what it was last asked to do — and reads every other live session's. Four hooks do it: `SessionStart` prints who else is live, `UserPromptSubmit` speaks only when that set changes, and two `PreToolUse` hooks warn before you edit a file another live session is holding or start a command that takes the gate, the test database or the compose project. The hooks say so without being asked; `/sessions` is how you look, and how you message a peer by name. Never take a resource another live session announced without deciding to.
+
+It **warns and lets you through**. One person drives every session, so the decision belongs with them, not with a hook. Nothing here takes a lock, and nothing waits on anything.
+
+The documents live in `$XDG_RUNTIME_DIR/claude-sessions/`, never in the repository — the contention is over one machine, not one repository, and tmpfs means a reboot clears it correctly. Liveness comes from `/proc`, never from a heartbeat.
+
+`.claude/docs/sessions.md` is the full protocol and the reasoning. `CLAUDE_SESSIONS_OFF=1` turns it off; `/sessions` is the skill.
+
 ## Verify
 
 `backend/`: the smoke flow (project → task → session → correction → dataset →

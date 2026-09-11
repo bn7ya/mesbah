@@ -9,19 +9,15 @@ context, so it stays silent and communicates only through its exit code.
 from __future__ import annotations
 
 import json
-import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from session_registry import project_root
+
 LOG_NAME = "prompt.txt"
-
-
-def project_root() -> Path:
-    root = os.environ.get("CLAUDE_PROJECT_DIR")
-    if root:
-        return Path(root)
-    return Path(__file__).resolve().parents[2]
 
 
 def main() -> int:

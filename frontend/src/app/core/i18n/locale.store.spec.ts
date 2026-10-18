@@ -35,6 +35,17 @@ describe('LocaleStore', () => {
     expect(store.translate('auth.signedInAs', { name: 'Sara' })).toBe('Signed in as Sara');
   });
 
+  it('isolates a value written in the other script', () => {
+    store.setLocale('en');
+    TestBed.tick();
+    expect(store.translate('auth.signedInAs', { name: 'سارة' })).toBe('Signed in as \u2068سارة\u2069');
+
+    store.setLocale('ar');
+    TestBed.tick();
+    expect(store.translate('auth.signedInAs', { name: 'Sara' })).toContain('\u2068Sara\u2069');
+    expect(store.translate('auth.signedInAs', { name: 'سارة' })).not.toContain('\u2068');
+  });
+
   it('leaves a placeholder alone when no value is given for it', () => {
     store.setLocale('en');
     TestBed.tick();

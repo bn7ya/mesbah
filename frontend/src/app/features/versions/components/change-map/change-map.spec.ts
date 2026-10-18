@@ -107,7 +107,7 @@ describe('ChangeMapView', () => {
     render('ar');
 
     const cell = page.querySelectorAll('td.map__cell')[0];
-    expect(cell.getAttribute('aria-label')).toBe('الطبقة 0، q_proj: 0.96');
+    expect(cell.getAttribute('aria-label')).toBe('الطبقة 0، \u2068q_proj\u2069: 0.96');
     expect(page.querySelector('th[scope="colgroup"]')?.textContent?.trim()).toBe('الانتباه');
   });
 });

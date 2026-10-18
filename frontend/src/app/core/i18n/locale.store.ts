@@ -6,6 +6,8 @@ import en from './en.json';
 import { DIRECTION, LOCALES, type Direction, type Locale, type TranslationBundle, type TranslationSet } from './locale.types';
 
 const STORAGE_KEY = 'locale';
+const OPPOSITE_SCRIPT: Readonly<Record<Direction, RegExp>> = { rtl: /[A-Za-z]/, ltr: /[\u0590-\u08ff]/ };
+const ISOLATES: readonly string[] = ['\u2066', '\u2067', '\u2068'];
 
 @Injectable({ providedIn: 'root' })
 export class LocaleStore {
@@ -48,8 +50,9 @@ export class LocaleStore {
     if (!values) {
       return template;
     }
+    const direction = this.direction();
     return template.replace(/\{(\w+)\}/g, (match, name: string) =>
-      name in values ? String(values[name]) : match,
+      name in values ? isolated(String(values[name]), direction) : match,
     );
   }
 
@@ -83,4 +86,13 @@ function readInitialLocale(): Locale {
 
 function isLocale(value: string | null): value is Locale {
   return value !== null && (LOCALES as readonly string[]).includes(value);
+}
+
+// A value in the other script keeps its own direction inside the sentence, so a name's
+// punctuation stays beside it; values already isolated are left as they are.
+function isolated(text: string, direction: Direction): string {
+  if (!OPPOSITE_SCRIPT[direction].test(text) || ISOLATES.some((mark) => text.startsWith(mark))) {
+    return text;
+  }
+  return `\u2068${text}\u2069`;
 }

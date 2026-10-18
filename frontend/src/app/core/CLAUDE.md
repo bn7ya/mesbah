@@ -79,8 +79,9 @@ shows in the shared `<app-note kind="error">`.
 **`LocaleStore`** (`i18n/`) — the current language, persisted (Arabic until someone chooses), and the dictionary of every
 registered bundle. Writes `lang` and `dir` on the document, and turns the CDK's root
 `Directionality` with them, so Material components and overlays follow the language.
-`translate()` resolves a key and fills `{name}` placeholders; a missing key renders as
-itself. `register()` adds a feature's bundles.
+`translate()` resolves a key and fills `{name}` placeholders, isolating a value written in the
+other script (a Latin name in Arabic, an Arabic one in English) so it keeps its own direction; a
+missing key renders as itself. `register()` adds a feature's bundles.
 
 **`LocalePaginatorIntl`** (`i18n/paginator-intl.ts`) — every `mat-paginator`'s labels and range
 in the reader's language, refreshed when the language changes. Provided in `app.config.ts`.

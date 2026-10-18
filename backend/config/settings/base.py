@@ -62,6 +62,7 @@ LOCAL_APPS: list[str] = [
     "apps.common",
     "apps.accounts",
     "apps.members",
+    "apps.models",
     "apps.system",
 ]
 

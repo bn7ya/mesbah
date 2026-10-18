@@ -49,7 +49,8 @@
     "goHome": "Go to the start",
     "setup_code_rejected": "That setup code doesn't match. Copy it again from the terminal.",
     "setup_done": "Mesbah is already set up. Sign in instead.",
-    "weak_password": "That password is too easy to guess. Use at least 8 characters that are hard to guess."
+    "weak_password": "That password is too easy to guess. Use at least 8 characters that are hard to guess.",
+    "hf_unreachable": "HuggingFace can't be reached right now. Try again later."
   },
   "actions": {
     "cancel": "Cancel",
@@ -63,6 +64,7 @@
   "nav": {
     "label": "Main",
     "open": "Open the menu",
+    "models": "Models",
     "system": "System",
     "members": "Members"
   },
@@ -92,6 +94,30 @@
     "cpu": {
       "term": "CPU",
       "explain": "The computer's main processor. It can run small models, slowly."
+    },
+    "parameters": {
+      "term": "Parameters",
+      "explain": "The numbers a model learned during training. More parameters usually mean a more capable model that needs more memory."
+    },
+    "context": {
+      "term": "Context length",
+      "explain": "How much text the model can keep in view at once, counted in tokens. A longer context fits longer documents and chats."
+    },
+    "thinking": {
+      "term": "Thinking",
+      "explain": "Some models write out their reasoning before the reply. That reasoning can be read and edited."
+    },
+    "qlora": {
+      "term": "QLoRA",
+      "explain": "A way to train a large model on a small GPU. Only a small part is trained, on top of a compressed copy of the model."
+    },
+    "moe": {
+      "term": "MoE",
+      "explain": "Mixture of experts. The model holds many specialist parts and uses only a few for each token, so it runs faster than its size suggests."
+    },
+    "token": {
+      "term": "token",
+      "explain": "A piece of text the model reads and writes at a time, such as a short word or part of a word."
     }
   },
   "paginator": {

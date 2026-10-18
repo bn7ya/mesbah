@@ -19,6 +19,13 @@ export function formatNumber(value: number, locale: Locale, fractionDigits = 0):
   }).format(value);
 }
 
+export function formatCompact(value: number, locale: Locale): string {
+  return new Intl.NumberFormat(NUMBER_LOCALES[locale], {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
 export function formatBytes(bytes: number, locale: Locale): string {
   let value = Math.max(0, bytes);
   let unit = 0;

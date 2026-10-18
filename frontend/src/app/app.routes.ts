@@ -26,6 +26,10 @@ export const routes: Routes = [
         redirectTo: 'system',
       },
       {
+        path: 'models',
+        loadChildren: () => import('@features/models/models.routes').then((m) => m.routes),
+      },
+      {
         path: 'system',
         loadChildren: () => import('@features/system/system.routes').then((m) => m.routes),
       },

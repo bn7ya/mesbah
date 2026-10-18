@@ -1,0 +1,4 @@
+<span class="fit-verdict" [class.fit-verdict--error]="verdict() === 'too_large'">
+  <mat-icon [fontIcon]="icon()" />
+  <span>{{ 'models.fit.verdict.' + verdict() | t }}</span>
+</span>

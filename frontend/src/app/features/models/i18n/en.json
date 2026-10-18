@@ -1,0 +1,129 @@
+{
+  "models": {
+    "title": "Models",
+    "subtitle": "Models from HuggingFace, and the ones downloaded to this machine.",
+    "parameters": "Parameters: {count}",
+    "thinking": "Thinking",
+    "added": "Download started.",
+    "removed": "Model removed.",
+    "cancelled": "Stopping the download.",
+    "retried": "Download started again.",
+    "tokenLink": "Add a token",
+    "family": {
+      "dense_decoder": "Decoder",
+      "moe_decoder": "Mixture of experts",
+      "encoder_decoder": "Encoder-decoder",
+      "other": "Other"
+    },
+    "library": {
+      "title": "Library",
+      "loading": "Loading the library",
+      "pages": "Pages of models",
+      "emptyTitle": "No models downloaded yet.",
+      "emptyWrite": "Find a model below and download it.",
+      "emptyRead": "A trainer or an administrator can download models.",
+      "queued": "Waiting to start",
+      "progress": "{done} of {total}",
+      "progressLabel": "Download progress of {name}",
+      "ready": "Ready",
+      "failed": "Download failed",
+      "stopped": "Stopped",
+      "cancelFor": "Cancel the download of {name}",
+      "retryFor": "Download {name} again",
+      "remove": "Remove",
+      "removeFor": "Remove {name}",
+      "failure": {
+        "gated": "This model needs a HuggingFace token with access to it.",
+        "not_found": "HuggingFace has no model with this name, or it is private.",
+        "disk_full": "There isn't enough free disk space.",
+        "network": "The connection to HuggingFace was interrupted.",
+        "unknown": "The download stopped because of an error."
+      }
+    },
+    "remove": {
+      "title": "Remove {name}?",
+      "body": "The downloaded files are deleted from this machine. The model stays on HuggingFace and can be downloaded again.",
+      "confirm": "Remove"
+    },
+    "find": {
+      "title": "Find a model",
+      "label": "Search HuggingFace",
+      "hint": "Leave empty for popular models. Type a name to choose a task.",
+      "submit": "Search",
+      "task": "Task",
+      "tasks": {
+        "text-generation": "Text generation",
+        "text2text-generation": "Text to text"
+      },
+      "popular": "Popular text generation models",
+      "resultsFor": "Results for",
+      "loading": "Searching HuggingFace",
+      "empty": "No models found.",
+      "emptyHint": "Check the spelling or try the other task.",
+      "downloads": "Downloads",
+      "likes": "Likes",
+      "license": "License:",
+      "gated": "Needs access",
+      "inLibrary": "In library",
+      "chat": "Chat",
+      "details": "Details",
+      "detailsFor": "Details of {name}"
+    },
+    "fit": {
+      "title": "Fit for this machine",
+      "available": "available to Mesbah: {size}",
+      "noGpu": "No GPU found. Chat and training would run on the CPU, which is much slower.",
+      "use": {
+        "chat": "Chat, compressed (4-bit)",
+        "chat_full": "Chat, full precision",
+        "training": "Training with"
+      },
+      "verdict": {
+        "fits": "Fits",
+        "tight": "Tight",
+        "too_large": "Too large",
+        "cpu_only": "CPU only",
+        "unknown": "Unknown"
+      },
+      "need": "Needs about {required} of {available}",
+      "needMemory": "Needs about {required} of memory",
+      "needUnknown": "The size of this model isn't known."
+    },
+    "details": {
+      "loading": "Loading the model details",
+      "about": "About this model",
+      "family": {
+        "dense_decoder": "A standard text-writing model. All of its parameters work on every token.",
+        "moe_decoder": "A mixture of experts. It holds many specialist parts and uses only a few of them for each token.",
+        "encoder_decoder": "Reads the whole input first, then writes the output. Common in translation and summaries.",
+        "other": "The architecture of this model isn't recognised, so some details are missing."
+      },
+      "type": "Type",
+      "activeLabel": "Parameters used for each token",
+      "active": "{active} of {total}",
+      "experts": "Experts",
+      "expertsPerToken": "Experts for each token",
+      "layers": "Layers",
+      "vocabulary": "Vocabulary size",
+      "thinkingYes": "Supported",
+      "thinkingNo": "Not supported",
+      "license": "License",
+      "licenseNone": "Not stated",
+      "size": "Download size",
+      "gated": "This model is gated. Accept its terms on HuggingFace, then save a token with access.",
+      "notDownloadable": "This repository has no model weights to load.",
+      "inLibrary": "This model is already in the library.",
+      "readOnly": "Only a trainer or an administrator can download models.",
+      "download": "Download",
+      "starting": "Starting…",
+      "close": "Close"
+    }
+  },
+  "errors": {
+    "already_in_library": "This model is already in the library.",
+    "not_downloadable": "This repository has no model weights to load.",
+    "disk_full": "There isn't enough free disk space for this model.",
+    "hub_model_not_found": "HuggingFace has no model with that name.",
+    "hub_model_gated": "This model needs a HuggingFace token with access to it. Save one on the System page."
+  }
+}

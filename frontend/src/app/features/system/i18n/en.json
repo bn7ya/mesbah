@@ -61,7 +61,6 @@
   },
   "errors": {
     "hf_token_rejected": "This token isn't valid on HuggingFace. Check it and try again.",
-    "hf_unreachable": "HuggingFace can't be reached right now. Try again later.",
     "unknown_gpu": "That GPU isn't on this machine."
   }
 }

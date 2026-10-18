@@ -47,7 +47,8 @@ their groups; `at_least()` lists a role and every role above it; `rank()` orders
 
 **`RoleAtLeast`** (`permissions.py`) — allows an active user holding the role or any above it;
 superusers pass. **`IsViewer`**, **`IsReviewer`**, **`IsTrainer`**, **`IsAdministrator`** are
-the four permissions views use.
+the four permissions views use. **`ViewersReadTrainersWrite`** — viewers may read, trainers may
+change: the usual rule for a library or a project.
 
 **`MemberRepository`** — lists users with their groups, finds one, checks a username, creates a
 user with a hashed password, replaces a user's role group, updates fields, and counts the

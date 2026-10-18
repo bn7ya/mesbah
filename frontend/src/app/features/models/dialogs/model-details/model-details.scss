@@ -1,0 +1,126 @@
+@use "layout" as *;
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-6);
+}
+
+.details__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+
+  h3 {
+    margin: 0;
+    font: var(--mat-sys-title-medium);
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+.details__facts {
+  display: grid;
+  gap: var(--app-space-3) var(--app-space-5);
+  margin: 0;
+
+  @include from($screen-sm) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-1);
+  }
+
+  dt {
+    display: flex;
+    align-items: center;
+    min-block-size: calc(var(--app-icon-box) + var(--app-space-2));
+    font: var(--mat-sys-label-large);
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--app-space-1) var(--app-space-2);
+    align-items: center;
+    margin: 0;
+    font: var(--mat-sys-body-large);
+  }
+}
+
+.details__lead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+  align-items: center;
+}
+
+.details__note {
+  display: flex;
+  gap: var(--app-space-3);
+  align-items: flex-start;
+}
+
+.details__fit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    gap: var(--app-space-1) var(--app-space-4);
+
+    @include from($screen-sm) {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+  }
+
+  app-fit-verdict {
+    font: var(--mat-sys-label-large);
+  }
+
+  .text-secondary {
+    font: var(--mat-sys-body-medium);
+
+    @include from($screen-sm) {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+.details__use {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1);
+  align-items: center;
+}
+
+.details__failure {
+  display: flex;
+  gap: var(--app-space-3);
+  align-items: center;
+  padding: var(--app-space-3) var(--app-space-4);
+  margin: 0;
+  color: var(--mat-sys-on-error-container);
+  background: var(--mat-sys-error-container);
+  border-radius: var(--mat-sys-corner-small);
+}
+
+.details__failure--footer {
+  margin-inline: var(--app-space-6);
+}
+
+.details__reason {
+  flex: 1 1 100%;
+  margin: 0;
+  font: var(--mat-sys-body-medium);
+}

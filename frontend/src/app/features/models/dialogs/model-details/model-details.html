@@ -1,0 +1,196 @@
+<h2 mat-dialog-title><span dir="ltr">{{ data.repo }}</span></h2>
+
+<mat-dialog-content class="details">
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" [attr.aria-label]="'models.details.loading' | t" />
+  }
+
+  @if (loadFailure(); as problem) {
+    <p class="details__failure" role="alert">
+      <mat-icon fontIcon="fa-circle-exclamation" />
+      {{ problem.message }}
+    </p>
+    <div>
+      <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
+    </div>
+  }
+
+  @if (inspection(); as model) {
+    <section class="details__section" aria-labelledby="details-about">
+      <h3 id="details-about">{{ 'models.details.about' | t }}</h3>
+      <p>{{ 'models.details.family.' + model.family | t }}</p>
+
+      <dl class="details__facts">
+        <div>
+          <dt>{{ 'models.details.type' | t }}</dt>
+          <dd>
+            {{ 'models.family.' + model.family | t }}
+            @if (moe()) {
+              <app-term key="moe" />
+            }
+          </dd>
+        </div>
+
+        @if (model.parameters !== null) {
+          <div>
+            <dt><app-term key="parameters" /></dt>
+            <dd>{{ model.parameters | compact }}</dd>
+          </div>
+        }
+
+        @if (moe() && model.active_parameters !== null && model.parameters !== null) {
+          <div>
+            <dt>{{ 'models.details.activeLabel' | t }}</dt>
+            <dd>
+              {{
+                'models.details.active'
+                  | t: { active: (model.active_parameters | compact), total: (model.parameters | compact) }
+              }}
+            </dd>
+          </div>
+        }
+
+        @if (moe() && model.architecture.experts !== null) {
+          <div>
+            <dt>{{ 'models.details.experts' | t }}</dt>
+            <dd>{{ count(model.architecture.experts) }}</dd>
+          </div>
+        }
+
+        @if (moe() && model.architecture.experts_per_token !== null) {
+          <div>
+            <dt>{{ 'models.details.expertsPerToken' | t }}</dt>
+            <dd>{{ count(model.architecture.experts_per_token) }}</dd>
+          </div>
+        }
+
+        @if (model.architecture.layers !== null) {
+          <div>
+            <dt>{{ 'models.details.layers' | t }}</dt>
+            <dd>{{ count(model.architecture.layers) }}</dd>
+          </div>
+        }
+
+        @if (model.architecture.context_length !== null) {
+          <div>
+            <dt><app-term key="context" /></dt>
+            <dd>
+              {{ count(model.architecture.context_length) }}
+              <app-term key="token" />
+            </dd>
+          </div>
+        }
+
+        @if (model.architecture.vocab_size !== null) {
+          <div>
+            <dt>{{ 'models.details.vocabulary' | t }}</dt>
+            <dd>{{ count(model.architecture.vocab_size) }}</dd>
+          </div>
+        }
+
+        <div>
+          <dt><app-term key="thinking" /></dt>
+          <dd>{{ (model.supports_thinking ? 'models.details.thinkingYes' : 'models.details.thinkingNo') | t }}</dd>
+        </div>
+
+        <div>
+          <dt>{{ 'models.details.license' | t }}</dt>
+          <dd>
+            @if (model.license) {
+              <span dir="ltr">{{ model.license }}</span>
+            } @else {
+              {{ 'models.details.licenseNone' | t }}
+            }
+          </dd>
+        </div>
+
+        @if (model.size_bytes > 0) {
+          <div>
+            <dt>{{ 'models.details.size' | t }}</dt>
+            <dd>{{ model.size_bytes | bytes }}</dd>
+          </div>
+        }
+      </dl>
+
+      @if (model.gated) {
+        <p class="details__note">
+          <mat-icon fontIcon="fa-lock" />
+          <span>
+            {{ 'models.details.gated' | t }}
+            <a routerLink="/system">{{ 'models.tokenLink' | t }}</a>
+          </span>
+        </p>
+      }
+    </section>
+
+    <section class="details__section" aria-labelledby="details-fit">
+      <h3 id="details-fit">{{ 'models.fit.title' | t }}</h3>
+
+      @if (noGpu()) {
+        <p class="details__note">
+          <mat-icon fontIcon="fa-microchip" />
+          <span>{{ 'models.fit.noGpu' | t }}</span>
+        </p>
+      } @else {
+        <p class="details__lead">
+          <app-term key="vram" />
+          <span>{{ 'models.fit.available' | t: { size: (model.fit.chat.available_bytes | bytes) } }}</span>
+        </p>
+      }
+
+      <ul class="details__fit">
+        @for (use of uses; track use) {
+          @let fit = model.fit[use];
+          <li>
+            <span class="details__use">
+              {{ 'models.fit.use.' + use | t }}
+              @if (use === 'training') {
+                <app-term key="qlora" />
+              }
+            </span>
+            <app-fit-verdict [verdict]="fit.verdict" />
+            <span class="text-secondary">
+              @if (fit.required_bytes === null) {
+                {{ 'models.fit.needUnknown' | t }}
+              } @else if (fit.verdict === 'cpu_only') {
+                {{ 'models.fit.needMemory' | t: { required: (fit.required_bytes | bytes) } }}
+              } @else {
+                {{
+                  'models.fit.need'
+                    | t: { required: (fit.required_bytes | bytes), available: (fit.available_bytes | bytes) }
+                }}
+              }
+            </span>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+</mat-dialog-content>
+
+@if (failure(); as problem) {
+  <p class="details__failure details__failure--footer" role="alert">
+    <mat-icon fontIcon="fa-circle-exclamation" />
+    {{ problem.message }}
+  </p>
+}
+
+<mat-dialog-actions align="end">
+  @if (blocker(); as reason) {
+    <p class="details__reason text-secondary" id="details-reason">{{ reason | t }}</p>
+  }
+  <button matButton type="button" [mat-dialog-close]="false">{{ 'models.details.close' | t }}</button>
+  @if (canWrite()) {
+    <button
+      matButton="filled"
+      type="button"
+      [disabled]="inspection() === null || blocker() !== null || adding()"
+      [attr.aria-busy]="adding()"
+      [attr.aria-describedby]="blocker() ? 'details-reason' : null"
+      (click)="download()"
+    >
+      <mat-icon fontIcon="fa-download" />
+      {{ (adding() ? 'models.details.starting' : 'models.details.download') | t }}
+    </button>
+  }
+</mat-dialog-actions>

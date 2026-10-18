@@ -61,7 +61,6 @@
   },
   "errors": {
     "hf_token_rejected": "هذا الرمز غير صالح في HuggingFace. تحقق منه وحاول مرة أخرى.",
-    "hf_unreachable": "تعذر الوصول إلى HuggingFace الآن. حاول لاحقا.",
     "unknown_gpu": "هذه الوحدة غير موجودة في هذا الجهاز."
   }
 }

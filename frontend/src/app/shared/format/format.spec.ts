@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatBytes, formatNumber } from './format';
+import { formatBytes, formatCompact, formatNumber } from './format';
 
 const GIB = 1024 ** 3;
 
@@ -33,5 +33,23 @@ describe('formatBytes', () => {
 describe('formatNumber', () => {
   it('groups thousands', () => {
     expect(formatNumber(14_000_000_000, 'en')).toBe('14,000,000,000');
+  });
+});
+
+describe('formatCompact', () => {
+  it('shortens a model size to billions', () => {
+    expect(formatCompact(8_190_735_360, 'en')).toBe('8.2B');
+  });
+
+  it('shortens a download count to millions', () => {
+    expect(formatCompact(9_122_623, 'en')).toBe('9.1M');
+  });
+
+  it('leaves a small count whole', () => {
+    expect(formatCompact(999, 'en')).toBe('999');
+  });
+
+  it('writes the unit in Arabic with Latin digits', () => {
+    expect(formatCompact(8_190_735_360, 'ar')).toBe('8.2\u00a0مليار');
   });
 });

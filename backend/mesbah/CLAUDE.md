@@ -14,6 +14,8 @@ mesbah/
   database.py   a PostgreSQL URL as Django settings
   paths.py      where Mesbah keeps its data
   hardware.py   GPUs, RAM and CPU of this machine
+  sizing.py     what a model's config says it is, and whether it fits in memory
+  download.py   `python -m mesbah.download`: one HuggingFace snapshot, as a subprocess
   parts.py      which optional packages are installed, read from metadata
   _server/      only in the wheel: apps/ and config/
   _spa/         only in the wheel: the built Angular app
@@ -29,6 +31,17 @@ of the platform. **`ensure()`** — creates a folder and returns it.
 the driver version, from NVML, then `nvidia-smi`, else none; cached for the process.
 **`ram_bytes()`** — total memory, with a Windows fallback. **`machine()`** — everything at
 once. **`forget()`** — drops the cached GPU probe.
+
+**`architecture()`** (`sizing.py`) — a model's `config.json` as plain fields (family, layers,
+hidden size, heads, context, experts), reading multimodal configs' `text_config`.
+**`active_parameters()`** — the parameters a mixture of experts uses per token.
+**`chat_bytes()`**, **`qlora_bytes()`**, **`fit()`** — memory estimates for chatting in 4-bit or
+half precision and for QLoRA training, and the verdict against the VRAM available.
+**`supports_thinking()`** — whether a chat template knows a thinking chain.
+
+**`main()`** (`download.py`) — downloads one repository into the HuggingFace cache, skipping
+other weight formats when safetensors exist, and prints one JSON line: the snapshot path or an
+error code (`gated`, `not_found`, `disk_full`, `network`).
 
 **`Part`**, **`parts()`** (`parts.py`) — each optional package, what it enables and its
 installed version, read from package metadata without importing it. `Part.cuda` says whether

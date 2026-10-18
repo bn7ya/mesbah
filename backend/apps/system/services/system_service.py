@@ -58,6 +58,15 @@ class SystemService:
             "huggingface": self._huggingface(),
         }
 
+    def usable_vram_bytes(self) -> int:
+        machine: hardware.Machine = hardware.machine()
+        chosen: list[int] = self._chosen_indices(machine.gpus)
+        return sum(gpu.memory_bytes for gpu in self._effective(machine.gpus, chosen))
+
+    def huggingface_token(self) -> str | None:
+        secret: Secret | None = self.secrets.find_by_name(HUGGINGFACE_TOKEN)
+        return None if secret is None else self.box.open(secret.ciphertext)
+
     def select_gpus(self, indices: list[int]) -> dict[str, Any]:
         known: set[int] = {gpu.index for gpu in hardware.machine().gpus}
         if any(index not in known for index in indices):

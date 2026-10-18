@@ -42,9 +42,11 @@ has no popover.
 segments plus the free remainder, with a legend that carries the same numbers in text and an
 `aria-label` that reads them all.
 
-**`formatBytes()`**, **`formatNumber()`**, **`BytesPipe`** (`format/`) — sizes in binary units
-labelled B…PB, wrapped in Unicode isolates so "16 GB" keeps its order in an Arabic sentence;
-numbers with Latin digits in both languages.
+**`formatBytes()`**, **`formatNumber()`**, **`formatCompact()`**, **`BytesPipe`**,
+**`CompactPipe`** (`format/`) — sizes in binary units labelled B…PB, wrapped in Unicode isolates
+so "16 GB" keeps its order in an Arabic sentence; numbers with Latin digits in both languages;
+and counts shortened the way the language writes them ("8.2B", "9.1M" in English, "8.2 مليار"
+in Arabic).
 
 **`ConfirmDialog`**, **`confirmAction()`** (`confirm-dialog/`) — a `MatDialog` that asks one
 question with translation keys and resolves to `true` only on the confirming button; a

@@ -11,8 +11,8 @@ change and remove projects.
 - `/projects/:projectId` — the **project frame**: the header (name as the page `<h1>`, base
   model, the active version as a chip, a link back to Projects) and a `mat-tab-nav-bar` over a
   `<router-outlet>`. Its first child, `''`, is the overview. The other tabs are children the
-  **app** declares in `app.routes.ts` through `projectFrame(tabs)` — `chat` and `versions` today — because
-  features never import each other. `PROJECT_TABS` (`project-tabs.ts`) lists the tabs as data
+  **app** declares in `app.routes.ts` through `projectFrame(tabs)` — `chat`, `training` and
+  `versions` today — because features never import each other. `PROJECT_TABS` (`project-tabs.ts`) lists the tabs as data
   (`path`, `labelKey`, `icon`, `role`); a later slice adds one line there, one route in
   `app.routes.ts` and one `projects.tabs.*` key.
 - Child pages read `projectId` from the route. `app.config.ts` sets

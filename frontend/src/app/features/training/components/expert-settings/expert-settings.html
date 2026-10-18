@@ -1,0 +1,103 @@
+<p class="expert__intro text-secondary">{{ 'training.expert.intro' | t }}</p>
+<p class="expert__terms text-secondary">
+  <span>{{ 'training.terms' | t }}</span>
+  @for (key of terms; track key) {
+    <app-term [key]="key" />
+  }
+</p>
+
+<div class="expert__grid">
+  @for (field of exactFields; track field.key) {
+    <div class="expert__field">
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>{{ field.labelKey | t }}</mat-label>
+        <input
+          matInput
+          type="number"
+          inputmode="decimal"
+          autocomplete="off"
+          [name]="field.key"
+          [min]="field.min"
+          [max]="field.max"
+          [step]="field.step"
+          [disabled]="disabled()"
+          [errorStateMatcher]="matcher(field.key)"
+          [ngModel]="value(field.key)"
+          (ngModelChange)="setNumber(field.key, $event)"
+        />
+        <mat-hint>{{ field.hintKey | t }} {{ 'training.expert.default' | t: { value: defaultOf(field) } }}</mat-hint>
+        <mat-error>
+          @if (problem(field.key); as found) {
+            {{ 'training.problem.' + found.kind | t: { min: plain(field.min), max: plain(field.max) } }}
+          }
+        </mat-error>
+      </mat-form-field>
+    </div>
+  }
+
+  <div class="expert__field">
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'training.expert.rank' | t }}</mat-label>
+      <mat-select
+        name="lora_rank"
+        [value]="settings().lora_rank"
+        [disabled]="disabled()"
+        (valueChange)="setRank($event)"
+      >
+        @for (choice of rankChoices; track choice) {
+          <mat-option [value]="choice">{{ choice }}</mat-option>
+        }
+      </mat-select>
+      <mat-hint>{{ 'training.expert.rankHint' | t }} {{ 'training.expert.default' | t: { value: plain(defaults().lora_rank) } }}</mat-hint>
+    </mat-form-field>
+  </div>
+
+  @for (field of expertFields; track field.key) {
+    <div class="expert__field">
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>{{ field.labelKey | t }}</mat-label>
+        <input
+          matInput
+          type="number"
+          inputmode="decimal"
+          autocomplete="off"
+          [name]="field.key"
+          [min]="field.min"
+          [max]="field.max"
+          [step]="field.step"
+          [disabled]="disabled()"
+          [errorStateMatcher]="matcher(field.key)"
+          [ngModel]="value(field.key)"
+          (ngModelChange)="setNumber(field.key, $event)"
+        />
+        <mat-hint>{{ field.hintKey | t }} {{ 'training.expert.default' | t: { value: defaultOf(field) } }}</mat-hint>
+        <mat-error>
+          @if (problem(field.key); as found) {
+            {{ 'training.problem.' + found.kind | t: { min: plain(field.min), max: plain(field.max) } }}
+          }
+        </mat-error>
+      </mat-form-field>
+    </div>
+  }
+</div>
+
+<div class="expert__switches">
+  @for (item of switches; track item.key) {
+    <div class="expert__switch">
+      <div class="expert__switch-head">
+        <mat-slide-toggle
+          [checked]="flag(item)"
+          [disabled]="disabled()"
+          [attr.aria-describedby]="'expert-' + item.key"
+          (change)="setFlag(item.key, $event.checked)"
+        >
+          {{ item.labelKey | t }}
+        </mat-slide-toggle>
+        @if (item.termKey) {
+          <app-term [key]="item.termKey" />
+        }
+      </div>
+      <p class="text-secondary" [id]="'expert-' + item.key">{{ item.hintKey | t }}</p>
+    </div>
+  }
+</div>

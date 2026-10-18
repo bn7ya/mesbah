@@ -1,0 +1,218 @@
+<mat-card appearance="outlined" class="form" aria-labelledby="train-title">
+  <div class="form__heading">
+    <h3 id="train-title">{{ 'training.form.title' | t }}</h3>
+    <p class="text-secondary">{{ 'training.form.intro' | t }}</p>
+  </div>
+
+  <form class="form__body" novalidate [attr.aria-busy]="starting()" (ngSubmit)="submit()">
+    @if (failure(); as problem) {
+      <p class="form__failure" role="alert">
+        <mat-icon fontIcon="fa-circle-exclamation" />
+        {{ problem.message }}
+      </p>
+    }
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'training.form.name' | t }}</mat-label>
+      <input
+        matInput
+        name="name"
+        dir="auto"
+        autocomplete="off"
+        [maxlength]="nameMax"
+        [disabled]="starting()"
+        [ngModel]="name()"
+        (ngModelChange)="name.set($event)"
+      />
+      <mat-hint>{{ 'training.form.nameHint' | t }}</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'training.form.startsFrom.label' | t }}</mat-label>
+      <mat-select
+        name="startsFrom"
+        [value]="startsFrom()"
+        [disabled]="versions().length === 0 || starting()"
+        (valueChange)="startsFrom.set($event)"
+      >
+        <mat-select-trigger>
+          @if (selected(); as chosen) {
+            <app-version-ref [version]="chosen" />
+          }
+        </mat-select-trigger>
+        @for (version of versions(); track version.id) {
+          <mat-option [value]="version.id">
+            <span class="form__option">
+              <app-version-ref [version]="version" />
+              @if (version.isActive) {
+                <span class="text-secondary">{{ 'training.form.startsFrom.active' | t }}</span>
+              }
+            </span>
+          </mat-option>
+        }
+      </mat-select>
+      @if (selected(); as chosen) {
+        <mat-hint>{{ startHint() | t: { version: 'v' + chosen.number } }}</mat-hint>
+      }
+    </mat-form-field>
+
+    <section class="form__sources" aria-labelledby="train-sources">
+      <h4 id="train-sources">{{ 'training.form.sources' | t }}</h4>
+
+      <div class="form__switch">
+        <mat-slide-toggle
+          aria-describedby="train-corrections-hint"
+          [checked]="useCorrections()"
+          [disabled]="starting()"
+          (change)="useCorrections.set($event.checked)"
+        >
+          {{ 'training.form.useCorrections' | t }}
+        </mat-slide-toggle>
+        <p class="text-secondary" id="train-corrections-hint">
+          {{ 'training.form.useCorrectionsHint' | t: { count: corrections() } }}
+        </p>
+      </div>
+
+      @if (datasets().length > 0) {
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>{{ 'training.form.datasets.label' | t }}</mat-label>
+          <mat-select multiple name="datasets" [value]="chosenIds()" [disabled]="starting()" (valueChange)="choose($event)">
+            <mat-select-trigger>
+              @for (item of chosenRows(); track item.dataset.id; let last = $last) {
+                <span dir="auto">{{ item.dataset.name }}</span>@if (!last) {<span>, </span>}
+              }
+            </mat-select-trigger>
+            @for (dataset of datasets(); track dataset.id) {
+              <mat-option [value]="dataset.id">
+                <span class="form__option">
+                  <span dir="auto">{{ dataset.name }}</span>
+                  <span class="text-secondary">{{ 'training.form.datasets.rows' | t: { rows: count(dataset.rows) } }}</span>
+                  @if (dataset.hasThinking) {
+                    <span class="text-secondary">{{ 'training.form.datasets.thinking' | t }}</span>
+                  }
+                </span>
+              </mat-option>
+            }
+          </mat-select>
+          <mat-hint>{{ 'training.form.datasets.hint' | t }}</mat-hint>
+        </mat-form-field>
+
+        @if (chosenRows().length > 0) {
+          <ul class="form__datasets" [attr.aria-label]="'training.form.datasets.chosen' | t">
+            @for (item of chosenRows(); track item.dataset.id) {
+              <li class="dataset">
+                <div class="dataset__head">
+                  <p class="dataset__name">
+                    <mat-icon fontIcon="fa-database" />
+                    <span dir="auto">{{ item.dataset.name }}</span>
+                  </p>
+                  <button
+                    matIconButton
+                    type="button"
+                    [disabled]="starting()"
+                    [attr.aria-label]="'training.form.datasets.remove' | t: { name: item.dataset.name }"
+                    (click)="remove(item.dataset.id)"
+                  >
+                    <mat-icon fontIcon="fa-xmark" />
+                  </button>
+                </div>
+                <p class="text-secondary">{{ 'training.form.datasets.rows' | t: { rows: count(item.dataset.rows) } }}</p>
+                <mat-form-field subscriptSizing="dynamic">
+                  <mat-label>{{ 'training.form.datasets.limit' | t }}</mat-label>
+                  <input
+                    matInput
+                    type="number"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    min="1"
+                    step="1"
+                    [name]="'limit-' + item.dataset.id"
+                    [disabled]="starting()"
+                    [errorStateMatcher]="limitMatcher(item.dataset.id)"
+                    [ngModel]="item.choice.maxRows"
+                    (ngModelChange)="setLimit(item.dataset.id, $event)"
+                  />
+                  <mat-hint>{{ 'training.form.datasets.limitHint' | t }}</mat-hint>
+                  <mat-error>{{ 'training.problem.limit' | t }}</mat-error>
+                </mat-form-field>
+              </li>
+            }
+          </ul>
+        }
+      } @else if (!datasetsLoading()) {
+        <p class="form__note text-secondary">
+          <mat-icon fontIcon="fa-database" />
+          <span>
+            {{ 'training.form.datasets.none' | t }}
+            <a routerLink="/datasets">{{ 'training.form.datasets.toDatasets' | t }}</a>
+          </span>
+        </p>
+      }
+    </section>
+
+    <div class="form__switch">
+      <mat-slide-toggle
+        aria-describedby="train-activate-hint"
+        [checked]="activateWhenDone()"
+        [disabled]="starting()"
+        (change)="activateWhenDone.set($event.checked)"
+      >
+        {{ 'training.form.activate' | t }}
+      </mat-slide-toggle>
+      <p class="text-secondary" id="train-activate-hint">{{ 'training.form.activateHint' | t }}</p>
+    </div>
+
+    <mat-divider />
+
+    <section class="form__settings" aria-labelledby="train-settings">
+      <h4 id="train-settings">{{ (expert() ? 'training.form.expertTitle' : 'training.form.settings') | t }}</h4>
+      @if (expert()) {
+        <app-expert-settings [(settings)]="settings" [defaults]="defaults()" [disabled]="starting()" />
+      } @else {
+        <app-simple-settings [(settings)]="settings" [defaults]="defaults()" [disabled]="starting()" />
+      }
+    </section>
+
+    <mat-divider />
+
+    @if (fit(); as machine) {
+      <div class="form__fit" [class.form__fit--warns]="fitWarns()">
+        <p class="form__fit-verdict">
+          <mat-icon [fontIcon]="fitIcon()" />
+          <span>{{ 'training.fit.verdict.' + machine.verdict | t }}</span>
+          <app-term [key]="fitTerm()" />
+        </p>
+        @if (machine.required_bytes !== null) {
+          <p class="text-secondary">
+            @if (machine.available_bytes > 0) {
+              {{ 'training.fit.need' | t: { required: (machine.required_bytes | bytes), available: (machine.available_bytes | bytes) } }}
+            } @else {
+              {{ 'training.fit.needMemory' | t: { required: (machine.required_bytes | bytes) } }}
+            }
+          </p>
+        }
+      </div>
+    } @else if (planLoading()) {
+      <p class="text-secondary">{{ 'training.form.loadingPlan' | t }}</p>
+    }
+
+    @if (blocker(); as why) {
+      <p class="form__blocker" role="status">
+        <mat-icon fontIcon="fa-circle-info" />
+        <span>
+          {{ why | t }}
+          @if (corrections() === 0) {
+            <a [routerLink]="['/projects', projectId(), 'chat']">{{ 'training.form.blocked.toChat' | t }}</a>
+          }
+        </span>
+      </p>
+    }
+
+    <div class="form__actions">
+      <button matButton="filled" type="submit" [disabled]="!canStart()" [attr.aria-busy]="starting()">
+        <mat-icon fontIcon="fa-play" />
+        {{ (starting() ? 'training.form.starting' : 'training.form.start') | t }}
+      </button>
+    </div>
+  </form>
+</mat-card>

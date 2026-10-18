@@ -169,10 +169,6 @@
     "feed_forward": {
       "term": "Feed-forward",
       "explain": "The part of each layer that processes every word on its own after attention. Its modules are gate_proj, up_proj and down_proj."
-    },
-    "rank": {
-      "term": "Rank",
-      "explain": "How large a LoRA add-on is. A higher rank can learn more and takes more disk space."
     }
   }
 }

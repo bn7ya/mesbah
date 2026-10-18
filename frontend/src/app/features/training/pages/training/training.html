@@ -1,0 +1,76 @@
+<section class="training__intro" aria-labelledby="training-title">
+  <h2 id="training-title">{{ 'training.title' | t }}</h2>
+  <p class="text-secondary">{{ 'training.intro' | t }}</p>
+</section>
+
+@if (setupError(); as failure) {
+  <p class="training__failure" role="alert">
+    <mat-icon fontIcon="fa-circle-exclamation" />
+    {{ failure.message }}
+  </p>
+  <div>
+    <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
+  </div>
+}
+
+<mat-card appearance="outlined" class="training__learns" aria-labelledby="training-learns" [attr.aria-busy]="planLoading()">
+  <h3 id="training-learns">{{ 'training.learns.title' | t }}</h3>
+  <div class="learns__body">
+    <div class="learns__figure">
+      <p class="learns__label">{{ 'training.learns.label' | t }}</p>
+      @if (corrections(); as count) {
+        <p class="learns__count">{{ count }}</p>
+      } @else {
+        <mat-progress-bar mode="indeterminate" [attr.aria-label]="'training.learns.loading' | t" />
+      }
+    </div>
+    <div class="learns__text">
+      <p>{{ 'training.learns.what' | t }}</p>
+      @if (none()) {
+        <p class="text-secondary">{{ 'training.learns.none' | t }}</p>
+        <div>
+          <a matButton="outlined" [routerLink]="['/projects', projectId(), 'chat']">
+            <mat-icon fontIcon="fa-message" />
+            {{ 'training.learns.toChat' | t }}
+          </a>
+        </div>
+      } @else if (corrections()) {
+        <div>
+          <button matButton="outlined" type="button" (click)="seeExamples()">
+            <mat-icon fontIcon="fa-list" />
+            {{ 'training.learns.see' | t }}
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</mat-card>
+
+@if (canWrite()) {
+  <app-train-form />
+}
+
+<section class="training__views" #views aria-labelledby="training-views">
+  <div class="views__head">
+    <h3 id="training-views">{{ (view() === 'runs' ? 'training.views.runsTitle' : 'training.views.examplesTitle') | t }}</h3>
+    <mat-button-toggle-group
+      [attr.aria-label]="'training.views.label' | t"
+      [value]="view()"
+      (change)="choose($event.value)"
+    >
+      <mat-button-toggle value="runs">{{ 'training.views.runs' | t }}</mat-button-toggle>
+      <mat-button-toggle value="examples">{{ 'training.views.examples' | t }}</mat-button-toggle>
+    </mat-button-toggle-group>
+  </div>
+
+  @if (view() === 'runs') {
+    <p class="views__terms text-secondary">
+      <span>{{ 'training.terms' | t }}</span>
+      <app-term key="loss" />
+    </p>
+    <app-run-list />
+  } @else {
+    <p class="text-secondary">{{ 'training.views.examplesNote' | t }}</p>
+    <app-example-list />
+  }
+</section>

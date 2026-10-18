@@ -43,6 +43,10 @@ export const routes: Routes = [
               path: 'versions',
               loadChildren: () => import('@features/versions/versions.routes').then((m) => m.routes),
             },
+            {
+              path: 'training',
+              loadChildren: () => import('@features/training/training.routes').then((m) => m.routes),
+            },
           ]);
         },
       },

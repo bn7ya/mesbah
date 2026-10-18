@@ -168,7 +168,7 @@ the admin or a file.
 
 **`celery.py`** — the Celery app, configured from Django settings under `CELERY_`; tasks go to
 the `default` queue, one at a time per worker thread, acknowledged when done — except those that
-name the `heavy` queue (merging, converting), which one solo worker serves in turn.
+name the `heavy` queue (training, merging, converting), which one solo worker serves in turn.
 **`asgi.py`** — the entry point uvicorn serves (ADR-006), with static files in `DEBUG`.
 **`wsgi.py`** — kept for tools that want WSGI; nothing in Mesbah serves it.
 

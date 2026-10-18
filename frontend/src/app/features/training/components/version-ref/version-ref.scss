@@ -1,0 +1,15 @@
+:host {
+  display: inline-flex;
+  gap: var(--app-space-2);
+  align-items: baseline;
+  min-inline-size: 0;
+}
+
+.ref__number {
+  font-weight: var(--mat-sys-label-large-weight);
+}
+
+.ref__name {
+  min-inline-size: 0;
+  overflow-wrap: break-word;
+}

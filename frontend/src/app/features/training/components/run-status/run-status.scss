@@ -1,0 +1,24 @@
+:host {
+  display: inline-flex;
+}
+
+.status {
+  display: inline-flex;
+  gap: var(--app-space-2);
+  align-items: center;
+  font: var(--mat-sys-title-medium);
+}
+
+.status--going mat-icon,
+.status--done mat-icon {
+  color: var(--mat-sys-primary);
+}
+
+.status--waiting,
+.status--stopped {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.status--failed {
+  color: var(--mat-sys-error);
+}

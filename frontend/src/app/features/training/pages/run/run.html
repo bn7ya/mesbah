@@ -1,0 +1,267 @@
+<div>
+  <a matButton class="run__back" [routerLink]="['/projects', projectId(), 'training']">
+    <mat-icon fontIcon="fa-arrow-left" class="mat-icon-rtl-mirror" />
+    {{ 'training.run.back' | t }}
+  </a>
+</div>
+
+@if (error(); as failure) {
+  <p class="run__failure" role="alert">
+    <mat-icon fontIcon="fa-circle-exclamation" />
+    {{ failure.message }}
+  </p>
+  @if (failure.code !== 'not_found') {
+    <div>
+      <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
+    </div>
+  }
+}
+
+@if (loading() && !run()) {
+  <mat-progress-bar mode="indeterminate" [attr.aria-label]="'training.run.loading' | t" />
+}
+
+@if (run(); as current) {
+  <header class="run__header">
+    <h2 dir="auto">{{ title() }}</h2>
+    <p class="run__facts text-secondary">
+      @if (current.starts_from; as parent) {
+        <span>{{ 'training.runs.from' | t }} <app-version-ref [version]="parent" /></span>
+      }
+      @if (current.created_by) {
+        <span>{{ 'training.runs.by' | t }} <span dir="ltr">{{ current.created_by }}</span></span>
+      }
+      <span>{{ (current.started_at ? 'training.runs.started' : 'training.runs.queued') | t }} {{ (current.started_at ?? current.created_at) | datetime }}</span>
+    </p>
+  </header>
+
+  <mat-card appearance="outlined" class="run__card" [attr.aria-busy]="!finished()">
+    <div class="run__status">
+      <app-run-status [run]="current" [stopping]="stopping()" />
+      @if (canStop() && !stopping()) {
+        <button matButton type="button" (click)="stop()">
+          <mat-icon fontIcon="fa-stop" />
+          {{ 'training.runs.stop.open' | t }}
+        </button>
+      }
+    </div>
+
+    @if (stopError(); as failure) {
+      <p class="run__failure" role="alert">
+        <mat-icon fontIcon="fa-circle-exclamation" />
+        {{ failure.message }}
+      </p>
+    }
+
+    @if (showBar()) {
+      <mat-progress-bar
+        [mode]="steady() ? 'determinate' : 'indeterminate'"
+        [value]="progress()"
+        [attr.aria-label]="'training.runs.progress' | t"
+      />
+    }
+
+    @if (elapsed(); as spent) {
+      <p class="run__pace text-secondary">
+        @if (steady() && current.status !== 'completed') {
+          <span>{{ 'training.run.percent' | t: { percent: percent() } }}</span>
+        }
+        <span>{{ 'training.run.elapsed' | t }} {{ spent }}</span>
+        @if (remaining(); as left) {
+          <span>{{ 'training.run.left' | t: { time: left } }}</span>
+        } @else if (estimating()) {
+          <span>{{ 'training.run.estimating' | t }}</span>
+        }
+      </p>
+    }
+
+    @if (current.max_seq_len !== null) {
+      <p class="run__note">
+        <mat-icon fontIcon="fa-memory" />
+        <span>{{ 'training.run.oom' | t: { length: count(current.max_seq_len) } }} <app-term key="vram" /></span>
+      </p>
+    }
+  </mat-card>
+
+  @if (finished()) {
+    <section class="run__section" aria-labelledby="run-result">
+      <h3 id="run-result">{{ 'training.result.title' | t }}</h3>
+      <mat-card appearance="outlined" class="run__card">
+        @switch (current.status) {
+          @case ('completed') {
+            <p class="run__verdict">
+              <mat-icon fontIcon="fa-circle-check" />
+              {{ 'training.result.done' | t }}
+            </p>
+            <dl class="run__list">
+              @if (current.version; as made) {
+                <div>
+                  <dt>{{ 'training.result.version' | t }}</dt>
+                  <dd>
+                    <a [routerLink]="['/projects', projectId(), 'versions']"><app-version-ref [version]="made" /></a>
+                  </dd>
+                </div>
+              }
+              @if (share(); as shared) {
+                <div class="run__wide">
+                  <dt>{{ 'training.result.sizeLabel' | t }}</dt>
+                  <dd>
+                    <mat-progress-bar mode="determinate" aria-hidden="true" [value]="shared.ratio * 100" />
+                    <span>{{ shared.key | t: { size: (shared.bytes | bytes), percent: shared.percent } }}</span>
+                  </dd>
+                </div>
+              }
+              @if (finalLoss(); as last) {
+                <div>
+                  <dt>{{ 'training.result.loss' | t }}</dt>
+                  <dd>{{ last }}</dd>
+                </div>
+              }
+              <div>
+                <dt>{{ 'training.result.active' | t }}</dt>
+                <dd>{{ (current.activate_when_done ? 'training.result.activeYes' : 'training.result.activeNo') | t }}</dd>
+              </div>
+            </dl>
+          }
+          @case ('failed') {
+            <p class="run__verdict run__verdict--failed">
+              <mat-icon fontIcon="fa-circle-exclamation" />
+              {{ 'training.result.failed' | t }}
+            </p>
+            <p>{{ failureKey() | t }}</p>
+            @if (missingParts()) {
+              <pre class="run__code"><code>{{ 'training.failure.training_parts_missingCommand' | t }}</code></pre>
+            }
+            @if (expert() && current.error_detail) {
+              <mat-expansion-panel class="run__detail">
+                <mat-expansion-panel-header>
+                  <mat-panel-title>{{ 'training.result.detail' | t }}</mat-panel-title>
+                </mat-expansion-panel-header>
+                <pre class="run__code" dir="ltr"><code>{{ current.error_detail }}</code></pre>
+              </mat-expansion-panel>
+            }
+          }
+          @default {
+            <p class="run__verdict">
+              <mat-icon fontIcon="fa-ban" />
+              {{ 'training.result.stopped' | t }}
+            </p>
+            <p class="text-secondary">{{ 'training.result.stoppedBody' | t }}</p>
+          }
+        }
+      </mat-card>
+    </section>
+  }
+
+  <section class="run__section" aria-labelledby="run-loss">
+    <h3 id="run-loss">
+      <span>{{ 'training.loss.title' | t }}</span>
+      <app-term key="loss" />
+    </h3>
+    <mat-card appearance="outlined" class="run__card">
+      @if (lossChart(); as chart) {
+        <p class="loss__sentence" [class.loss__sentence--rising]="reading().trend === 'rising'">
+          <mat-icon [fontIcon]="trendIcon()" />
+          <span>{{ lossSentence().key | t: lossSentence().values }}</span>
+        </p>
+        <app-run-chart [chart]="chart" />
+      } @else {
+        <p class="text-secondary">{{ (finished() ? 'training.loss.none' : 'training.loss.waiting') | t }}</p>
+      }
+
+      @if (expert()) {
+        @if (epoch(); as reached) {
+          <dl class="run__list">
+            <div>
+              <dt><app-term key="epoch" /></dt>
+              <dd>{{ reached }}</dd>
+            </div>
+          </dl>
+        }
+        @if (paceChart(); as chart) {
+          <h4 class="run__subtitle">{{ 'training.loss.paceTitle' | t }}</h4>
+          <app-run-chart [chart]="chart" />
+        }
+      }
+    </mat-card>
+  </section>
+
+  <section class="run__section" aria-labelledby="run-learns">
+    <h3 id="run-learns">{{ 'training.learned.title' | t }}</h3>
+    <mat-card appearance="outlined" class="run__card">
+      <dl class="run__list">
+        <div>
+          <dt>{{ 'training.learned.replies' | t }}</dt>
+          <dd>{{ (current.use_corrections ? 'training.learned.repliesUsed' : 'training.learned.repliesNot') | t }}</dd>
+        </div>
+        @if (current.examples !== null) {
+          <div>
+            <dt>{{ 'training.learned.examples' | t }}</dt>
+            <dd>{{ count(current.examples) }}</dd>
+          </div>
+          @if (current.skipped !== null) {
+            <div>
+              <dt>{{ 'training.learned.skipped' | t }}</dt>
+              <dd>{{ count(current.skipped) }}</dd>
+            </div>
+          }
+          @if (current.tokens !== null) {
+            <div>
+              <dt>{{ 'training.learned.tokens' | t }} <app-term key="token" /></dt>
+              <dd>{{ current.tokens | compact }}</dd>
+            </div>
+          }
+        }
+      </dl>
+
+      @if (current.datasets.length > 0) {
+        <h4 class="run__subtitle">{{ 'training.learned.datasets' | t }}</h4>
+        <ul class="run__datasets">
+          @for (dataset of current.datasets; track dataset.id) {
+            <li>
+              <span class="run__dataset-name" dir="auto">{{ dataset.name }}</span>
+              <span class="text-secondary">{{ 'training.learned.rows' | t: { rows: count(dataset.rows) } }}</span>
+              @if (dataset.max_rows === null) {
+                <span class="text-secondary">{{ 'training.learned.allRows' | t }}</span>
+              } @else {
+                <span class="text-secondary">{{ 'training.learned.limit' | t: { limit: count(dataset.max_rows) } }}</span>
+              }
+            </li>
+          }
+        </ul>
+      }
+
+      @if (current.examples === null) {
+        <p class="text-secondary">{{ 'training.learned.waiting' | t }}</p>
+      } @else if (current.skipped) {
+        <p class="text-secondary">{{ 'training.learned.skippedWhy' | t }}</p>
+      }
+    </mat-card>
+  </section>
+
+  <section class="run__section" aria-labelledby="run-settings">
+    <h3 id="run-settings">{{ 'training.settingsUsed.title' | t }}</h3>
+    <mat-card appearance="outlined" class="run__card">
+      <dl class="run__list">
+        @for (row of settings(); track row.key) {
+          <div>
+            <dt>{{ row.labelKey | t }}</dt>
+            <dd>{{ row.text }}</dd>
+          </div>
+        }
+        <div>
+          <dt>{{ 'training.settingsUsed.device' | t }}</dt>
+          <dd>
+            <span class="run__inline">
+              @if (processor()) {
+                {{ 'training.settingsUsed.processor' | t }} <app-term key="cpu" />
+              } @else {
+                {{ 'training.settingsUsed.gpu' | t: { list: current.gpu_indices.join(', ') } }} <app-term key="gpu" />
+              }
+            </span>
+          </dd>
+        </div>
+      </dl>
+    </mat-card>
+  </section>
+}

@@ -1,0 +1,49 @@
+@if (error(); as failure) {
+  <p class="runs__failure" role="alert">
+    <mat-icon fontIcon="fa-circle-exclamation" />
+    {{ failure.message }}
+  </p>
+  <div>
+    <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
+  </div>
+}
+
+@if (actionError(); as failure) {
+  <p class="runs__failure" role="alert">
+    <mat-icon fontIcon="fa-circle-exclamation" />
+    {{ failure.message }}
+  </p>
+}
+
+@if (loading() && page().results.length === 0) {
+  <mat-progress-bar mode="indeterminate" [attr.aria-label]="'training.runs.loading' | t" />
+}
+
+@if (empty()) {
+  <mat-card appearance="outlined" class="runs__note">
+    <mat-icon fontIcon="fa-graduation-cap" />
+    <div class="runs__note-text">
+      <p class="runs__note-title">{{ 'training.runs.empty.title' | t }}</p>
+      <p class="text-secondary">{{ (canWrite() ? 'training.runs.empty.write' : 'training.runs.empty.read') | t }}</p>
+    </div>
+  </mat-card>
+}
+
+<ul class="runs__list" [attr.aria-label]="'training.runs.list' | t" [attr.aria-busy]="loading()">
+  @for (run of page().results; track run.id) {
+    <li>
+      <app-run-row [run]="run" />
+    </li>
+  }
+</ul>
+
+@if (paged()) {
+  <mat-paginator
+    [length]="page().count"
+    [pageIndex]="pageIndex()"
+    [pageSize]="pageSize()"
+    [pageSizeOptions]="sizes"
+    [attr.aria-label]="'training.runs.pages' | t"
+    (page)="turnPage($event)"
+  />
+}

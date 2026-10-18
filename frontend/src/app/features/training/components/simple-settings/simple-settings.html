@@ -1,0 +1,81 @@
+<div class="setting">
+  <div class="setting__head">
+    <p class="setting__label">
+      <span>{{ 'training.form.epochs.label' | t }}</span>
+      <app-term key="epoch" />
+    </p>
+    <span class="setting__value">{{ epochs() }}</span>
+  </div>
+  <mat-slider [min]="epochRange.min" [max]="epochRange.max" [step]="epochRange.step" [disabled]="disabled()">
+    <input
+      matSliderThumb
+      [attr.aria-label]="'training.form.epochs.label' | t"
+      [value]="settings().epochs"
+      (valueChange)="setEpochs($event)"
+    />
+  </mat-slider>
+  <p class="setting__hint text-secondary">{{ 'training.form.epochs.hint' | t }}</p>
+</div>
+
+<div class="setting">
+  <div class="setting__head">
+    <p class="setting__label">
+      <span>{{ 'training.form.rank.label' | t }}</span>
+      <app-term key="lora" />
+      <app-term key="rank" />
+    </p>
+    <span class="setting__value">{{ 'training.form.rank.value' | t: { rank: rank() } }}</span>
+  </div>
+  <mat-button-toggle-group
+    class="setting__choice"
+    [attr.aria-label]="'training.form.rank.label' | t"
+    [value]="rankChosen()"
+    [disabled]="disabled()"
+    (change)="setRank($event.value)"
+  >
+    @for (preset of rankPresets; track preset.value) {
+      <mat-button-toggle [value]="preset.value">{{ preset.labelKey | t }}</mat-button-toggle>
+    }
+  </mat-button-toggle-group>
+  <p class="setting__hint text-secondary">{{ 'training.form.rank.hint' | t }}</p>
+  @if (rankChosen() === null) {
+    <p class="setting__hint text-secondary">{{ 'training.form.custom' | t: { value: rank() } }}</p>
+  }
+</div>
+
+<div class="setting">
+  <div class="setting__head">
+    <p class="setting__label">
+      <span>{{ 'training.form.rate.label' | t }}</span>
+      <app-term key="learning_rate" />
+    </p>
+    <span class="setting__value">{{ rate() }}</span>
+  </div>
+  <mat-button-toggle-group
+    class="setting__choice"
+    [attr.aria-label]="'training.form.rate.label' | t"
+    [value]="rateChosen()"
+    [disabled]="disabled()"
+    (change)="setRate($event.value)"
+  >
+    @for (preset of ratePresets; track preset.value) {
+      <mat-button-toggle [value]="preset.value">{{ preset.labelKey | t }}</mat-button-toggle>
+    }
+  </mat-button-toggle-group>
+  <p class="setting__hint text-secondary">{{ 'training.form.rate.hint' | t }}</p>
+  @if (rateChosen() === null) {
+    <p class="setting__hint text-secondary">{{ 'training.form.custom' | t: { value: rate() } }}</p>
+  }
+</div>
+
+@if (changed()) {
+  <div class="setting__changed">
+    <p>
+      <mat-icon fontIcon="fa-sliders" />
+      {{ 'training.form.expertChanged' | t }}
+    </p>
+    <button matButton type="button" [disabled]="disabled()" (click)="resetExpert()">
+      {{ 'training.form.expertReset' | t }}
+    </button>
+  </div>
+}

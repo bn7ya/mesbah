@@ -99,6 +99,18 @@ class VersionService:
         self.projects.update(project, active_version=root)
         return root
 
+    def record_trained(
+        self, project: Project, parent: ModelVersion | None, **fields: Any
+    ) -> ModelVersion:
+        return self.versions.create(
+            created_by=self._actor(),
+            project=project,
+            parent=parent,
+            number=self.versions.next_number(str(project.pk)),
+            kind=ModelVersion.Kind.LORA,
+            **fields,
+        )
+
     @transaction.atomic
     def activate(self, version_id: str) -> dict[str, Any]:
         version: ModelVersion = self.find(version_id)

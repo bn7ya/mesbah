@@ -21,6 +21,7 @@ api_patterns: list[URLPattern | URLResolver] = [
     path("projects/", include("apps.projects.urls")),
     path("serving/", include("apps.serving.urls")),
     path("system/", include("apps.system.urls")),
+    path("training/", include("apps.training.urls")),
     path("versions/", include("apps.versions.urls")),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path(

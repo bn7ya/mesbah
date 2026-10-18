@@ -14,6 +14,8 @@ from apps.serving.repositories import DeploymentRepository, EngineRepository
 from apps.serving.services.engine_client import Endpoint, EngineClient, EngineError, Json
 from apps.serving.services.errors import EngineFailed, ModelNotOnDisk, NoEngine
 from apps.system.services import SecretBox, SystemService
+from apps.training.models import TrainingRun
+from apps.training.repositories import RunRepository
 from apps.versions.models import Export, ModelVersion
 from apps.versions.repositories import ExportRepository
 from mesbah import sizing
@@ -50,6 +52,7 @@ class DeploymentService:
         self.engines: EngineRepository = EngineRepository()
         self.deployments: DeploymentRepository = DeploymentRepository()
         self.exports: ExportRepository = ExportRepository()
+        self.runs: RunRepository = RunRepository()
         self.system: SystemService = SystemService(user)
 
     def target(self, version: ModelVersion, engine: Engine | None = None) -> Target:
@@ -92,6 +95,8 @@ class DeploymentService:
         name: str = served_name(version)
         if _serves(client.status(), base.local_path, name, version.storage_dir):
             return name
+        if self.runs.unfinished().exclude(status=TrainingRun.Status.QUEUED).exists():
+            raise EngineError("training_in_progress", "A training run is using the memory.")
         deployment: Deployment = self._loading(engine, version, name)
         try:
             client.load(self._spec(base, version, name))

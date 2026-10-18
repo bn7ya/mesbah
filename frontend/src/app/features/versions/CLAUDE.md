@@ -21,8 +21,8 @@ its writing items from viewers and reviewers.
 `GET|POST /api/versions/<id>/exports/`, `DELETE /api/versions/exports/<id>/` and
 `GET /api/versions/exports/<id>/download/`. `versions.types.ts` mirrors the serializers. The error
 codes `root_version_kept`, `active_version_kept` and `not_exportable` have `errors.*` entries in
-this bundle. The glossary terms `gguf` and `quantization` live in the core bundle; this bundle
-adds `attention`, `feed_forward` and `rank`.
+this bundle. The glossary terms `gguf`, `quantization` and `rank` live in the core bundle; this
+bundle adds `attention` and `feed_forward`.
 
 ## What the page shows
 

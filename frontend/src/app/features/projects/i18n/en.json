@@ -16,7 +16,8 @@
       "label": "Project pages",
       "overview": "Overview",
       "chat": "Chat",
-      "versions": "Versions"
+      "versions": "Versions",
+      "training": "Training"
     },
     "empty": {
       "title": "No projects yet.",

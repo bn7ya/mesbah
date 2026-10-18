@@ -34,9 +34,12 @@ class EngineFailed(APIException):
             self.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
 
-UNAVAILABLE: frozenset[str] = frozenset({"engine_unreachable", "engine_timeout"})
+UNAVAILABLE: frozenset[str] = frozenset(
+    {"engine_unreachable", "engine_timeout", "training_in_progress"}
+)
 MESSAGES: dict[str, str] = {
     "engine_unreachable": "The engine isn't running.",
     "engine_timeout": "The engine took too long to answer.",
     "engine_rejected_token": "The engine refused Mesbah's token.",
+    "training_in_progress": "A training run is using the memory. Chat again when it ends.",
 }

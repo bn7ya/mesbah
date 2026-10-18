@@ -41,7 +41,7 @@ or `slug:vN`. Their errors take each API's own shape — OpenAI's `{"error": {"m
 views/engines.py → services/engine_service.py ─┐
 views/keys.py → services/api_key_service.py    │
 views/openai.py, views/ollama.py → services/gateway_service.py
-gateway, engines, apps.chat → services/deployment_service.py → services/engine_client.py → HTTP
+gateway, engines, apps.chat, apps.training → services/deployment_service.py → services/engine_client.py → HTTP
                   └→ repositories/{engine,deployment,api_key}_repository.py → Engine, Deployment, ApiKey
 authentication.py → services/api_key_service.py   (Bearer keys, for /v1 and /ollama only)
 ```
@@ -71,11 +71,12 @@ Failures become `EngineError` with a code: `engine_unreachable`, `engine_timeout
 - `target()` — the engine (the conversation's, else the default) and model name to send a
   version's chat to, after putting the version there: the built-in engine loads the base (4-bit
   only when half precision would not fit, on the GPUs chosen on the System page) and the
-  version's adapter; vLLM checks it serves the same base and loads the adapter by path
+  version's adapter, but not while a training run is using the memory
+  (`training_in_progress`); vLLM checks it serves the same base and loads the adapter by path
   (`engine_base_mismatch` otherwise); Ollama imports the version's GGUF export as
   `mesbah-<slug>-v<n>` (`needs_gguf` without one); llama.cpp and OpenAI-compatible servers answer
   with the one model they serve.
-- `release()` — unloads the built-in engine.
+- `release()` — unloads the built-in engine, for training.
 **`served_name()`**, **`external_name()`** — what each kind of engine calls a version.
 **`endpoint_of()`** — an engine's address and key; the built-in one's come from
 `MESBAH_RUNTIME_URL` and `MESBAH_RUNTIME_TOKEN`.

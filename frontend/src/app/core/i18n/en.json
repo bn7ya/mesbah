@@ -196,6 +196,10 @@
     "jsonl": {
       "term": "JSONL",
       "explain": "A text file with one record on each line. Mesbah saves every dataset this way, one conversation on each line."
+    },
+    "rank": {
+      "term": "Rank",
+      "explain": "The size of the LoRA add-on. A larger rank can learn more and needs more memory and disk space."
     }
   },
   "paginator": {

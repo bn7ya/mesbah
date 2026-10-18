@@ -45,6 +45,7 @@ number (counting removed versions, so numbers are never reused), versions by id,
 version, and moving children to another parent.
 
 **`VersionService`**, for the acting user:
+- `record_trained()` — a new delta version from a finished run, numbered next.
 - `tree()` — a project's versions; `describe()` one as the API shows it, with whether it is
   active and a summary of its delta.
 - `create_root()` — the base version, number 0, made active; called when a project is created.

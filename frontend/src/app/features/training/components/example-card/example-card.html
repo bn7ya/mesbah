@@ -1,0 +1,69 @@
+@let item = example();
+
+<mat-card appearance="outlined" class="example">
+  <header class="example__head">
+    <p class="example__source">
+      <mat-icon fontIcon="fa-comments" />
+      <span class="text-secondary">{{ 'training.examples.from' | t }}</span>
+      <span class="example__title" dir="auto">{{ item.conversation.title || ('training.examples.untitled' | t) }}</span>
+    </p>
+
+    <mat-chip-set [attr.aria-label]="'training.examples.marks' | t">
+      @if (item.corrected) {
+        <mat-chip disableRipple>
+          <mat-icon matChipAvatar fontIcon="fa-pen" />
+          {{ 'training.examples.corrected' | t }}
+        </mat-chip>
+      }
+      @if (item.thinking_corrected) {
+        <mat-chip disableRipple>
+          <mat-icon matChipAvatar fontIcon="fa-lightbulb" />
+          {{ 'training.examples.thinkingCorrected' | t }}
+        </mat-chip>
+      }
+      @if (asIs()) {
+        <mat-chip disableRipple>
+          <mat-icon matChipAvatar fontIcon="fa-circle-check" />
+          {{ 'training.examples.asIs' | t }}
+        </mat-chip>
+      }
+    </mat-chip-set>
+  </header>
+
+  <ol class="example__turns" [attr.aria-label]="'training.examples.conversation' | t">
+    @for (turn of earlier(); track $index) {
+      <li class="turn" [class]="'turn--' + turn.role">
+        <p class="turn__role">{{ 'training.examples.role.' + turn.role | t }}</p>
+        @if (turn.thinking) {
+          <div class="turn__thinking">
+            <p class="turn__label">{{ 'training.examples.thinking' | t }}</p>
+            <p class="turn__text" dir="auto">{{ turn.thinking }}</p>
+          </div>
+        }
+        <p class="turn__text" dir="auto">{{ turn.content }}</p>
+      </li>
+    }
+    @if (learned(); as reply) {
+      <li class="turn turn--learned">
+        <p class="turn__role">
+          <mat-icon fontIcon="fa-graduation-cap" />
+          {{ 'training.examples.learns' | t }}
+        </p>
+        @if (reply.thinking) {
+          <div class="turn__thinking">
+            <p class="turn__label">{{ 'training.examples.thinking' | t }}</p>
+            <p class="turn__text" dir="auto">{{ reply.thinking }}</p>
+          </div>
+        }
+        <p class="turn__text" dir="auto">{{ reply.content }}</p>
+      </li>
+    }
+  </ol>
+
+  <p class="example__meta text-secondary">
+    @if (item.approved_by) {
+      <span>{{ 'training.examples.approvedBy' | t }} <span dir="ltr">{{ item.approved_by }}</span></span>
+    }
+    <span>{{ 'training.examples.updated' | t }} {{ item.updated_at | datetime }}</span>
+  </p>
+</mat-card>

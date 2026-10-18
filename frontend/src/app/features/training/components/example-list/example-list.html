@@ -1,0 +1,48 @@
+@if (error(); as failure) {
+  <p class="examples__failure" role="alert">
+    <mat-icon fontIcon="fa-circle-exclamation" />
+    {{ failure.message }}
+  </p>
+  <div>
+    <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
+  </div>
+}
+
+@if (loading() && page().results.length === 0) {
+  <mat-progress-bar mode="indeterminate" [attr.aria-label]="'training.examples.loading' | t" />
+}
+
+@if (empty()) {
+  <mat-card appearance="outlined" class="examples__note">
+    <mat-icon fontIcon="fa-comments" />
+    <div class="examples__note-text">
+      <p class="examples__note-title">{{ 'training.examples.empty.title' | t }}</p>
+      <p class="text-secondary">{{ 'training.examples.empty.body' | t }}</p>
+      <div>
+        <a matButton [routerLink]="['/projects', projectId(), 'chat']">
+          <mat-icon fontIcon="fa-message" />
+          {{ 'training.examples.empty.toChat' | t }}
+        </a>
+      </div>
+    </div>
+  </mat-card>
+}
+
+<ul class="examples__list" [attr.aria-label]="'training.examples.list' | t" [attr.aria-busy]="loading()">
+  @for (example of page().results; track example.id) {
+    <li>
+      <app-example-card [example]="example" />
+    </li>
+  }
+</ul>
+
+@if (paged()) {
+  <mat-paginator
+    [length]="page().count"
+    [pageIndex]="pageIndex()"
+    [pageSize]="pageSize()"
+    [pageSizeOptions]="sizes"
+    [attr.aria-label]="'training.examples.pages' | t"
+    (page)="turnPage($event)"
+  />
+}

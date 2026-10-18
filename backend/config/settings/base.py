@@ -68,6 +68,7 @@ LOCAL_APPS: list[str] = [
     "apps.projects",
     "apps.serving",
     "apps.system",
+    "apps.training",
     "apps.versions",
 ]
 
@@ -181,6 +182,15 @@ SPECTACULAR_SETTINGS: dict[str, Any] = {
         "MessageStatusEnum": ["streaming", "complete", "stopped", "failed"],
         "ModelFamilyEnum": "apps.models.models.HubModel.Family",
         "ModelStatusEnum": "apps.models.models.HubModel.Status",
+        "RunStatusEnum": [
+            "queued",
+            "preparing",
+            "training",
+            "saving",
+            "completed",
+            "failed",
+            "cancelled",
+        ],
     },
 }
 
@@ -230,6 +240,8 @@ MESBAH_SPA_DIR: Path | None = None
 # The built-in engine (ADR-005): `mesbah start` picks both; compose names the `runtime` service.
 MESBAH_RUNTIME_URL: str = env("MESBAH_RUNTIME_URL", "http://127.0.0.1:8078")
 MESBAH_RUNTIME_TOKEN: str = env("MESBAH_RUNTIME_TOKEN", "")
+# The torch-free trainer that follows the same file contract, for the test gate.
+MESBAH_FAKE_TRAINER: bool = env_bool("MESBAH_FAKE_TRAINER", False)
 
 STORAGES: dict[str, Any] = {
     "default": {

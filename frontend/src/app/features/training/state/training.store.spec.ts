@@ -23,6 +23,9 @@ function run(id: string, status: RunStatus, overrides: Partial<Run> = {}): Run {
   return {
     id,
     project: 'p1',
+    kind: 'lora',
+    draft: null,
+    corrections_from: [],
     name: `Run ${id}`,
     notes: '',
     starts_from: { id: 'v1', name: 'base', number: 0 },
@@ -172,6 +175,27 @@ describe('TrainingStore', () => {
       ['v1', true],
     ]);
     expect(store.runs().results.map((row) => row.id)).toEqual(['r1']);
+  });
+
+  it('does not call a project modelless before its versions are known, or once it has some', async () => {
+    expect(store.noModel()).toBe(false);
+    await open();
+
+    expect(store.noModel()).toBe(false);
+  });
+
+  it('says a project has no model while it has no version', async () => {
+    store.open('p1');
+    await settle();
+    backend.expectOne((request) => request.url === PLAN).flush(PLAN_BODY);
+    backend.expectOne((request) => request.url === VERSIONS).flush(page([]));
+    backend.expectOne((request) => request.url === DATASETS).flush(page([]));
+    runsRequest().flush(page([run('r1', 'training', { kind: 'pretrain', starts_from: null })]));
+    await settle();
+
+    expect(store.noModel()).toBe(true);
+    expect(store.versions()).toEqual([]);
+    expect(store.versionsError()).toBeNull();
   });
 
   it('offers only the library datasets that are ready', async () => {
@@ -324,6 +348,59 @@ describe('TrainingStore', () => {
     expect('error' in result && result.error.code).toBe('nothing_to_learn');
     expect('error' in result && result.error.message).toBe(en.errors.nothing_to_learn);
     expect(store.starting()).toBe(false);
+  });
+
+  it('says in words that the base model is not ready', async () => {
+    await open();
+
+    const starting = store.start(DRAFT);
+    backend
+      .expectOne((r) => r.url === RUNS && r.method === 'POST')
+      .flush({ error: { code: 'base_model_not_ready', message: 'raw' } }, { status: 409, statusText: 'Conflict' });
+
+    const result = await starting;
+    expect('error' in result && result.error.message).toBe(en.errors.base_model_not_ready);
+  });
+
+  describe('runs that train a new model', () => {
+    const NEW_MODEL: Partial<Run> = { kind: 'pretrain', draft: 'dr1', starts_from: null, use_corrections: false };
+
+    it('asks once for the name of each project they learn from', async () => {
+      await open([
+        run('r1', 'completed', { ...NEW_MODEL, corrections_from: ['pa', 'pb'] }),
+        run('r2', 'completed', { ...NEW_MODEL, corrections_from: ['pb'] }),
+        run('r3', 'completed'),
+      ]);
+      await settle();
+
+      expect(store.sourceNames()).toBeNull();
+      backend.expectOne('/api/projects/pa/').flush({ id: 'pa', name: 'Support' });
+      backend.expectOne('/api/projects/pb/').flush({ id: 'pb', name: 'Engine check' });
+      await settle();
+
+      expect(store.sourceNames()).toEqual({ pa: 'Support', pb: 'Engine check' });
+    });
+
+    it('leaves out a project that can no longer be read', async () => {
+      await open([run('r1', 'completed', { ...NEW_MODEL, corrections_from: ['pa', 'pb'] })]);
+      await settle();
+
+      backend.expectOne('/api/projects/pa/').flush({ id: 'pa', name: 'Support' });
+      backend
+        .expectOne('/api/projects/pb/')
+        .flush({ error: { code: 'not_found', message: 'Not found.' } }, { status: 404, statusText: 'Not Found' });
+      await settle();
+
+      expect(store.sourceNames()).toEqual({ pa: 'Support' });
+    });
+
+    it('asks for no names when no run trains a new model, or none learns from a project', async () => {
+      await open([run('r1', 'completed'), run('r2', 'completed', { ...NEW_MODEL, corrections_from: [] })]);
+      await settle();
+
+      backend.expectNone((request) => request.url.startsWith('/api/projects/'));
+      expect(store.sourceNames()).toBeNull();
+    });
   });
 
   describe('while a run goes', () => {

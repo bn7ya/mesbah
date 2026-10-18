@@ -38,6 +38,9 @@ class RunDatasetSerializer(serializers.Serializer[dict[str, Any]]):
 class RunSerializer(serializers.Serializer[dict[str, Any]]):
     id = serializers.UUIDField(read_only=True)
     project = serializers.UUIDField(read_only=True)
+    kind = serializers.ChoiceField(choices=TrainingRun.Kind.choices, read_only=True)
+    draft = serializers.UUIDField(read_only=True, allow_null=True)
+    corrections_from = serializers.ListField(child=serializers.UUIDField(), read_only=True)
     name = serializers.CharField(read_only=True, allow_blank=True)
     notes = serializers.CharField(read_only=True, allow_blank=True)
     starts_from = VersionRefSerializer(read_only=True, allow_null=True)

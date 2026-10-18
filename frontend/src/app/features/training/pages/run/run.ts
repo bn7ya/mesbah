@@ -23,17 +23,19 @@ import { RunStatus } from '../../components/run-status/run-status';
 import { VersionRef } from '../../components/version-ref/version-ref';
 import {
   FAILURE_CODES,
+  PRETRAIN_FAILURE_CODES,
   SETTING_LABELS,
-  SIMPLE_SETTING_KEYS,
   SLIVER,
   TREND_ICONS,
   type ChartData,
-  type SettingKey,
+  type RunSource,
   type SettingRow,
   type SizeShare,
 } from '../../data/training.types';
 import { formatDuration } from '../../state/pace';
 import { RunStore } from '../../state/run.store';
+import { sourcesOf } from '../../state/run-sources';
+import { settingValue, shownSettings } from '../../state/run-settings';
 
 @Component({
   selector: 'app-run-page',
@@ -79,7 +81,14 @@ export class RunPage {
   readonly progress = this.store.progress;
   readonly expert = this.ui.expert;
 
-  readonly title = computed(() => this.run()?.name || this.locale.translate('training.run.untitled'));
+  readonly pretrain = computed(() => this.run()?.kind === 'pretrain');
+  readonly title = computed(() => {
+    const run = this.run();
+    if (run?.kind === 'pretrain') {
+      return this.locale.translate('training.runs.pretrainName');
+    }
+    return run?.name || this.locale.translate('training.run.untitled');
+  });
 
   readonly showBar = computed(() => {
     const run = this.run();
@@ -147,7 +156,11 @@ export class RunPage {
   });
 
   readonly failureKey = computed(() => {
-    const code = this.run()?.error_code ?? '';
+    const run = this.run();
+    const code = run?.error_code ?? '';
+    if (run?.kind === 'pretrain' && PRETRAIN_FAILURE_CODES.includes(code)) {
+      return `training.failure.pretrain.${code}`;
+    }
     return `training.failure.${FAILURE_CODES.includes(code) ? code : 'failed'}`;
   });
   readonly missingParts = computed(() => this.run()?.error_code === 'training_parts_missing');
@@ -171,12 +184,19 @@ export class RunPage {
     return loss === null || loss === undefined ? null : formatSignificant(loss, this.locale.locale(), 3);
   });
 
+  readonly sources = computed<readonly RunSource[] | null>(() => sourcesOf(this.run()?.corrections_from ?? [], this.store.sourceNames()));
+
   readonly settings = computed<readonly SettingRow[]>(() => {
     const used = this.run()?.hyperparams ?? {};
-    const keys = (Object.keys(SETTING_LABELS) as SettingKey[]).filter(
-      (key) => used[key] !== undefined && (this.expert() || SIMPLE_SETTING_KEYS.includes(key)),
-    );
-    return keys.map((key) => ({ key, labelKey: SETTING_LABELS[key], text: this.settingText(used[key]) }));
+    return shownSettings(used, this.expert()).map((key) => {
+      const value = settingValue(used, key);
+      return {
+        key,
+        labelKey: SETTING_LABELS[key],
+        text: this.settingText(value),
+        termKey: key === 'optim' && typeof value === 'string' ? value : null,
+      };
+    });
   });
 
   readonly processor = computed(() => (this.run()?.gpu_indices.length ?? 0) === 0);
@@ -213,7 +233,10 @@ export class RunPage {
     }
   }
 
-  private settingText(value: number | boolean | null | undefined): string {
+  private settingText(value: number | boolean | string | null | undefined): string {
+    if (typeof value === 'string') {
+      return value;
+    }
     if (typeof value === 'boolean') {
       return this.locale.translate(value ? 'training.run.yes' : 'training.run.no');
     }

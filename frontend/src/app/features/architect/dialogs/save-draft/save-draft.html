@@ -1,0 +1,50 @@
+<h2 mat-dialog-title>{{ (data.mode === 'rename' ? 'architect.save.renameTitle' : 'architect.save.saveTitle') | t }}</h2>
+
+<form novalidate (ngSubmit)="submit()">
+  <mat-dialog-content class="save-draft">
+    @if (failure(); as problem) {
+      <p class="save-draft__failure" role="alert">
+        <mat-icon fontIcon="fa-circle-exclamation" />
+        {{ problem.message }}
+      </p>
+    }
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'architect.save.name' | t }}</mat-label>
+      <input
+        matInput
+        name="name"
+        dir="auto"
+        autocomplete="off"
+        [maxlength]="nameMax"
+        [errorStateMatcher]="nameErrors"
+        [ngModel]="name()"
+        (ngModelChange)="name.set($event)"
+      />
+      <mat-error>{{ 'architect.save.nameRequired' | t }}</mat-error>
+    </mat-form-field>
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'architect.save.notes' | t }}</mat-label>
+      <textarea
+        matInput
+        name="notes"
+        dir="auto"
+        cdkTextareaAutosize
+        cdkAutosizeMinRows="3"
+        cdkAutosizeMaxRows="8"
+        [maxlength]="notesMax"
+        [ngModel]="notes()"
+        (ngModelChange)="notes.set($event)"
+      ></textarea>
+      <mat-hint>{{ 'architect.save.notesHint' | t }}</mat-hint>
+    </mat-form-field>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button matButton type="button" mat-dialog-close>{{ 'actions.cancel' | t }}</button>
+    <button matButton="filled" type="submit" [disabled]="saving()" [attr.aria-busy]="saving()">
+      {{ (saving() ? 'architect.save.working' : 'architect.save.submit') | t }}
+    </button>
+  </mat-dialog-actions>
+</form>

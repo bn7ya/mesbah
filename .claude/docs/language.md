@@ -68,7 +68,7 @@ them, with `dir="ltr"` on the name. These terms stay in English in both language
 an `<app-term>` explanation in the reader's language:
 
 LoRA · QLoRA · GPU · VRAM · RAM · CPU · loss · learning rate · token · MoE · GGUF ·
-safetensors · JSONL · API · API key
+safetensors · JSONL · API · API key · AdamW · 8-bit Adam
 
 | Concept | Arabic | English |
 |---|---|---|

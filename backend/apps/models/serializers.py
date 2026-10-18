@@ -65,6 +65,7 @@ class InspectionSerializer(HubResultSerializer):
 class LibraryModelSerializer(serializers.Serializer[dict[str, Any]]):
     id = serializers.UUIDField(read_only=True)
     repo_id = serializers.CharField(read_only=True)
+    origin = serializers.ChoiceField(choices=HubModel.Origin.choices, read_only=True)
     revision = serializers.CharField(read_only=True, allow_blank=True)
     family = serializers.ChoiceField(choices=HubModel.Family.choices, read_only=True)
     model_type = serializers.CharField(read_only=True, allow_blank=True)

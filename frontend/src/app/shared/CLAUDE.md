@@ -44,13 +44,15 @@ segments plus the free remainder, with a legend that carries the same numbers in
 `aria-label` that reads them all.
 
 **`formatBytes()`**, **`formatNumber()`**, **`formatCompact()`**, **`formatSignificant()`**,
-**`formatPercent()`**, **`formatDateTime()`**, **`BytesPipe`**, **`CompactPipe`**,
+**`formatPercent()`**, **`isolateLtr()`**, **`formatDateTime()`**, **`BytesPipe`**, **`CompactPipe`**,
 **`DateTimePipe`** (`format/`) — sizes in binary units labelled B…PB, wrapped in Unicode isolates
 so "16 GB" keeps its order in an Arabic sentence; numbers with Latin digits in both languages;
 counts shortened the way the language writes them ("8.2B", "9.1M" in English, "8.2 مليار"
 in Arabic); a number to a set count of significant digits; a ratio as an isolated percentage;
 and a timestamp as a date with the time, in the reader's language — a long date by default,
-`'medium'` where the line is short (`{{ when | datetime: 'medium' }}`).
+`'medium'` where the line is short (`{{ when | datetime: 'medium' }}`). `isolateLtr()` wraps
+any Latin text, such as a repository name, in the same isolates so it keeps its order inside an
+Arabic sentence.
 
 **`ActiveVersionChanges`** (`version/`) — a root service the versions page announces the
 active version on (`announce()`, a project id and a `VersionLabel`), and the project frame

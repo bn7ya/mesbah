@@ -144,6 +144,36 @@ def test_a_version_loads_once_and_shows_on_the_engine(
 
 
 @pytest.mark.django_db
+def test_a_model_trained_from_nothing_is_served_as_the_base(
+    trainer: User, runtime: FakeRuntime
+) -> None:
+    model: HubModel = HubModelRepository().create(
+        repo_id="local/scratch",
+        origin=HubModel.Origin.TRAINED,
+        status=HubModel.Status.READY,
+        local_path="/models/trained/scratch",
+        parameters=1_000_000,
+    )
+    project: Project = ProjectRepository().create(
+        name="Scratch", slug="scratch", kind=Project.Kind.SCRATCH, base_model=model
+    )
+    root: ModelVersion = VersionRepository().create(
+        project=project,
+        number=0,
+        kind=ModelVersion.Kind.SCRATCH_ROOT,
+        name="base",
+        storage_dir="/models/trained/scratch",
+    )
+
+    target: Target = DeploymentService(trainer).target(root)
+
+    assert target.model == "base"
+    assert runtime.loaded is not None
+    assert runtime.loaded["base"] == "/models/trained/scratch"
+    assert runtime.loaded["adapters"] == []
+
+
+@pytest.mark.django_db
 def test_unloading_frees_the_engine(
     trainer: User, version: ModelVersion, runtime: FakeRuntime
 ) -> None:

@@ -160,15 +160,5 @@
     "root_version_kept": "The base model stays in the project.",
     "active_version_kept": "The active version stays. Make another version active first.",
     "not_exportable": "The base model is not on this machine, so this version cannot be exported."
-  },
-  "glossary": {
-    "attention": {
-      "term": "Attention",
-      "explain": "The part of each layer that lets the model look at the other words in the text. Its modules are q_proj, k_proj, v_proj and o_proj."
-    },
-    "feed_forward": {
-      "term": "Feed-forward",
-      "explain": "The part of each layer that processes every word on its own after attention. Its modules are gate_proj, up_proj and down_proj."
-    }
   }
 }

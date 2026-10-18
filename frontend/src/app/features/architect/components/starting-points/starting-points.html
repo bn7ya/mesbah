@@ -1,0 +1,159 @@
+<section class="starting__group" aria-labelledby="starting-presets" [attr.aria-busy]="presetsLoading()">
+  <h3 id="starting-presets">{{ 'architect.start.presets' | t }}</h3>
+
+  @if (presetsLoading()) {
+    <mat-progress-bar mode="indeterminate" [attr.aria-label]="'architect.preset.loading' | t" />
+  }
+
+  @if (presetsError(); as problem) {
+    <p class="starting__failure" role="alert">
+      <mat-icon fontIcon="fa-circle-exclamation" />
+      {{ problem.message }}
+    </p>
+    <div>
+      <button matButton type="button" (click)="presetsAgain()">{{ 'actions.retry' | t }}</button>
+    </div>
+  }
+
+  <ul class="starting__presets">
+    @for (preset of presets(); track preset.name) {
+      <li>
+        <mat-card appearance="outlined" class="starting__card">
+          <div class="starting__card-text">
+            <h4 class="starting__name">{{ presetName(preset) }}</h4>
+            <p class="text-secondary">{{ 'architect.family.' + preset.family + '.name' | t }}</p>
+            <p class="starting__stat">{{ 'architect.preset.parameters' | t: { count: (preset.counts.total | compact) } }}</p>
+            @if (preset.family === 'moe_decoder') {
+              <p class="starting__stat">{{ 'architect.preset.active' | t: { count: (preset.counts.active | compact) } }}</p>
+            }
+          </div>
+
+          <div class="starting__card-actions">
+            <button
+              matButton
+              type="button"
+              [attr.aria-label]="'architect.preset.useFor' | t: { name: presetName(preset) }"
+              (click)="usePreset(preset)"
+            >
+              <mat-icon fontIcon="fa-wand-magic-sparkles" />
+              {{ 'architect.preset.use' | t }}
+            </button>
+            @if (startedFrom() === preset.name) {
+              <span class="starting__tag">
+                <mat-icon fontIcon="fa-circle-check" />
+                {{ 'architect.preset.loaded' | t }}
+              </span>
+            }
+          </div>
+        </mat-card>
+      </li>
+    }
+  </ul>
+</section>
+
+<section class="starting__group" aria-labelledby="starting-saved" [attr.aria-busy]="draftsLoading()">
+  <h3 id="starting-saved">{{ 'architect.start.saved' | t }}</h3>
+
+  @if (draftsLoading() && page().results.length === 0) {
+    <mat-progress-bar mode="indeterminate" [attr.aria-label]="'architect.drafts.loading' | t" />
+  }
+
+  @if (draftsError(); as problem) {
+    <p class="starting__failure" role="alert">
+      <mat-icon fontIcon="fa-circle-exclamation" />
+      {{ problem.message }}
+    </p>
+    <div>
+      <button matButton type="button" (click)="draftsAgain()">{{ 'actions.retry' | t }}</button>
+    </div>
+  }
+
+  @if (failure(); as problem) {
+    <p class="starting__failure" role="alert">
+      <mat-icon fontIcon="fa-circle-exclamation" />
+      {{ problem.message }}
+    </p>
+  }
+
+  @if (empty()) {
+    <mat-card appearance="outlined" class="starting__empty">
+      <mat-icon fontIcon="fa-box-open" />
+      <div class="starting__card-text">
+        <p class="starting__empty-title">{{ 'architect.drafts.empty' | t }}</p>
+        <p class="text-secondary">{{ (canWrite() ? 'architect.drafts.emptyWrite' : 'architect.drafts.emptyRead') | t }}</p>
+      </div>
+    </mat-card>
+  }
+
+  <ul class="starting__drafts">
+    @for (draft of page().results; track draft.id) {
+      <li>
+        <mat-card appearance="outlined" class="starting__row">
+          <div class="starting__card-text">
+            <h4 class="starting__name"><span dir="auto">{{ draft.name }}</span></h4>
+            <p class="starting__meta text-secondary">
+              <span>{{ 'architect.family.' + draft.family + '.name' | t }}</span>
+              <span>{{ 'architect.preset.parameters' | t: { count: (draft.counts.total | compact) } }}</span>
+              <span>{{ 'architect.drafts.changed' | t: { date: (draft.updatedAt | datetime) } }}</span>
+            </p>
+            @if (draft.notes) {
+              <p class="starting__notes text-secondary" dir="auto">{{ draft.notes }}</p>
+            }
+          </div>
+
+          <div class="starting__row-actions">
+            @if (current()?.id === draft.id) {
+              <span class="starting__tag">
+                <mat-icon fontIcon="fa-circle-check" />
+                {{ 'architect.drafts.current' | t }}
+              </span>
+            }
+            <button
+              matButton
+              type="button"
+              [disabled]="isWorking(draft)"
+              [attr.aria-label]="'architect.drafts.openFor' | t: { name: draft.name }"
+              (click)="open(draft)"
+            >
+              <mat-icon fontIcon="fa-folder-open" />
+              {{ 'architect.drafts.open' | t }}
+            </button>
+            @if (canWrite()) {
+              <button
+                matButton
+                type="button"
+                [disabled]="isWorking(draft)"
+                [attr.aria-label]="'architect.drafts.renameFor' | t: { name: draft.name }"
+                (click)="rename(draft)"
+              >
+                <mat-icon fontIcon="fa-pen" />
+                {{ 'architect.drafts.rename' | t }}
+              </button>
+              <button
+                matButton
+                type="button"
+                [disabled]="isWorking(draft)"
+                [attr.aria-label]="'architect.drafts.removeFor' | t: { name: draft.name }"
+                (click)="remove(draft)"
+              >
+                <mat-icon fontIcon="fa-trash" />
+                {{ 'architect.drafts.remove' | t }}
+              </button>
+            }
+          </div>
+        </mat-card>
+      </li>
+    }
+  </ul>
+
+  @if (paged()) {
+    <mat-paginator
+      [length]="page().count"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="[24, 48, 96]"
+      [attr.aria-label]="'architect.drafts.pages' | t"
+      (page)="turnPage($event)"
+    />
+  }
+</section>

@@ -34,6 +34,7 @@ LAYERS: int = 2
 MODULES: tuple[str, ...] = ("q_proj", "v_proj")
 START_LOSS: float = 2.4
 F32_BYTES: int = 4
+MODEL_CONFIG: str = "config.json"
 MODEL_WEIGHTS: str = "model.safetensors"
 
 
@@ -169,6 +170,20 @@ def _parent_change(dense: Mapping[str, Matrix], parent_dir: Path) -> float | Non
     )
 
 
+def write_model(config: TrainConfig) -> int:
+    output: Path = Path(config.output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    settings: JsonObject = dict(config.model_config or {})
+    (output / MODEL_CONFIG).write_text(json.dumps(settings, indent=2), encoding="utf-8")
+    seed: float = config.hyperparams.seed
+    tensors: dict[str, Matrix] = {
+        "model.embed_tokens.weight": _matrix(HIDDEN, HIDDEN, seed, 0.02),
+        "model.norm.weight": [[1.0] * HIDDEN],
+    }
+    write_safetensors(output / MODEL_WEIGHTS, tensors)
+    return sum(len(matrix) * len(matrix[0]) for matrix in tensors.values())
+
+
 def write_adapter(config: TrainConfig, steps: int) -> DeltaStats:
     settings: Hyperparams = config.hyperparams
     output: Path = Path(config.output_dir)
@@ -268,14 +283,25 @@ def _train(config: TrainConfig, events: EventWriter, started: float) -> Status:
         return Status(status="cancelled", metrics=_metrics(rows, total, loss, started))
     events.saving()
     output: Path = Path(config.output_dir)
-    delta: DeltaStats = write_adapter(config, total)
-    status: Status = Status(
-        status="completed",
-        adapter_dir=str(output),
-        size_bytes=adapter_size_bytes(output),
-        delta=delta,
-        metrics=_metrics(rows, total, loss, started),
-    )
+    status: Status
+    if config.kind == "pretrain":
+        parameters: int = write_model(config)
+        status = Status(
+            status="completed",
+            model_dir=str(output),
+            size_bytes=adapter_size_bytes(output),
+            parameters=parameters,
+            metrics=_metrics(rows, total, loss, started),
+        )
+    else:
+        delta: DeltaStats = write_adapter(config, total)
+        status = Status(
+            status="completed",
+            adapter_dir=str(output),
+            size_bytes=adapter_size_bytes(output),
+            delta=delta,
+            metrics=_metrics(rows, total, loss, started),
+        )
     events.done()
     return status
 

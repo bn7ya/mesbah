@@ -24,6 +24,7 @@ from apps.training.models import TrainingMetric, TrainingRun
 from apps.training.repositories import MetricRepository, RunRepository
 from apps.training.repositories.run_repository import FINISHED
 from apps.training.services.examples import ExampleService
+from apps.training.services.pretrain import keep_model, pretrain_config
 from apps.versions.models import ModelVersion
 from apps.versions.services import VersionService
 from mesbah import parts
@@ -95,17 +96,26 @@ class RunnerService:
         if not sources:
             raise RunFailed("no_examples")
         try:
-            config: TrainConfig = self._lora_config(run, folder, sources)
+            config: TrainConfig | None = (
+                pretrain_config(run, folder, sources)
+                if run.kind == TrainingRun.Kind.PRETRAIN
+                else self._lora_config(run, folder, sources)
+            )
         except ContractError as error:
             raise RunFailed("bad_settings", str(error)) from error
+        if config is None:
+            raise RunFailed("bad_settings", "The run has no design to build.")
         config.write(folder / "config.json")
         return config
 
     def _sources(self, run: TrainingRun, folder: Path) -> list[ExampleSource]:
+        projects: list[str] = [str(run.project_id)] if run.use_corrections else []
+        projects += [str(project) for project in run.corrections_from]
         sources: list[ExampleSource] = []
-        corrections: Path = folder / "corrections-0.jsonl"
-        if run.use_corrections and self.examples.write(str(run.project_id), corrections):
-            sources.append(ExampleSource(path=str(corrections)))
+        for index, project in enumerate(dict.fromkeys(projects)):
+            corrections: Path = folder / f"corrections-{index}.jsonl"
+            if self.examples.write(project, corrections):
+                sources.append(ExampleSource(path=str(corrections)))
         for entry in run.datasets:
             dataset: Dataset | None = self.datasets.find(entry["id"])
             if dataset is not None and dataset.file_path and Path(dataset.file_path).is_file():
@@ -200,6 +210,9 @@ class RunnerService:
             return
         if outcome.status == "cancelled":
             self._end(run, TrainingRun.Status.CANCELLED)
+            return
+        if outcome.status == "completed" and outcome.model_dir is not None:
+            self._finish(run, keep_model(run, outcome), outcome)
             return
         if outcome.status == "failed" or outcome.adapter_dir is None:
             failure: tuple[str, str] = (

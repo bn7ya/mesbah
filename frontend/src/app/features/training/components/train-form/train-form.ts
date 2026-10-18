@@ -80,6 +80,7 @@ export class TrainForm {
   readonly datasets = this.store.datasets;
   readonly datasetsLoading = this.store.datasetsLoading;
   readonly starting = this.store.starting;
+  readonly noModel = this.store.noModel;
   readonly expert = this.ui.expert;
   readonly nameMax = NAME_MAX;
 
@@ -133,7 +134,7 @@ export class TrainForm {
     return this.problems().length > 0 || !this.limitsValid() ? 'training.form.blocked.settings' : null;
   });
 
-  readonly canStart = computed(() => this.plan() !== null && this.blocker() === null && !this.starting());
+  readonly canStart = computed(() => this.plan() !== null && !this.noModel() && this.blocker() === null && !this.starting());
 
   async submit(): Promise<void> {
     if (!this.canStart()) {

@@ -7,6 +7,7 @@ from django.db import transaction
 from django.db.models import QuerySet
 from rest_framework.exceptions import NotFound
 
+from apps.architect.models import ArchitectureDraft
 from apps.datasets.models import Dataset
 from apps.datasets.services import DatasetService
 from apps.datasets.services.errors import NotReady
@@ -61,6 +62,9 @@ class TrainingService:
         return {
             "id": run.pk,
             "project": run.project_id,
+            "kind": run.kind,
+            "draft": run.draft_id,
+            "corrections_from": run.corrections_from,
             "name": run.name,
             "notes": run.notes,
             "starts_from": None if run.parent is None else _version(run.parent),
@@ -168,6 +172,55 @@ class TrainingService:
                 "max_rows": entry.get("max_rows"),
             }
         return list(chosen.values())
+
+    @staticmethod
+    def pretrain_defaults(seq_len: int, batch: int) -> dict[str, Any]:
+        return {
+            "epochs": 1.0,
+            "learning_rate": 3e-4,
+            "max_seq_len": seq_len,
+            "batch_size": batch,
+            "grad_accum": 1,
+            "warmup_ratio": 0.03,
+            "gradient_checkpointing": True,
+            "quantize_4bit": False,
+            "pretrain": {"optim": "adamw_torch"},
+        }
+
+    @transaction.atomic
+    def create_pretrain(
+        self,
+        *,
+        project: Project,
+        draft: ArchitectureDraft,
+        corrections_from: list[str],
+        datasets: list[dict[str, Any]] | None = None,
+        hyperparams: dict[str, Any] | None = None,
+    ) -> TrainingRun:
+        sources: list[Project] = [self.project(source) for source in corrections_from]
+        chosen: list[dict[str, Any]] = self.chosen_datasets(datasets or [])
+        if not chosen and not any(
+            self.examples.corrections(str(source.pk)).exists() for source in sources
+        ):
+            raise NothingToLearn
+        run: TrainingRun = self.runs.create(
+            created_by=self._actor(),
+            project=project,
+            kind=TrainingRun.Kind.PRETRAIN,
+            draft=draft,
+            name="base",
+            use_corrections=False,
+            corrections_from=[str(source.pk) for source in sources],
+            datasets=chosen,
+            activate_when_done=True,
+            hyperparams={
+                **self.pretrain_defaults(draft.seq_len, draft.batch),
+                **(hyperparams or {}),
+            },
+            gpu_indices=self.system.selected_gpu_indices(),
+        )
+        transaction.on_commit(lambda: _enqueue(str(run.pk)))
+        return run
 
     def cancel(self, run_id: str) -> TrainingRun:
         run: TrainingRun = self.find(run_id)

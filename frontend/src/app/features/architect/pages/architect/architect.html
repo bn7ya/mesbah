@@ -1,0 +1,107 @@
+<header class="architect__header">
+  <h1>{{ 'architect.title' | t }}</h1>
+  <p class="text-secondary">{{ 'architect.subtitle' | t }}</p>
+</header>
+
+<section class="architect__section" aria-labelledby="architect-start">
+  <h2 id="architect-start">{{ 'architect.start.title' | t }}</h2>
+  <app-starting-points (chosen)="focusDesign()" />
+</section>
+
+<section class="architect__section" aria-labelledby="architect-design">
+  <div class="architect__bar">
+    <div class="architect__heading">
+      <h2 id="architect-design" tabindex="-1" #designHeading>{{ 'architect.design.title' | t }}</h2>
+      <p class="architect__status text-secondary" role="status">
+        @if (draft(); as saved) {
+          <mat-icon fontIcon="fa-floppy-disk" />
+          <span>{{ 'architect.design.fromDraft' | t }}</span>
+          <span class="architect__name" dir="auto">{{ saved.name }}</span>
+          @if (dirty()) {
+            <span class="architect__dirty">
+              <mat-icon fontIcon="fa-pen" />
+              {{ 'architect.design.unsaved' | t }}
+            </span>
+          }
+        } @else if (startedLabel(); as label) {
+          <mat-icon fontIcon="fa-wand-magic-sparkles" />
+          <span>{{ 'architect.design.fromPreset' | t }}</span>
+          <span class="architect__name" dir="auto">{{ label }}</span>
+        } @else {
+          <mat-icon fontIcon="fa-file" />
+          <span>{{ 'architect.design.fresh' | t }}</span>
+        }
+      </p>
+    </div>
+
+    @if (canWrite()) {
+      <div class="architect__actions">
+        <div class="architect__buttons">
+          <button
+            matButton="tonal"
+            type="button"
+            [disabled]="!canSave()"
+            [attr.aria-busy]="saving()"
+            (click)="save()"
+          >
+            <mat-icon fontIcon="fa-floppy-disk" />
+            {{ 'architect.actions.save' | t }}
+          </button>
+          <button
+            matButton="filled"
+            type="button"
+            [disabled]="!canTrain()"
+            [attr.aria-describedby]="trainBlocker() ? 'architect-train-reason' : null"
+            (click)="train()"
+          >
+            <mat-icon fontIcon="fa-play" class="mat-icon-rtl-mirror" />
+            {{ 'architect.actions.train' | t }}
+          </button>
+        </div>
+        @if (trainBlocker(); as reason) {
+          <p class="architect__reason text-secondary" id="architect-train-reason">{{ reason | t }}</p>
+        }
+      </div>
+    } @else {
+      <p class="architect__reason architect__readonly text-secondary">
+        <mat-icon fontIcon="fa-lock" />
+        {{ 'architect.design.readOnly' | t }}
+      </p>
+    }
+  </div>
+
+  <div class="architect__layout">
+    <mat-card appearance="outlined" class="architect__panel">
+      <app-designer-form />
+    </mat-card>
+
+    <mat-card appearance="outlined" class="architect__panel architect__results" [attr.aria-busy]="estimating()">
+      <h2 class="architect__results-title">{{ 'architect.results.title' | t }}</h2>
+
+      @if (estimating()) {
+        <mat-progress-bar mode="indeterminate" [attr.aria-label]="'architect.results.working' | t" />
+      }
+
+      @if (estimate(); as result) {
+        <app-breakdown [counts]="result.counts" [family]="result.design.family" [note]="result.note" />
+        <mat-divider />
+        <app-training-memory [memory]="result.memory" />
+      } @else if (!estimating()) {
+        @if (refusalSummary(); as problem) {
+          <p class="architect__failure" role="alert">
+            <mat-icon fontIcon="fa-circle-exclamation" />
+            {{ problem.message }}
+          </p>
+          <div>
+            <button matButton type="button" (click)="estimateAgain()">{{ 'actions.retry' | t }}</button>
+          </div>
+        } @else {
+          <p class="architect__failure" role="alert">
+            <mat-icon fontIcon="fa-circle-exclamation" />
+            {{ 'architect.results.fix' | t }}
+          </p>
+        }
+      }
+    </mat-card>
+  </div>
+</section>

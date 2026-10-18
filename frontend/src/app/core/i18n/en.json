@@ -67,6 +67,7 @@
     "projects": "Projects",
     "models": "Models",
     "datasets": "Datasets",
+    "architect": "Architect",
     "engines": "Engines",
     "system": "System",
     "members": "Members"
@@ -200,6 +201,14 @@
     "rank": {
       "term": "Rank",
       "explain": "The size of the LoRA add-on. A larger rank can learn more and needs more memory and disk space."
+    },
+    "attention": {
+      "term": "Attention",
+      "explain": "The part of each layer that connects the tokens of a text: each token takes in the ones before it to find what matters. Its modules are q_proj, k_proj, v_proj and o_proj."
+    },
+    "feed_forward": {
+      "term": "Feed-forward",
+      "explain": "The part of each layer that processes every token on its own after attention. Most of a model's parameters sit here; its modules are gate_proj, up_proj and down_proj."
     }
   },
   "paginator": {

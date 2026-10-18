@@ -80,6 +80,20 @@ class ProjectService:
         VersionService(self.user).create_root(project)
         return self.describe(project)
 
+    def create_scratch(self, *, name: str, description: str = "") -> Project:
+        return self.projects.create(
+            created_by=self._actor(),
+            name=name,
+            slug=self._unique_slug(name),
+            kind=Project.Kind.SCRATCH,
+            description=description,
+            thinking=False,
+        )
+
+    def adopt(self, project: Project, model: HubModel) -> ModelVersion:
+        self.projects.update(project, base_model=model, thinking=model.supports_thinking)
+        return VersionService(self.user).create_root(project, kind=ModelVersion.Kind.SCRATCH_ROOT)
+
     def change(self, project_id: str, **fields: Any) -> dict[str, Any]:
         project: Project = self.find(project_id)
         if "name" in fields and fields["name"] != project.name:

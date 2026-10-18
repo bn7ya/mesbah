@@ -77,7 +77,8 @@ Failures become `EngineError` with a code: `engine_unreachable`, `engine_timeout
   `mesbah-<slug>-v<n>` (`needs_gguf` without one); llama.cpp and OpenAI-compatible servers answer
   with the one model they serve.
 - `release()` — unloads the built-in engine, for training.
-**`served_name()`**, **`external_name()`** — what each kind of engine calls a version.
+**`served_name()`**, **`external_name()`** — what each kind of engine calls a version; on the
+built-in engine a root version (`base` or `scratch_root`) is the base model itself, `base`.
 **`endpoint_of()`** — an engine's address and key; the built-in one's come from
 `MESBAH_RUNTIME_URL` and `MESBAH_RUNTIME_TOKEN`.
 

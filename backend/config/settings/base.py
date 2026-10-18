@@ -61,6 +61,7 @@ THIRD_PARTY_APPS: list[str] = [
 LOCAL_APPS: list[str] = [
     "apps.common",
     "apps.accounts",
+    "apps.architect",
     "apps.chat",
     "apps.datasets",
     "apps.members",
@@ -176,6 +177,7 @@ SPECTACULAR_SETTINGS: dict[str, Any] = {
     "ENUM_NAME_OVERRIDES": {
         "DatasetFormatEnum": "apps.datasets.models.Dataset.Format",
         "DatasetStatusEnum": "apps.datasets.models.Dataset.Status",
+        "DesignFamilyEnum": ["dense_decoder", "moe_decoder", "encoder_decoder"],
         "ExportFormatEnum": "apps.versions.models.Export.Format",
         "MemberRoleEnum": "apps.members.roles.LADDER",
         "MessageRoleEnum": ["system", "user", "assistant"],

@@ -87,13 +87,18 @@ class VersionService:
             "rank": stats.get("rank"),
         }
 
-    def create_root(self, project: Project) -> ModelVersion:
+    def create_root(
+        self, project: Project, kind: ModelVersion.Kind = ModelVersion.Kind.BASE
+    ) -> ModelVersion:
         root: ModelVersion = self.versions.create(
             created_by=self._actor(),
             project=project,
             number=ROOT_NUMBER,
-            kind=ModelVersion.Kind.BASE,
+            kind=kind,
             name="base",
+            storage_dir=""
+            if kind == ModelVersion.Kind.BASE or project.base_model is None
+            else project.base_model.local_path,
             full_size_bytes=0 if project.base_model is None else project.base_model.size_bytes,
         )
         self.projects.update(project, active_version=root)

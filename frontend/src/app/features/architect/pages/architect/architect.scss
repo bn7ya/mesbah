@@ -1,0 +1,128 @@
+@use "layout" as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-8);
+}
+
+.architect__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+
+  h1,
+  p {
+    margin: 0;
+  }
+}
+
+.architect__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.architect__bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+
+  @include from($screen-md) {
+    flex-direction: row;
+    gap: var(--app-space-6);
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+}
+
+.architect__heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+}
+
+.architect__status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-2);
+  align-items: center;
+  margin: 0;
+}
+
+.architect__name {
+  font: var(--mat-sys-label-large);
+  color: var(--mat-sys-on-surface);
+}
+
+.architect__dirty {
+  display: inline-flex;
+  gap: var(--app-space-1);
+  align-items: center;
+  margin-inline-start: var(--app-space-2);
+  font: var(--mat-sys-label-large);
+}
+
+.architect__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+
+  @include from($screen-md) {
+    align-items: flex-end;
+  }
+}
+
+.architect__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+}
+
+.architect__reason {
+  margin: 0;
+  font: var(--mat-sys-body-medium);
+}
+
+.architect__readonly {
+  display: flex;
+  gap: var(--app-space-2);
+  align-items: center;
+}
+
+.architect__layout {
+  display: grid;
+  gap: var(--app-space-6);
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+
+  @include from($screen-xl) {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  }
+}
+
+.architect__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-6);
+  padding: var(--app-space-6);
+}
+
+.architect__results-title {
+  margin: 0;
+}
+
+.architect__failure {
+  display: flex;
+  gap: var(--app-space-3);
+  align-items: center;
+  padding: var(--app-space-3) var(--app-space-4);
+  margin: 0;
+  color: var(--mat-sys-on-error-container);
+  background: var(--mat-sys-error-container);
+  border-radius: var(--mat-sys-corner-small);
+}

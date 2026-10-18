@@ -32,7 +32,7 @@ class Target:
 
 
 def served_name(version: ModelVersion) -> str:
-    return BASE_NAME if version.kind == ModelVersion.Kind.BASE else str(version.pk)
+    return str(version.pk) if version.kind == ModelVersion.Kind.LORA else BASE_NAME
 
 
 def endpoint_of(engine: Engine) -> Endpoint:

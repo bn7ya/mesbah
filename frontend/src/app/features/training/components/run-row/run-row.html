@@ -2,7 +2,7 @@
 
 <mat-card appearance="outlined" class="row" [attr.aria-busy]="busy()">
   <div class="row__head">
-    <h3 class="row__name" dir="auto">{{ item.name || ('training.runs.unnamed' | t) }}</h3>
+    <h3 class="row__name" dir="auto">{{ title() }}</h3>
     <app-run-status [run]="item" [stopping]="stopRequested()" />
   </div>
 
@@ -15,7 +15,30 @@
   }
 
   <dl class="row__facts">
-    @if (item.starts_from; as parent) {
+    @if (pretrain()) {
+      <div>
+        <dt>{{ 'training.runs.kind' | t }}</dt>
+        <dd>{{ 'training.runs.fromNothing' | t }}</dd>
+      </div>
+      @if (item.corrections_from.length > 0) {
+        <div>
+          <dt>{{ 'training.learned.repliesFrom' | t }}</dt>
+          <dd>
+            @if (sources(); as list) {
+              @for (source of list; track source.id; let last = $last) {
+                @if (source.name !== null) {
+                  <span dir="auto">{{ source.name }}</span>
+                } @else {
+                  <span>{{ 'training.learned.projectGone' | t }}</span>
+                }@if (!last) {<span>{{ 'training.runs.separator' | t }} </span>}
+              }
+            } @else {
+              {{ 'training.learned.projectsCount' | t: { count: sourceCount() } }}
+            }
+          </dd>
+        </div>
+      }
+    } @else if (item.starts_from; as parent) {
       <div>
         <dt>{{ 'training.runs.from' | t }}</dt>
         <dd><app-version-ref [version]="parent" /></dd>
@@ -34,7 +57,7 @@
         <dt>{{ 'training.runs.datasets' | t }}</dt>
         <dd>
           @for (dataset of item.datasets; track dataset.id; let last = $last) {
-            <span dir="auto">{{ dataset.name }}</span>@if (!last) {<span>, </span>}
+            <span dir="auto">{{ dataset.name }}</span>@if (!last) {<span>{{ 'training.runs.separator' | t }} </span>}
           }
         </dd>
       </div>

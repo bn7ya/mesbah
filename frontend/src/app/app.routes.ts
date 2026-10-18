@@ -55,6 +55,10 @@ export const routes: Routes = [
         loadChildren: () => import('@features/models/models.routes').then((m) => m.routes),
       },
       {
+        path: 'architect',
+        loadChildren: () => import('@features/architect/architect.routes').then((m) => m.routes),
+      },
+      {
         path: 'datasets',
         loadChildren: () => import('@features/datasets/datasets.routes').then((m) => m.routes),
       },

@@ -34,9 +34,11 @@ views.py → services/model_service.py → repositories/hub_model_repository.py 
 
 ## Classes and methods
 
-**`HubModel`** — a model in the library: its repo id and revision, what it is (family, type,
-architecture, parameters, active parameters for MoE, licence, gated, thinking support), its
-files and size, and the download's state, progress and error.
+**`HubModel`** — a model in the library: its repo id and revision, its origin (`hub`, or
+`trained` for a model Mesbah trained from nothing, named `local/<slug>`, whose files are removed
+with it), what it is (family, type, architecture, parameters, active parameters for MoE,
+licence, gated, thinking support), its files and size, and the download's state, progress and
+error.
 
 **`HubModelRepository`** — the library newest first, lookups by repo id, the cancel flag and
 progress updates a download writes while it runs.

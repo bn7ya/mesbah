@@ -1,0 +1,117 @@
+:host {
+  display: block;
+}
+
+.memory {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+
+  h3,
+  h4,
+  p {
+    margin: 0;
+  }
+}
+
+.memory__heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+
+  h3 {
+    font: var(--mat-sys-title-medium);
+  }
+}
+
+.memory__options {
+  display: grid;
+  gap: var(--app-space-6) var(--app-space-5);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+}
+
+.memory__option {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+  min-inline-size: 0;
+}
+
+.memory__name {
+  font: var(--mat-sys-title-small);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.memory__summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+}
+
+.memory__total {
+  font: var(--mat-sys-headline-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.memory__caption {
+  font: var(--mat-sys-body-medium);
+}
+
+.memory__verdict {
+  display: inline-flex;
+  gap: var(--app-space-2);
+  align-items: center;
+  font: var(--mat-sys-label-large);
+}
+
+.memory__verdict--error {
+  color: var(--mat-sys-error);
+}
+
+.memory__parts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+  margin: 0;
+  font: var(--mat-sys-body-medium);
+
+  div {
+    display: flex;
+    gap: var(--app-space-3);
+    align-items: center;
+    justify-content: space-between;
+    min-block-size: var(--app-space-7);
+  }
+
+  dt {
+    display: flex;
+    align-items: center;
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.memory__note {
+  display: flex;
+  gap: var(--app-space-3);
+  align-items: flex-start;
+  padding: var(--app-space-4);
+  color: var(--mat-sys-on-secondary-container);
+  background: var(--mat-sys-secondary-container);
+  border-radius: var(--mat-sys-corner-medium);
+}
+
+.memory__available {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+  align-items: center;
+}
+
+.memory__weights {
+  font: var(--mat-sys-body-medium);
+}

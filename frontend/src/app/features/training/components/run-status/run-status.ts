@@ -4,7 +4,7 @@ import { MatIcon } from '@angular/material/icon';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { formatNumber } from '@shared/format/format';
-import { FINISHED_STATUSES, STATUS_LOOKS, type Run, type StatusLook } from '../../data/training.types';
+import { FINISHED_STATUSES, KIND_WORDED_STAGES, STATUS_LOOKS, type Run, type StatusLook } from '../../data/training.types';
 
 const PREPARING_STAGES: readonly string[] = ['data', 'tokenizer', 'model', 'parent'];
 
@@ -34,15 +34,18 @@ export class RunStatus {
     if (run.stage === 'oom_retry') {
       return 'training.stage.oom_retry';
     }
+    const own = run.kind === 'pretrain' ? 'training.stage.pretrain' : 'training.stage';
     switch (run.status) {
       case 'queued':
         return 'training.stage.queued';
-      case 'preparing':
-        return PREPARING_STAGES.includes(run.stage) ? `training.stage.${run.stage}` : 'training.stage.data';
+      case 'preparing': {
+        const stage = PREPARING_STAGES.includes(run.stage) ? run.stage : 'data';
+        return KIND_WORDED_STAGES.includes(stage) ? `${own}.${stage}` : `training.stage.${stage}`;
+      }
       case 'training':
         return run.total_steps > 0 ? 'training.stage.training' : 'training.stage.begin';
       default:
-        return 'training.stage.saving';
+        return `${own}.saving`;
     }
   });
 

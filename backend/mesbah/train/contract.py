@@ -14,9 +14,15 @@ type JsonObject = dict[str, JsonValue]
 type ErrorCode = Literal["out_of_memory", "no_examples", "load_failed", "failed"]
 type RunState = Literal["completed", "failed", "cancelled"]
 type EventName = Literal["loading", "data", "begin", "log", "oom_retry", "saving", "done", "error"]
+type Kind = Literal["lora", "pretrain"]
+type Architecture = Literal["causal", "seq2seq"]
+type Optimizer = Literal["adamw_torch", "adamw_8bit"]
 
 ERROR_CODES: tuple[ErrorCode, ...] = ("out_of_memory", "no_examples", "load_failed", "failed")
 RUN_STATES: tuple[RunState, ...] = ("completed", "failed", "cancelled")
+KINDS: tuple[Kind, ...] = ("lora", "pretrain")
+ARCHITECTURES: tuple[Architecture, ...] = ("causal", "seq2seq")
+OPTIMIZERS: tuple[Optimizer, ...] = ("adamw_torch", "adamw_8bit")
 ALL_LINEAR: str = "all-linear"
 _REQUIRED: object = object()
 
@@ -87,6 +93,13 @@ def _choice[T: str](value: object, key: str, choices: tuple[T, ...]) -> T:
         if text == choice:
             return choice
     raise ContractError(f"{key!r} must be one of {', '.join(choices)}")
+
+
+def _optional_json_object(value: object, key: str) -> JsonObject | None:
+    if value is None:
+        return None
+    _object(value, repr(key))
+    return cast(JsonObject, value)
 
 
 def finite(value: float | None) -> float | None:
@@ -259,6 +272,45 @@ class Hyperparams:
 
 
 @dataclass(frozen=True)
+class Pretrain:
+    optim: Optimizer = "adamw_torch"
+    weight_decay: float = 0.1
+    noise_density: float = 0.15
+    mean_span_length: float = 3.0
+
+    def __post_init__(self) -> None:
+        if self.weight_decay < 0:
+            raise ContractError("'weight_decay' must not be negative")
+        if not 0 < self.noise_density < 1:
+            raise ContractError("'noise_density' must be in (0, 1)")
+        if self.mean_span_length < 1:
+            raise ContractError("'mean_span_length' must be at least 1")
+
+    @classmethod
+    def from_json(cls, data: object) -> Self:
+        found: Mapping[str, object] = _object(data, "pretrain")
+        defaults: Pretrain = Pretrain()
+        return cls(
+            optim=_choice(_get(found, "optim", defaults.optim), "optim", OPTIMIZERS),
+            weight_decay=_float(_get(found, "weight_decay", defaults.weight_decay), "weight_decay"),
+            noise_density=_float(
+                _get(found, "noise_density", defaults.noise_density), "noise_density"
+            ),
+            mean_span_length=_float(
+                _get(found, "mean_span_length", defaults.mean_span_length), "mean_span_length"
+            ),
+        )
+
+    def to_json(self) -> JsonObject:
+        return {
+            "optim": self.optim,
+            "weight_decay": self.weight_decay,
+            "noise_density": self.noise_density,
+            "mean_span_length": self.mean_span_length,
+        }
+
+
+@dataclass(frozen=True)
 class TrainConfig:
     run_id: str
     base: BaseModelRef
@@ -270,6 +322,27 @@ class TrainConfig:
     parent_adapter: str | None = None
     hyperparams: Hyperparams = field(default_factory=Hyperparams)
     gpu_indices: tuple[int, ...] = ()
+    kind: Kind = "lora"
+    architecture: Architecture = "causal"
+    model_config: JsonObject | None = None
+    tokenizer: str | None = None
+    pretrain: Pretrain = field(default_factory=Pretrain)
+
+    def __post_init__(self) -> None:
+        if self.kind == "lora":
+            if self.architecture != "causal":
+                raise ContractError("'architecture' must be causal for a LoRA run")
+            if self.model_config is not None or self.tokenizer is not None:
+                raise ContractError("'model_config' and 'tokenizer' are only for a pretrain run")
+            return
+        if self.base.path is not None or self.parent_adapter is not None:
+            raise ContractError("a pretrain run starts from nothing: no 'base.path', no parent")
+        if self.model_config is None:
+            raise ContractError("'model_config' is missing")
+        if not isinstance(self.model_config.get("model_type"), str):
+            raise ContractError("'model_config' must name its 'model_type'")
+        if not self.tokenizer:
+            raise ContractError("'tokenizer' is missing")
 
     @classmethod
     def from_json(cls, data: object) -> Self:
@@ -282,7 +355,11 @@ class TrainConfig:
             raise ContractError("'gpu_indices' must not be negative")
         return cls(
             run_id=_str(_get(found, "run_id"), "run_id"),
+            kind=_choice(_get(found, "kind", "lora"), "kind", KINDS),
             base=BaseModelRef.from_json(_get(found, "base")),
+            architecture=_choice(
+                _get(found, "architecture", "causal"), "architecture", ARCHITECTURES
+            ),
             parent_adapter=_optional_str(_get(found, "parent_adapter", None), "parent_adapter"),
             examples=tuple(
                 ExampleSource.from_json(entry)
@@ -294,12 +371,17 @@ class TrainConfig:
             cancel_path=_str(_get(found, "cancel_path"), "cancel_path"),
             hyperparams=Hyperparams.from_json(_get(found, "hyperparams", {})),
             gpu_indices=indices,
+            model_config=_optional_json_object(_get(found, "model_config", None), "model_config"),
+            tokenizer=_optional_str(_get(found, "tokenizer", None), "tokenizer"),
+            pretrain=Pretrain.from_json(_get(found, "pretrain", {})),
         )
 
     def to_json(self) -> JsonObject:
         written: JsonObject = {
             "run_id": self.run_id,
+            "kind": self.kind,
             "base": self.base.to_json(),
+            "architecture": self.architecture,
             "parent_adapter": self.parent_adapter,
             "examples": [source.to_json() for source in self.examples],
             "output_dir": self.output_dir,
@@ -309,6 +391,10 @@ class TrainConfig:
             "hyperparams": self.hyperparams.to_json(),
             "gpu_indices": list[JsonValue](self.gpu_indices),
         }
+        if self.kind == "pretrain":
+            written["model_config"] = self.model_config
+            written["tokenizer"] = self.tokenizer
+            written["pretrain"] = self.pretrain.to_json()
         return written
 
     @classmethod
@@ -427,6 +513,8 @@ class Status:
     size_bytes: int = 0
     delta: DeltaStats | None = None
     error: Failure | None = None
+    model_dir: str | None = None
+    parameters: int | None = None
 
     @classmethod
     def from_json(cls, data: object) -> Self:
@@ -436,7 +524,9 @@ class Status:
         return cls(
             status=_choice(_get(found, "status"), "status", RUN_STATES),
             adapter_dir=_optional_str(_get(found, "adapter_dir", None), "adapter_dir"),
+            model_dir=_optional_str(_get(found, "model_dir", None), "model_dir"),
             size_bytes=_int(_get(found, "size_bytes", 0), "size_bytes"),
+            parameters=_optional_int(_get(found, "parameters", None), "parameters"),
             delta=None if delta is None else DeltaStats.from_json(delta),
             error=None if error is None else Failure.from_json(error),
             metrics=Metrics.from_json(_get(found, "metrics", {})),
@@ -446,7 +536,9 @@ class Status:
         return {
             "status": self.status,
             "adapter_dir": self.adapter_dir,
+            "model_dir": self.model_dir,
             "size_bytes": self.size_bytes,
+            "parameters": self.parameters,
             "delta": None if self.delta is None else self.delta.to_json(),
             "error": None if self.error is None else self.error.to_json(),
             "metrics": self.metrics.to_json(),

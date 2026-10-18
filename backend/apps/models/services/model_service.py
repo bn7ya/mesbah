@@ -64,6 +64,7 @@ class ModelService:
         return {
             "id": row.pk,
             "repo_id": row.repo_id,
+            "origin": row.origin,
             "revision": row.revision,
             "family": row.family,
             "model_type": row.model_type,
@@ -176,7 +177,10 @@ class ModelService:
             raise ModelInUse
         self.models.update(row, cancel_requested=True)
         self.models.soft_delete(row)
-        shutil.rmtree(repo_cache_dir(hub_cache_dir(), row.repo_id), ignore_errors=True)
+        if row.origin == HubModel.Origin.TRAINED:
+            shutil.rmtree(row.local_path, ignore_errors=True)
+        else:
+            shutil.rmtree(repo_cache_dir(hub_cache_dir(), row.repo_id), ignore_errors=True)
 
     def _listed(self, results: list[HubResult]) -> list[dict[str, Any]]:
         known: dict[str, HubModel] = self.models.by_repo([result.repo_id for result in results])

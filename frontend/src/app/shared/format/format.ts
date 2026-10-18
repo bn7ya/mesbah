@@ -13,6 +13,10 @@ const STEP = 1024;
 const LTR_START = '\u2066';
 const LTR_END = '\u2069';
 
+export function isolateLtr(text: string): string {
+  return `${LTR_START}${text}${LTR_END}`;
+}
+
 export function formatNumber(value: number, locale: Locale, fractionDigits = 0): string {
   return new Intl.NumberFormat(NUMBER_LOCALES[locale], {
     maximumFractionDigits: fractionDigits,
@@ -32,7 +36,7 @@ export function formatSignificant(value: number, locale: Locale, digits = 2): st
 
 export function formatPercent(ratio: number, locale: Locale): string {
   const percent = Math.max(0, ratio) * 100;
-  return `${LTR_START}${formatNumber(percent, locale, percent < 10 ? 1 : 0)}%${LTR_END}`;
+  return isolateLtr(`${formatNumber(percent, locale, percent < 10 ? 1 : 0)}%`);
 }
 
 export function formatDateTime(
@@ -51,5 +55,5 @@ export function formatBytes(bytes: number, locale: Locale): string {
     unit += 1;
   }
   const digits = value < 10 && unit > 0 ? 1 : 0;
-  return `${LTR_START}${formatNumber(value, locale, digits)} ${UNITS[unit]}${LTR_END}`;
+  return isolateLtr(`${formatNumber(value, locale, digits)} ${UNITS[unit]}`);
 }

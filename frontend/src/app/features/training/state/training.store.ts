@@ -29,6 +29,7 @@ import {
   type LibraryDataset,
   type Plan,
   type Run,
+  type SourceNames,
   type StartResult,
   type StartVersion,
 } from '../data/training.types';
@@ -74,6 +75,16 @@ export class TrainingStore {
     stream: () => this.collectDatasets(),
   });
 
+  private readonly sourceKey = computed(() => {
+    const ids = this.runs().results.flatMap((run) => (run.kind === 'pretrain' ? run.corrections_from : []));
+    return [...new Set(ids)].sort().join(',');
+  });
+
+  private readonly sourceList = rxResource({
+    params: () => this.sourceKey() || undefined,
+    stream: ({ params }) => this.api.projectNames(params.split(',')),
+  });
+
   readonly plan = computed<Plan | null>(() => (this.planned.hasValue() ? this.planned.value() : null));
   readonly planLoading = computed(() => this.planned.isLoading());
   readonly planError = computed(() => this.failure(this.planned.status() === 'error' ? this.planned.error() : undefined));
@@ -89,6 +100,9 @@ export class TrainingStore {
   readonly datasetsError = computed(() =>
     this.failure(this.datasetList.status() === 'error' ? this.datasetList.error() : undefined),
   );
+
+  readonly sourceNames = computed<SourceNames | null>(() => (this.sourceList.hasValue() ? this.sourceList.value() : null));
+  readonly noModel = computed(() => this.versionList.hasValue() && this.versionList.value().length === 0);
 
   readonly canWrite = computed(() => this.auth.hasAnyGroup(rolesFrom('trainers')));
   readonly unfinished = computed(() => this.runs().results.some((run) => !FINISHED_STATUSES.includes(run.status)));

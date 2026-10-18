@@ -13,6 +13,10 @@ class HubModel(BaseModel):
         FAILED = "failed"
         CANCELLED = "cancelled"
 
+    class Origin(models.TextChoices):
+        HUB = "hub"
+        TRAINED = "trained"
+
     class Family(models.TextChoices):
         DENSE_DECODER = "dense_decoder"
         MOE_DECODER = "moe_decoder"
@@ -20,6 +24,7 @@ class HubModel(BaseModel):
         OTHER = "other"
 
     repo_id = models.CharField(max_length=200)
+    origin = models.CharField(max_length=10, choices=Origin.choices, default=Origin.HUB)
     revision = models.CharField(max_length=64, blank=True)
     pipeline_tag = models.CharField(max_length=64, blank=True)
     family = models.CharField(max_length=20, choices=Family.choices, default=Family.OTHER)

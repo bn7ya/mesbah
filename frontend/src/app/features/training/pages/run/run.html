@@ -25,7 +25,9 @@
   <header class="run__header">
     <h2 dir="auto">{{ title() }}</h2>
     <p class="run__facts text-secondary">
-      @if (current.starts_from; as parent) {
+      @if (pretrain()) {
+        <span>{{ 'training.runs.fromNothing' | t }}</span>
+      } @else if (current.starts_from; as parent) {
         <span>{{ 'training.runs.from' | t }} <app-version-ref [version]="parent" /></span>
       }
       @if (current.created_by) {
@@ -89,39 +91,73 @@
       <mat-card appearance="outlined" class="run__card">
         @switch (current.status) {
           @case ('completed') {
-            <p class="run__verdict">
-              <mat-icon fontIcon="fa-circle-check" />
-              {{ 'training.result.done' | t }}
-            </p>
-            <dl class="run__list">
-              @if (current.version; as made) {
-                <div>
-                  <dt>{{ 'training.result.version' | t }}</dt>
-                  <dd>
-                    <a [routerLink]="['/projects', projectId(), 'versions']"><app-version-ref [version]="made" /></a>
-                  </dd>
-                </div>
-              }
-              @if (share(); as shared) {
-                <div class="run__wide">
-                  <dt>{{ 'training.result.sizeLabel' | t }}</dt>
-                  <dd>
-                    <mat-progress-bar mode="determinate" aria-hidden="true" [value]="shared.ratio * 100" />
-                    <span>{{ shared.key | t: { size: (shared.bytes | bytes), percent: shared.percent } }}</span>
-                  </dd>
-                </div>
-              }
-              @if (finalLoss(); as last) {
-                <div>
-                  <dt>{{ 'training.result.loss' | t }}</dt>
-                  <dd>{{ last }}</dd>
-                </div>
-              }
-              <div>
-                <dt>{{ 'training.result.active' | t }}</dt>
-                <dd>{{ (current.activate_when_done ? 'training.result.activeYes' : 'training.result.activeNo') | t }}</dd>
+            @if (pretrain()) {
+              <p class="run__verdict">
+                <mat-icon fontIcon="fa-circle-check" />
+                {{ 'training.result.pretrainDone' | t }}
+              </p>
+              <p>{{ 'training.result.pretrainBody' | t }}</p>
+              <dl class="run__list">
+                @if (current.version; as made) {
+                  <div>
+                    <dt>{{ 'training.result.firstVersion' | t }}</dt>
+                    <dd>
+                      <a [routerLink]="['/projects', projectId(), 'versions']"><app-version-ref [version]="made" /></a>
+                    </dd>
+                  </div>
+                }
+                @if (finalLoss(); as last) {
+                  <div>
+                    <dt>{{ 'training.result.loss' | t }}</dt>
+                    <dd>{{ last }}</dd>
+                  </div>
+                }
+              </dl>
+              <div class="run__actions">
+                <a matButton="outlined" [routerLink]="['/projects', projectId(), 'chat']">
+                  <mat-icon fontIcon="fa-message" />
+                  {{ 'training.result.toChat' | t }}
+                </a>
+                <a matButton="outlined" routerLink="/models">
+                  <mat-icon fontIcon="fa-cube" />
+                  {{ 'training.result.toModels' | t }}
+                </a>
               </div>
-            </dl>
+            } @else {
+              <p class="run__verdict">
+                <mat-icon fontIcon="fa-circle-check" />
+                {{ 'training.result.done' | t }}
+              </p>
+              <dl class="run__list">
+                @if (current.version; as made) {
+                  <div>
+                    <dt>{{ 'training.result.version' | t }}</dt>
+                    <dd>
+                      <a [routerLink]="['/projects', projectId(), 'versions']"><app-version-ref [version]="made" /></a>
+                    </dd>
+                  </div>
+                }
+                @if (share(); as shared) {
+                  <div class="run__wide">
+                    <dt>{{ 'training.result.sizeLabel' | t }}</dt>
+                    <dd>
+                      <mat-progress-bar mode="determinate" aria-hidden="true" [value]="shared.ratio * 100" />
+                      <span>{{ shared.key | t: { size: (shared.bytes | bytes), percent: shared.percent } }}</span>
+                    </dd>
+                  </div>
+                }
+                @if (finalLoss(); as last) {
+                  <div>
+                    <dt>{{ 'training.result.loss' | t }}</dt>
+                    <dd>{{ last }}</dd>
+                  </div>
+                }
+                <div>
+                  <dt>{{ 'training.result.active' | t }}</dt>
+                  <dd>{{ (current.activate_when_done ? 'training.result.activeYes' : 'training.result.activeNo') | t }}</dd>
+                </div>
+              </dl>
+            }
           }
           @case ('failed') {
             <p class="run__verdict run__verdict--failed">
@@ -190,10 +226,31 @@
     <h3 id="run-learns">{{ 'training.learned.title' | t }}</h3>
     <mat-card appearance="outlined" class="run__card">
       <dl class="run__list">
-        <div>
-          <dt>{{ 'training.learned.replies' | t }}</dt>
-          <dd>{{ (current.use_corrections ? 'training.learned.repliesUsed' : 'training.learned.repliesNot') | t }}</dd>
-        </div>
+        @if (pretrain()) {
+          @if (current.corrections_from.length > 0) {
+            <div class="run__wide">
+              <dt>{{ 'training.learned.repliesFrom' | t }}</dt>
+              <dd>
+                @if (sources(); as list) {
+                  @for (source of list; track source.id) {
+                    @if (source.name !== null) {
+                      <a class="run__link" dir="auto" [routerLink]="['/projects', source.id, 'training']">{{ source.name }}</a>
+                    } @else {
+                      <span class="run__link text-secondary">{{ 'training.learned.projectGone' | t }}</span>
+                    }
+                  }
+                } @else {
+                  {{ 'training.learned.projectsCount' | t: { count: count(current.corrections_from.length) } }}
+                }
+              </dd>
+            </div>
+          }
+        } @else {
+          <div>
+            <dt>{{ 'training.learned.replies' | t }}</dt>
+            <dd>{{ (current.use_corrections ? 'training.learned.repliesUsed' : 'training.learned.repliesNot') | t }}</dd>
+          </div>
+        }
         @if (current.examples !== null) {
           <div>
             <dt>{{ 'training.learned.examples' | t }}</dt>
@@ -246,7 +303,13 @@
         @for (row of settings(); track row.key) {
           <div>
             <dt>{{ row.labelKey | t }}</dt>
-            <dd>{{ row.text }}</dd>
+            <dd>
+              @if (row.termKey; as term) {
+                <span class="run__inline"><app-term [key]="term" /></span>
+              } @else {
+                {{ row.text }}
+              }
+            </dd>
           </div>
         }
         <div>

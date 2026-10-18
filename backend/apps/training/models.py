@@ -6,6 +6,10 @@ from apps.common.models import BaseModel
 
 
 class TrainingRun(BaseModel):
+    class Kind(models.TextChoices):
+        LORA = "lora"
+        PRETRAIN = "pretrain"
+
     class Status(models.TextChoices):
         QUEUED = "queued"
         PREPARING = "preparing"
@@ -17,6 +21,14 @@ class TrainingRun(BaseModel):
 
     project = models.ForeignKey(
         "projects.Project", on_delete=models.CASCADE, related_name="training_runs"
+    )
+    kind = models.CharField(max_length=20, choices=Kind.choices, default=Kind.LORA)
+    draft = models.ForeignKey(
+        "architect.ArchitectureDraft",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="training_runs",
     )
     parent = models.ForeignKey(
         "versions.ModelVersion",
@@ -35,6 +47,7 @@ class TrainingRun(BaseModel):
     name = models.CharField(max_length=120, blank=True)
     notes = models.TextField(blank=True)
     use_corrections = models.BooleanField(default=True)
+    corrections_from = models.JSONField(default=list, blank=True)
     datasets = models.JSONField(default=list, blank=True)
     hyperparams = models.JSONField(default=dict, blank=True)
     activate_when_done = models.BooleanField(default=True)

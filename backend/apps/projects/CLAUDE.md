@@ -27,10 +27,10 @@ views.py → services/project_service.py → repositories/project_repository.py 
 
 ## Classes and methods
 
-**`Project`** — a name and a slug, a description, the kind (`finetune` now, `scratch` once
-models are trained from nothing), the base model (protected while a project uses it), the
-active version, the system prompt, whether replies think, and the reply settings
-(`temperature`, `top_p`, `max_tokens`).
+**`Project`** — a name and a slug, a description, the kind (`finetune`, or `scratch` for a model
+trained from nothing, which gets its base when that training ends), the base model (protected
+while a project uses it), the active version, the system prompt, whether replies think, and the
+reply settings (`temperature`, `top_p`, `max_tokens`).
 
 **`ProjectRepository`** — projects newest-changed first with their base model and active
 version, whether a slug is taken (besides one project), and a lookup by slug.
@@ -38,6 +38,9 @@ version, whether a slug is taken (besides one project), and a lookup by slug.
 **`ProjectService`**, for the acting user:
 - `create()` — refuses a base model that is not downloaded, picks a unique slug, starts thinking
   on when the model supports it, and creates the base version (`VersionService.create_root()`).
+- `create_scratch()` — a project for a model trained from nothing: no base yet, thinking off.
+- `adopt()` — gives a scratch project its newly trained model as the base and makes the root
+  version (`scratch_root`, stored where the model is).
 - `change()` — a new name gets a new slug; `remove()` soft-deletes.
 - `describe()` — one project as the API shows it, its active version by id, number and name.
 

@@ -49,6 +49,10 @@ def _train(config: TrainConfig, fake: bool) -> Status:
         from mesbah.train.fake import run as run_fake
 
         return run_fake(config)
+    if config.kind == "pretrain":
+        from mesbah.train.scratch import run as run_scratch
+
+        return run_scratch(config)
     from mesbah.train.lora import run as run_lora
 
     return run_lora(config)

@@ -1,10 +1,12 @@
 # apps/training
 
-Fine-tuning a new version. A run learns from the project's approved replies and any library
-datasets chosen, starting from a version of the project; when it finishes, its adapter becomes a
-new version in the tree (ADR-004). The trainer is the subprocess `python -m mesbah.train` and
-talks to Django only through files (`mesbah/CLAUDE.md`, "The training contract"). The backend
-half of the Training page.
+Fine-tuning a new version, and training a new model from nothing. A LoRA run learns from the
+project's approved replies and any library datasets chosen, starting from a version of the
+project; when it finishes, its adapter becomes a new version in the tree (ADR-004). A pretrain
+run builds a model from an Architect design on other projects' approved replies and library
+datasets; the model joins the library and becomes its project's base. The trainer is the
+subprocess `python -m mesbah.train` and talks to Django only through files (`mesbah/CLAUDE.md`,
+"The training contract"). The backend half of the Training page.
 
 ## Its counterpart
 
@@ -42,7 +44,8 @@ tasks.py → services/runner.py → `python -m mesbah.train` (files in <data>/ru
 
 ## Classes and methods
 
-**`TrainingRun`** — one run: the project, the version it starts from and the version it made,
+**`TrainingRun`** — one run: its kind (`lora` or `pretrain`, with the design it builds and the
+projects whose replies it learns), the project, the version it starts from and the version it made,
 the name and notes the new version takes, its sources, settings (`hyperparams`), whether it
 becomes active when done, its status and stage, what the trainer reported (examples, skipped,
 tokens, step of total, epoch, loss, a shortened sequence length after running out of memory),
@@ -61,6 +64,9 @@ new ones (a step already recorded is skipped).
   the active version unless told otherwise, and queues the task after the commit.
 - `chosen_datasets()` — the datasets a run learns, each ready (`dataset_not_ready` otherwise),
   stored with its name, its rows and the row limit.
+- `create_pretrain()` — a pretrain run for a scratch project, on the approved replies of the
+  projects named and the datasets chosen (`409 nothing_to_learn` when there is neither), with
+  `pretrain_defaults()`: one epoch, 3e-4, the design's sequence length and batch.
 - `cancel()`, `remove()` (finished runs only), `metrics_of()`, `listing()`, `find()`,
   `describe()`.
 
@@ -68,13 +74,20 @@ new ones (a step already recorded is skipped).
 prompt, the earlier turns and the reply, each reply's thinking as `thinking`), `describe()` for
 the Examples tab, `write()` to a JSONL file.
 
-**`RunnerService.run()`** — the `training.run` task's body: writes the project's approved
-replies to a file (each dataset's own JSONL is read in place, up to its row limit) and `config.json`, asks the built-in engine to free the GPU, starts the trainer (`--fake` when
+**`RunnerService.run()`** — the `training.run` task's body: writes the examples (one file per
+project whose replies it learns; each dataset's own JSONL is read in place, up to its row limit)
+and `config.json` (a LoRA config, or `pretrain_config()`), asks the built-in engine to free the GPU, starts the trainer (`--fake` when
 `MESBAH_FAKE_TRAINER`), reads `events.jsonl` every two seconds into the run and its metrics,
 creates the cancel file when asked, and settles from `status.json`: the adapter moves to
 `<data>/versions/<project>/<version>/` and becomes a version (made active when asked), or the
-run ends failed or cancelled. A run found
+run ends failed or cancelled; a pretrain run's model goes through `keep_model()`. A run found
 already started is marked `interrupted`.
+
+**`pretrain_config()`** (`services/pretrain.py`) — a pretrain run's config: the design as a
+transformers config, its tokenizer, `seq2seq` for an encoder-decoder. **`keep_model()`** — moves
+the new model to `<data>/models/trained/`, adds it to the library as `local/<slug>` (origin
+`trained`, with what its `config.json` says it is), and makes it the project's base
+(`ProjectService.adopt()`). **`trained_repo_id()`** — that name.
 
 **`train`** (`tasks.py`) — the task, on the `heavy` queue that one worker serves one at a time.
 

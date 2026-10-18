@@ -139,6 +139,17 @@
   grid-column: 1 / -1;
 }
 
+.run__link {
+  align-self: flex-start;
+  overflow-wrap: anywhere;
+}
+
+.run__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+}
+
 .run__subtitle {
   display: flex;
   flex-wrap: wrap;

@@ -48,7 +48,8 @@ version, and moving children to another parent.
 - `record_trained()` — a new delta version from a finished run, numbered next.
 - `tree()` — a project's versions; `describe()` one as the API shows it, with whether it is
   active and a summary of its delta.
-- `create_root()` — the base version, number 0, made active; called when a project is created.
+- `create_root()` — the base version, number 0, made active; called when a project is created,
+  and as a `scratch_root` (stored where the new model is) when a pretrained model is adopted.
 - `activate()` — makes a version the one conversations use.
 - `changes()` — the trainer's per-module norms as a grid of layers by module, for the map.
 - `change()` — name and notes; `remove()` refuses the root and the active version and moves the

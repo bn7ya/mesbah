@@ -4,6 +4,10 @@ export type RunStatus = 'queued' | 'preparing' | 'training' | 'saving' | 'comple
 
 export type RunStage = '' | 'data' | 'tokenizer' | 'model' | 'parent' | 'training' | 'oom_retry';
 
+export type RunKind = 'lora' | 'pretrain';
+
+export type Optimizer = 'adamw_torch' | 'adamw_8bit';
+
 export type FitVerdict = 'fits' | 'tight' | 'too_large' | 'cpu_only' | 'unknown';
 
 export type LoraRank = 4 | 8 | 16 | 32 | 64 | 128 | 256;
@@ -29,6 +33,15 @@ export interface Hyperparams {
   readonly quantize_4bit: boolean;
   readonly gradient_checkpointing: boolean;
 }
+
+export interface PretrainSettings {
+  readonly optim?: Optimizer;
+}
+
+export type RunHyperparams = Readonly<Partial<Hyperparams>> & {
+  readonly warmup_ratio?: number;
+  readonly pretrain?: PretrainSettings;
+};
 
 export type DatasetStatus = 'queued' | 'importing' | 'ready' | 'failed' | 'cancelled';
 
@@ -65,13 +78,16 @@ export interface DatasetChoice {
 export interface Run {
   readonly id: string;
   readonly project: string;
+  readonly kind: RunKind;
+  readonly draft: string | null;
+  readonly corrections_from: readonly string[];
   readonly name: string;
   readonly notes: string;
   readonly starts_from: VersionRef | null;
   readonly version: VersionRef | null;
   readonly use_corrections: boolean;
   readonly datasets: readonly RunDataset[];
-  readonly hyperparams: Readonly<Partial<Hyperparams>>;
+  readonly hyperparams: RunHyperparams;
   readonly activate_when_done: boolean;
   readonly status: RunStatus;
   readonly stage: RunStage;
@@ -153,6 +169,18 @@ export interface VersionWire {
   readonly is_active: boolean;
   readonly size_bytes: number;
   readonly full_size_bytes: number;
+}
+
+export interface ProjectNameWire {
+  readonly id: string;
+  readonly name: string;
+}
+
+export type SourceNames = Readonly<Record<string, string>>;
+
+export interface RunSource {
+  readonly id: string;
+  readonly name: string | null;
 }
 
 export interface StartVersion {
@@ -256,10 +284,13 @@ export interface ChartPalette {
   readonly text: string;
 }
 
+export type RunSettingKey = SettingKey | 'warmup_ratio' | 'optim';
+
 export interface SettingRow {
-  readonly key: SettingKey;
+  readonly key: RunSettingKey;
   readonly labelKey: string;
   readonly text: string;
+  readonly termKey: string | null;
 }
 
 export interface SizeShare {
@@ -317,6 +348,17 @@ export const FIT_ICONS: Readonly<Record<FitVerdict, string>> = {
   cpu_only: 'fa-microchip',
   unknown: 'fa-circle-question',
 };
+
+export const KIND_WORDED_STAGES: readonly string[] = ['tokenizer', 'model'];
+
+export const PRETRAIN_FAILURE_CODES: readonly string[] = [
+  'no_examples',
+  'out_of_memory',
+  'load_failed',
+  'trainer_crashed',
+  'interrupted',
+  'bad_settings',
+];
 
 export const FAILURE_CODES: readonly string[] = [
   'no_examples',
@@ -495,10 +537,11 @@ export const EXPERT_ONLY_KEYS: readonly SettingKey[] = [
   'gradient_checkpointing',
 ];
 
-export const SETTING_LABELS: Readonly<Record<SettingKey, string>> = {
+export const SETTING_LABELS: Readonly<Record<RunSettingKey, string>> = {
   epochs: 'training.form.epochs.label',
   max_steps: 'training.expert.maxSteps',
   learning_rate: 'training.form.rate.label',
+  optim: 'training.settingsUsed.optimizer',
   lora_rank: 'training.expert.rank',
   lora_alpha: 'training.expert.loraAlpha',
   lora_dropout: 'training.expert.loraDropout',
@@ -507,11 +550,12 @@ export const SETTING_LABELS: Readonly<Record<SettingKey, string>> = {
   max_seq_len: 'training.expert.maxSeqLen',
   batch_size: 'training.expert.batchSize',
   grad_accum: 'training.expert.gradAccum',
+  warmup_ratio: 'training.settingsUsed.warmup',
   quantize_4bit: 'training.expert.quantize',
   gradient_checkpointing: 'training.expert.checkpointing',
 };
 
-export const SIMPLE_SETTING_KEYS: readonly SettingKey[] = ['epochs', 'lora_rank', 'learning_rate'];
+export const SIMPLE_SETTING_KEYS: readonly RunSettingKey[] = ['epochs', 'lora_rank', 'learning_rate', 'optim'];
 
 export const SLIVER = 0.001;
 

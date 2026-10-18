@@ -24,8 +24,9 @@ from mesbah.train.contract import (
 from mesbah.train.fake import KNOBS
 
 DOCUMENTED: str = """
-{"run_id": "run-1",
+{"run_id": "run-1", "kind": "lora",
  "base": {"repo_id": "org/name", "path": "/local/snapshot", "revision": null},
+ "architecture": "causal",
  "parent_adapter": null,
  "examples": [{"path": "/x.jsonl", "max_rows": null}],
  "output_dir": "/out", "events_path": "/run/events.jsonl",

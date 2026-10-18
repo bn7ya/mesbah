@@ -11,8 +11,9 @@ import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { confirmAction } from '@shared/confirm-dialog/confirm-dialog';
 import { DateTimePipe } from '@shared/format/datetime.pipe';
-import { formatSignificant } from '@shared/format/format';
-import { FINISHED_STATUSES, STOPPABLE_STATUSES, type Run } from '../../data/training.types';
+import { formatNumber, formatSignificant } from '@shared/format/format';
+import { FINISHED_STATUSES, STOPPABLE_STATUSES, type Run, type RunSource } from '../../data/training.types';
+import { sourcesOf } from '../../state/run-sources';
 import { TrainingStore } from '../../state/training.store';
 import { RunStatus } from '../run-status/run-status';
 import { VersionRef } from '../version-ref/version-ref';
@@ -34,6 +35,16 @@ export class RunRow {
 
   readonly projectId = this.store.projectId;
   readonly canWrite = this.store.canWrite;
+
+  readonly pretrain = computed(() => this.run().kind === 'pretrain');
+  readonly title = computed(() => {
+    const run = this.run();
+    return run.kind === 'pretrain'
+      ? this.locale.translate('training.runs.pretrainName')
+      : run.name || this.locale.translate('training.runs.unnamed');
+  });
+  readonly sources = computed<readonly RunSource[] | null>(() => sourcesOf(this.run().corrections_from, this.store.sourceNames()));
+  readonly sourceCount = computed(() => formatNumber(this.run().corrections_from.length, this.locale.locale()));
 
   readonly finished = computed(() => FINISHED_STATUSES.includes(this.run().status));
   readonly busy = computed(() => this.store.working().includes(this.run().id));

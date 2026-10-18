@@ -20,6 +20,9 @@ function run(status: RunStatus, overrides: Partial<Run> = {}): Run {
   return {
     id: 'r1',
     project: 'p1',
+    kind: 'lora',
+    draft: null,
+    corrections_from: [],
     name: 'Friendlier',
     notes: '',
     starts_from: { id: 'v0', name: 'base', number: 0 },
@@ -321,6 +324,56 @@ describe('RunStore', () => {
     await settle();
 
     expect(store.size()).toEqual({ sizeBytes: 84_000_000, fullSizeBytes: 16_000_000_000 });
+  });
+
+  it('asks for no size when a new model finishes, since the version is the whole model', async () => {
+    store.open('r1');
+    await settle();
+    runRequest().flush(
+      run('completed', {
+        kind: 'pretrain',
+        draft: 'dr1',
+        starts_from: null,
+        step: 30,
+        version: { id: 'v0', name: 'base', number: 0 },
+      }),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+    metricsRequest().flush(page([point(30, 0.8)]));
+    await settle();
+
+    backend.expectNone((request) => request.url.startsWith('/api/versions/'));
+    expect(store.size()).toBeNull();
+  });
+
+  it('asks for the names of the projects a new model learns from', async () => {
+    store.open('r1');
+    await settle();
+    runRequest().flush(
+      run('training', { kind: 'pretrain', draft: 'dr1', starts_from: null, corrections_from: ['pa', 'pb'] }),
+    );
+    await vi.advanceTimersByTimeAsync(0);
+    metricsRequest().flush(page([]));
+    await settle();
+
+    expect(store.sourceNames()).toBeNull();
+    backend.expectOne('/api/projects/pa/').flush({ id: 'pa', name: 'Support' });
+    backend.expectOne('/api/projects/pb/').flush({ id: 'pb', name: 'Engine check' });
+    await settle();
+
+    expect(store.sourceNames()).toEqual({ pa: 'Support', pb: 'Engine check' });
+  });
+
+  it('asks for no names while the run learns from datasets alone', async () => {
+    store.open('r1');
+    await settle();
+    runRequest().flush(run('training', { kind: 'pretrain', draft: 'dr1', starts_from: null }));
+    await vi.advanceTimersByTimeAsync(0);
+    metricsRequest().flush(page([]));
+    await settle();
+
+    backend.expectNone((request) => request.url.startsWith('/api/projects/'));
+    expect(store.sourceNames()).toBeNull();
   });
 
   it('starts over when it is opened on another run', async () => {

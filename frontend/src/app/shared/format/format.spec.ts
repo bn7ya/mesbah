@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatBytes, formatCompact, formatDateTime, formatNumber, formatPercent, formatSignificant } from './format';
+import {
+  formatBytes,
+  formatCompact,
+  formatDateTime,
+  formatNumber,
+  formatPercent,
+  formatSignificant,
+  isolateLtr,
+} from './format';
 
 const GIB = 1024 ** 3;
 
@@ -79,6 +87,12 @@ describe('formatPercent', () => {
 
   it('keeps the number before its sign in an Arabic sentence', () => {
     expect(formatPercent(0.5, 'ar')).toBe('\u206650%\u2069');
+  });
+});
+
+describe('isolateLtr', () => {
+  it('keeps a Latin name whole inside an Arabic sentence', () => {
+    expect(isolateLtr('01-ai/Yi-6B')).toBe('\u206601-ai/Yi-6B\u2069');
   });
 });
 

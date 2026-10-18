@@ -29,6 +29,7 @@ import {
   type LossReading,
   type Metric,
   type Run,
+  type SourceNames,
   type StepSample,
   type VersionSize,
 } from '../data/training.types';
@@ -55,12 +56,21 @@ export class RunStore {
   private readonly sized = rxResource({
     params: () => {
       const run = this.run();
-      return run?.status === 'completed' && run.version !== null ? run.version.id : undefined;
+      return run?.kind === 'lora' && run.status === 'completed' && run.version !== null ? run.version.id : undefined;
     },
     stream: ({ params }) => this.api.versionSize(params),
   });
 
+  private readonly sourced = rxResource({
+    params: () => {
+      const run = this.run();
+      return run?.kind === 'pretrain' && run.corrections_from.length > 0 ? run.corrections_from.join(',') : undefined;
+    },
+    stream: ({ params }) => this.api.projectNames(params.split(',')),
+  });
+
   readonly size = computed<VersionSize | null>(() => (this.sized.hasValue() ? this.sized.value() : null));
+  readonly sourceNames = computed<SourceNames | null>(() => (this.sourced.hasValue() ? this.sourced.value() : null));
 
   readonly canWrite = computed(() => this.auth.hasAnyGroup(rolesFrom('trainers')));
   readonly finished = computed(() => {

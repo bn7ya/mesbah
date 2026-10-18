@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { map, type Observable } from 'rxjs';
+import { catchError, forkJoin, map, of, type Observable } from 'rxjs';
 
 import type { Page } from '@core/http/api.types';
 import {
@@ -14,7 +14,9 @@ import {
   type Metric,
   type NewRun,
   type Plan,
+  type ProjectNameWire,
   type Run,
+  type SourceNames,
   type StartVersion,
   type VersionSize,
   type VersionWire,
@@ -103,6 +105,17 @@ export class TrainingApi {
           })),
       })),
     );
+  }
+
+  projectNames(ids: readonly string[]): Observable<SourceNames> {
+    return forkJoin(
+      ids.map((id) =>
+        this.http.get<ProjectNameWire>(`/api/projects/${id}/`).pipe(
+          map((project): readonly [string, string] | null => [id, project.name]),
+          catchError(() => of(null)),
+        ),
+      ),
+    ).pipe(map((entries) => Object.fromEntries(entries.filter((entry) => entry !== null))));
   }
 
   versionSize(id: string): Observable<VersionSize> {

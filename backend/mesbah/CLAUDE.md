@@ -15,6 +15,7 @@ mesbah/
   paths.py      where Mesbah keeps its data
   hardware.py   GPUs, RAM and CPU of this machine
   sizing.py     what a model's config says it is, and whether it fits in memory
+  architect.py  a new model's design: its parameters, its memory, its transformers config
   download.py   `python -m mesbah.download`: one HuggingFace snapshot, as a subprocess
   parts.py      which optional packages are installed, read from metadata
   think.py      thinking chains: split from the answer, joined back, split while streaming
@@ -29,6 +30,7 @@ mesbah/
     data.py       example files read and rendered into prompt/completion text
     deltas.py     how large a LoRA delta is, and how far it moved, without forming it
     lora.py       the LoRA/QLoRA trainer: Unsloth, or transformers + PEFT, then TRL
+    scratch.py    the pretrainer: a new decoder, mixture of experts or T5, from nothing
     fake.py       a trainer without torch, for the Django test gate
     __main__.py   reads the config, runs a trainer, exits 0 or 1
   export/       `python -m mesbah.export --config <path>`: merged weights and GGUF files
@@ -57,6 +59,18 @@ hidden size, heads, context, experts), reading multimodal configs' `text_config`
 **`chat_bytes()`**, **`qlora_bytes()`**, **`fit()`** — memory estimates for chatting in 4-bit or
 half precision and for QLoRA training, and the verdict against the VRAM available.
 **`supports_thinking()`** — whether a chat template knows a thinking chain.
+
+**`Design`** (`architect.py`) — a model to build from nothing: its family (`dense_decoder`,
+`moe_decoder`, `encoder_decoder`), widths, layers, heads and key-value heads, experts, vocabulary
+and context; `from_json()`/`to_json()`, and checks on construction that raise **`DesignError`**
+with a `code` and the `field` at fault (bounds in `LIMITS`). **`count()`** — its `Counts`: total,
+active per token, the vocabulary's share, and `Parts` (embeddings, attention, feed-forward,
+router, norms, head), as transformers builds `qwen3`, `qwen3_moe` and `t5`. **`memory()`** — its
+`Memory` for training from scratch: bf16 weights, AdamW and 8-bit Adam states in `bf16_mixed`
+precision, activations under gradient checkpointing (**`activation_bytes()`**), and a `fit` for
+each through `sizing.fit()`. **`to_hf_config()`** — the transformers config, with `model_type`.
+**`presets()`** — named starting points, each a `Preset` with its counts.
+**`vocabulary_note()`** — `embeddings_dominate` when the vocabulary is most of the model.
 
 **`main()`** (`download.py`) — downloads one repository into the HuggingFace cache, skipping
 other weight formats when safetensors exist, and prints one JSON line: the snapshot path or an
@@ -128,9 +142,13 @@ fresh engine with uvicorn, behind the token in `MESBAH_RUNTIME_TOKEN`.
 
 **`TrainConfig`** (`train/contract.py`) — what one run trains: the base (`BaseModelRef`, whose
 `source` is the local snapshot or the repo id), the `ExampleSource` files, the optional parent
-adapter, the paths it reports to, the `Hyperparams` and the GPU indices; `from_json()`/`to_json()` check and write the JSON shape,
-`read()`/`write()` the file (written atomically). **`Status`** — how a run ended, with `Failure`,
-`Metrics` and `DeltaStats` (`LayerDelta` per module); `read()` loads it, **`write_status()`** replaces it atomically. **`EventWriter`** —
+adapter, the paths it reports to, the `Hyperparams` and the GPU indices; its `kind` and
+`architecture`, and for a pretrain run the `model_config`, the `tokenizer` and the `Pretrain`
+settings, which its checks require; `from_json()`/`to_json()` check and write the JSON shape,
+`read()`/`write()` the file (written atomically). **`Pretrain`** — the optimizer, weight decay,
+and T5's noise density and mean span length. **`Status`** — how a run ended, with `Failure`,
+`Metrics` and `DeltaStats` (`LayerDelta` per module), or a pretrained model's folder and
+parameter count; `read()` loads it, **`write_status()`** replaces it atomically. **`EventWriter`** —
 appends one event line per call (`loading`, `data`, `begin`, `log`, `oom_retry`, `saving`,
 `done`, `error`), flushed each time; non-finite numbers go out as `null`. **`read_events()`** —
 every complete event line. **`ContractError`** — a config or status that does not fit.
@@ -166,18 +184,32 @@ how many GPUs, 4-bit or not, Unsloth or transformers, the rank and target module
 `begin`/`log` and stops on the cancel file. **`select_gpus()`** — restricts CUDA to the chosen
 cards. **`is_oom()`** — a CUDA OOM anywhere in **`exception_chain()`**; **`describe()`** — an
 error as one line; **`free_memory()`** — releases cached GPU memory. **`TrainingFailure`** carries
-an error code, **`Cancelled`** a cancel, **`Progress`** what the run has reached.
-**`supervise()`** — runs a `Training` and turns however it ends into a written `Status` —
+an error code, **`Cancelled`** a cancel, **`Progress`** what the run has reached. Both trainers
+share **`supervise()`** — runs a `Training` and turns however it ends into a written `Status` —
 **`guard_load()`** (a failed load step as `load_failed` or `out_of_memory`),
 **`check_cancel()`** and **`run_metrics()`**.
 
+**`run()`** (`train/scratch.py`) — a pretraining run through `supervise()`: reads the examples,
+loads the tokenizer, tokenizes, builds a fresh model, trains with the HF `Trainer`, retries on
+CUDA OOM with half the sequence length, and saves the model and tokenizer. **`tokenize()`** — the
+rows as a `Corpus`: for a decoder, documents rendered as `data.prepare()` renders them, each
+ending in eos; for T5, plain texts as documents and conversations as **`seq2seq_pair()`**s.
+**`pack()`** — documents as one stream cut into blocks; **`seq2seq_examples()`** — the pairs,
+trimmed, and the blocks to corrupt, as `Example`s. **`random_spans_noise_mask()`**,
+**`noise_spans()`**, **`corrupt()`** and **`raw_length()`** — T5's span corruption, ported from
+HF's `random_spans_noise_mask`; **`ensure_sentinels()`** adds missing `<extra_id_N>` tokens.
+**`CausalCollator`**, **`SpanCorruptionCollator`** — batches, the second corrupting text afresh
+each time. **`load_tokenizer()`**, **`vocabulary()`**, **`context()`**, **`build_model()`**,
+**`optimizer()`**, **`build_trainer()`**, **`save()`** — a run's steps, in that order.
+
 **`run()`** (`train/fake.py`) — the same contract without torch: real example counting, falling
 loss, the cancel file, a tiny but valid adapter (**`write_adapter()`**, through
-**`write_safetensors()`**; **`read_safetensors()`** reads one back) with exact delta stats.
+**`write_safetensors()`**; **`read_safetensors()`** reads one back) with exact delta stats, or
+for a pretrain run a model folder (**`write_model()`**: the config and one small safetensors).
 **`knobs()`** reads `MESBAH_FAKE_TRAINER`: `fail`, `oom`, `slow`, comma-separated.
 
 **`main()`** (`train/__main__.py`) — `python -m mesbah.train --config <path> [--fake]`; runs the
-LoRA trainer, exits 0 for completed or cancelled and 1 for failed,
+LoRA trainer or the pretrainer by `kind`, exits 0 for completed or cancelled and 1 for failed,
 turns SIGTERM into a cancel, and still writes a failed status when the config itself cannot be
 read.
 
@@ -200,22 +232,36 @@ files after that; the trainer never imports Django.
 - **`config.json`** — `TrainConfig`. `base.path` is a downloaded snapshot (else `repo_id` at
   `revision` is loaded), `parent_adapter` is the folder of the version being enhanced, `examples`
   are JSONL files, `gpu_indices` are NVML indices and empty means CPU.
+- **A pretrain run** — `kind: "pretrain"` (else `"lora"`). It starts from nothing:
+  `base.repo_id` only names the model it makes (`base.path` and `parent_adapter` are null),
+  `architecture` is `causal` or `seq2seq`, `model_config` is the dict of
+  `architect.to_hf_config()` (any transformers config with its `model_type` works), `tokenizer`
+  is the repo id or folder whose tokenizer is reused, and `pretrain` holds `optim`
+  (`adamw_torch | adamw_8bit`), `weight_decay`, and T5's `noise_density` and `mean_span_length`.
+  Of `hyperparams` it reads the schedule, `max_seq_len` (capped at the model's context),
+  `batch_size`, `grad_accum`, `seed` and `gradient_checkpointing`, never the LoRA or 4-bit
+  fields. The three pretrain keys are written only for a pretrain run. One GPU is used: the
+  first of `gpu_indices`.
 - **Example rows** — `{"messages": [{"role", "content", "thinking"?}, …]}`, the last message being
   the assistant reply to learn, or `{"text": …}`. Malformed lines are skipped and counted.
 - **`events.jsonl`** — appended, one JSON object per line, each with `ts` and `event`:
-  `loading{stage: data|tokenizer|model|parent}`,
+  `loading{stage: data|tokenizer|model|parent}` (a pretrain run has no `parent`),
   `data{examples, skipped, tokens}`,
   `begin{total_steps}`, `log{step, total_steps, epoch, loss, learning_rate, grad_norm}`,
   `oom_retry{max_seq_len}`, `saving{}`, `done{}`, `error{code, detail}` with code
   `out_of_memory | no_examples | load_failed | failed`.
 - **`status.json`** — written once at the end: `status` (`completed | failed | cancelled`),
-  `adapter_dir`, `size_bytes`, `delta` (`layers[{name, layer, module,
+  `adapter_dir`, `model_dir`, `size_bytes`, `parameters`, `delta` (`layers[{name, layer, module,
   norm}]`, `total_norm`, `parameters`, `rank`, `change_from_parent`), `error{code, detail}` and
-  `metrics{final_loss, steps, examples, skipped, seconds}`.
+  `metrics{final_loss, steps, examples, skipped, seconds}`. A LoRA run fills `adapter_dir` and
+  `delta`, leaving `model_dir` and `parameters` null; a pretrain run fills `model_dir` and
+  `parameters` (the whole model's), leaving `adapter_dir` and `delta` null.
 - **`cancel`** — Django creates it; the trainer checks it every step, stops, saves nothing and
   writes `cancelled`.
 - **`output_dir`** — only the adapter, as PEFT saves it: `adapter_model.safetensors`,
-  `adapter_config.json` and PEFT's `README.md`; never the base weights or the tokenizer.
+  `adapter_config.json` and PEFT's `README.md`; never the base weights or the tokenizer. After a
+  pretrain run, the whole model in bf16 and its tokenizer, as `save_pretrained` writes them:
+  `config.json`, `generation_config.json`, `model.safetensors` and the tokenizer's files.
 
 ## Decisions worth not re-litigating
 
@@ -253,6 +299,32 @@ path is the one tested with grafting into a larger rank; any Unsloth failure fal
 **GGUF goes through llama.cpp's own converter, pinned.** Only llama.cpp keeps up with every
 architecture's tensor names; its release `b9000` is the last with a one-file converter, and its
 `gguf-py` travels with it so no other `gguf` package can disagree with it.
+
+**A new model reuses a tokenizer; it never trains one.** A good tokenizer needs far more text
+than a project's examples, and its own run; a published one also brings the chat template and
+special tokens the engine and the exporters already read. The model's vocabulary grows to the
+tokenizer's size, and T5's sentinels are added to it when missing.
+
+**Pretraining keeps fp32 master weights under bf16 autocast.** Weights stored in bf16 drop
+updates smaller than their precision, which a run from nothing makes all the time. That is 16
+bytes per parameter with AdamW and 10 with 8-bit Adam, which `architect.memory()` counts as
+`bf16_mixed`; the saved model is bf16.
+
+**The HF `Trainer`, not a hand loop.** It already accumulates, schedules, autocasts, runs 8-bit
+Adam, checkpoints activations and logs the gradient norm, and it takes `lora.py`'s live callback;
+a loop would rewrite each of those.
+
+**Span corruption happens in the collator.** Each epoch sees fresh masks over the same blocks,
+as HF's T5 recipe does; conversations are (prompt → reply) pairs in the engine's plain
+`User:`/`Assistant:` form, since the engine prompts an encoder-decoder that way.
+
+**The architect's families are what transformers 5 builds.** `qwen3`, `qwen3_moe` and `t5`, so
+`count()` is exact rather than estimated. `qwen3_moe` has no shared expert, so a `Design` has
+none; T5 in transformers 5 always ties its head to its embeddings, so an untied
+encoder-decoder is refused instead of counted.
+
+**The router loss is on while training, off in the saved config.** `output_router_logits` makes
+the MoE add its load-balancing loss to every training step; generation has no use for it.
 
 **No brotli workaround.** huggingface_hub 2.x downloads through httpx2, whose brotli decoder drains
 its output before taking more input, so the 1.x crash cannot happen; the trainer also loads from a

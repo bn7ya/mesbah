@@ -11,8 +11,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.serializers import IdentitySerializer, SignInSerializer
-from apps.accounts.services import AccountService
+from apps.accounts.serializers import (
+    IdentitySerializer,
+    SetupSerializer,
+    SetupStatusSerializer,
+    SignInSerializer,
+)
+from apps.accounts.services import AccountService, SetupService
 
 
 class CsrfView(APIView):
@@ -71,3 +76,33 @@ class MeView(APIView):
     def get(self, request: Request) -> Response:
         identity: dict[str, Any] = AccountService(request.user).identity()
         return Response(IdentitySerializer(identity).data)
+
+
+class SetupView(APIView):
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        summary="Whether Mesbah still needs its owner",
+        description=(
+            "True until the first account exists. While it is true, a one-time setup code is "
+            "kept in the data folder and printed in the server log."
+        ),
+        responses={200: SetupStatusSerializer},
+        auth=[],
+    )
+    def get(self, request: Request) -> Response:
+        return Response(SetupStatusSerializer({"needed": SetupService().needed()}).data)
+
+    @extend_schema(
+        summary="Create the owner account",
+        description="Needs the setup code. Signs the owner in. Refused once any account exists.",
+        request=SetupSerializer,
+        responses={201: IdentitySerializer, 403: None, 409: None},
+        auth=[],
+    )
+    def post(self, request: Request) -> Response:
+        payload: SetupSerializer = SetupSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        owner: User = SetupService().complete(request, **payload.validated_data)
+        identity: dict[str, Any] = AccountService(owner).identity()
+        return Response(IdentitySerializer(identity).data, status=status.HTTP_201_CREATED)

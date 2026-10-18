@@ -35,6 +35,12 @@ class UserRepository:
         group, _ = Group.objects.get_or_create(name=name)
         return group
 
+    def any_exists(self) -> bool:
+        return UserModel.objects.exists()
+
+    def create_owner(self, *, username: str, password: str, **fields: Any) -> User:
+        return UserModel.objects.create_superuser(username=username, password=password, **fields)
+
     def create(self, *, username: str, password: str, **fields: Any) -> User:
         return UserModel.objects.create_user(username=username, password=password, **fields)
 

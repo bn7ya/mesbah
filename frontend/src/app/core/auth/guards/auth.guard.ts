@@ -29,7 +29,17 @@ export const guestGuard: CanActivateFn = async () => {
     await auth.restore();
   }
 
-  return auth.isAuthenticated() ? router.createUrlTree(['/']) : true;
+  if (auth.isAuthenticated()) {
+    return router.createUrlTree(['/']);
+  }
+  return (await auth.setupNeeded()) ? router.createUrlTree(['/setup']) : true;
+};
+
+export const setupGuard: CanActivateFn = async () => {
+  const auth = inject(AuthStore);
+  const router = inject(Router);
+
+  return (await auth.setupNeeded()) ? true : router.createUrlTree(['/sign-in']);
 };
 
 export function groupGuard(...groups: readonly string[]): CanActivateFn {

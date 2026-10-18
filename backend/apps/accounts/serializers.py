@@ -18,3 +18,15 @@ class IdentitySerializer(serializers.Serializer[dict[str, Any]]):
     is_superuser = serializers.BooleanField(read_only=True)
     groups = serializers.ListField(child=serializers.CharField(), read_only=True)
     permissions = serializers.ListField(child=serializers.CharField(), read_only=True)
+
+
+class SetupStatusSerializer(serializers.Serializer[dict[str, Any]]):
+    needed = serializers.BooleanField(read_only=True)
+
+
+class SetupSerializer(serializers.Serializer[dict[str, Any]]):
+    code = serializers.CharField(max_length=32, trim_whitespace=True, write_only=True)
+    username = serializers.RegexField(r"^[\w.@+-]+$", max_length=150)
+    password = serializers.CharField(max_length=128, trim_whitespace=False, write_only=True)
+    first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    email = serializers.EmailField(required=False, allow_blank=True)

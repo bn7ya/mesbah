@@ -18,6 +18,7 @@ core/
     guards/auth.guard.ts    authGuard, guestGuard, groupGuard(...)
     roles.ts                the role ladder; roleGuard(role)
     pages/sign-in/          the sign-in page
+    pages/setup/            the first-run page that creates the owner
   i18n/
     locale.store.ts         current language, the dictionary, the direction
     locale.types.ts
@@ -50,17 +51,24 @@ name.
 - `restore()` asks the backend on boot; a refusal means signed out, not an error.
 - `signIn()` primes CSRF, signs in and reports success; `signOut()` always ends signed out
   on the sign-in page.
+- `setupNeeded()` asks whether a fresh install still needs its owner; `setUp()` creates the
+  owner and signs them in.
 - `hasGroup()`, `hasAnyGroup()`, `hasPermission()` decide what to show — superusers pass
   every check, as on the backend.
 
 **Guards** (`auth/guards/`) — `authGuard` sends a signed-out visitor to sign in with a
-return path; `guestGuard` keeps a signed-in user off sign-in; `groupGuard(...)` also
+return path; `guestGuard` keeps a signed-in user off sign-in and sends a fresh install to
+setup; `setupGuard` lets only a fresh install onto setup; `groupGuard(...)` also
 requires one of the named groups, or goes to `/forbidden`.
 
 **Roles** (`auth/roles.ts`, Mesbah) — the ladder viewers → reviewers → trainers → admins
 (`ROLE_LADDER`), mirroring `apps/members/roles.py`. `rolesFrom()` lists a role and every role
 above it, `highestRole()` picks a user's role, `roleGuard()` is `groupGuard()` over
 `rolesFrom()`. The menu shows each destination to its role and above.
+
+**`SetupPage`** (`auth/pages/setup/`, Mesbah) — the first-run form: the setup code from the
+terminal, a name, a username and a password; creates the owner through
+`AuthStore.setUp()` and goes to the start page.
 
 **`SignInPage`** (`auth/pages/sign-in/`) — the sign-in form on a `mat-card`: validates both
 fields and shows each error through `mat-error` (an `ErrorStateMatcher` per field reads the

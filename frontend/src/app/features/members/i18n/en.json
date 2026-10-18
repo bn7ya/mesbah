@@ -60,7 +60,6 @@
   },
   "errors": {
     "username_taken": "That username is already in use.",
-    "weak_password": "That password is too easy to guess. Use at least 8 characters that are hard to guess.",
     "last_administrator": "Mesbah needs at least one active administrator.",
     "owner_locked": "The owner account stays an active administrator.",
     "self_deactivation": "You can't deactivate your own account."

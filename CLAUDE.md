@@ -32,6 +32,7 @@ Template-owned files, so `/template-sync` conflicts in them are expected:
 `frontend/src/app/core/auth/pages/sign-in/sign-in.html`, `frontend/src/app/shared/status-page/`,
 `frontend/src/app/shared/CLAUDE.md`, `frontend/src/styles/{_theme,_tokens,_layout,_base}.scss`,
 `backend/pyproject.toml`, `backend/config/urls.py`, `backend/CLAUDE.md`,
+`backend/apps/accounts/` (setup), `frontend/src/app/core/auth/` (setup and roles),
 `.claude/docs/language.md`, `README.md` and this file.
 
 Mesbah handles no money. `MoneyField`, `<app-money>` and the rial font stay because they

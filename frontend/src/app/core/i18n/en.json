@@ -27,6 +27,17 @@
       "usernameRequired": "Enter your username.",
       "passwordRequired": "Enter your password.",
       "unavailable": "Can't reach the server. Check your connection and try again."
+    },
+    "setup": {
+      "title": "Welcome to Mesbah",
+      "subtitle": "Create the owner account. The owner is an administrator who can't be locked out.",
+      "code": "Setup code",
+      "codeHint": "Printed in the terminal where Mesbah started, or in the server log.",
+      "codeRequired": "Enter the setup code.",
+      "name": "Your name",
+      "passwordHint": "At least 8 characters that are hard to guess.",
+      "submit": "Create the owner account",
+      "working": "Creating…"
     }
   },
   "errors": {
@@ -35,7 +46,10 @@
     "notFoundBody": "The link may be out of date, or the page may have moved.",
     "forbidden": "You don't have access to this.",
     "forbiddenBody": "Ask an administrator if you think you should.",
-    "goHome": "Go to the start"
+    "goHome": "Go to the start",
+    "setup_code_rejected": "That setup code doesn't match. Copy it again from the terminal.",
+    "setup_done": "Mesbah is already set up. Sign in instead.",
+    "weak_password": "That password is too easy to guess. Use at least 8 characters that are hard to guess."
   },
   "actions": {
     "cancel": "Cancel",

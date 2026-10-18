@@ -23,6 +23,8 @@ already owns the `auth` app label. It is still mounted at `/api/auth/`.
 | `POST` | `/api/auth/login/` | public | `200` identity, `403` on refusal |
 | `POST` | `/api/auth/logout/` | session | `204` |
 | `GET` | `/api/auth/me/` | session | `200` identity |
+| `GET` | `/api/auth/setup/` | public | `{"needed": bool}`; while true, keeps and logs the setup code |
+| `POST` | `/api/auth/setup/` | public + setup code | `201` identity of the new owner; `403 setup_code_rejected`, `409 setup_done`, `400 weak_password` |
 
 Identity shape — mirrored by `Identity` in `core/auth/data/auth.types.ts`:
 
@@ -55,7 +57,7 @@ empty unless this app grows a model of its own.
 ## Classes and methods
 
 **`UserRepository`** (`repositories/user_repository.py`) — every read and write of users,
-groups and permissions. Finds a user by username or email, loads one with groups and
+groups and permissions. Mesbah adds `any_exists()` and `create_owner()` for the first run. Finds a user by username or email, loads one with groups and
 permissions prefetched, lists group names and permission codenames, creates users with a
 hashed password, adds users to groups, grants permissions to groups, and deactivates users
 (users are never deleted).
@@ -68,12 +70,25 @@ acting user.
 - `identity()` is what `/api/auth/me/` returns: the user, their group names and permissions.
 - `has_group()` — superusers are in every group.
 
+**`SetupService`** (`services/setup_service.py`, Mesbah) — the first run.
+- `needed()` — true while no account exists; it makes sure a setup code exists.
+- `complete()` — with the right code and no account yet, creates the owner (a superuser in the
+  `admins` group), consumes the code and signs the owner in. Refuses once any account exists.
+
+**`setup_code`** (`services/setup_code.py`, Mesbah) — the one-time code in the data folder:
+`current_code()` reads it or creates it (owner-only file, logged once as a warning),
+`matches()` compares ignoring case, spaces and dashes, `consume()` deletes it and reports
+whether this call was the one that did.
+
+**`setup_code`** command (`management/commands/`) — prints the code while setup is needed,
+for installs whose log is not at hand (`docker compose exec backend python manage.py setup_code`).
+
 **`InGroup`** / **`IsOwnerOrStaff`** (`permissions.py`) — DRF permissions over Django
 groups: membership of a named group (subclass and set `group`), and the row's creator or
 staff for object-level checks.
 
-**`CsrfView`**, **`SignInView`**, **`SignOutView`**, **`MeView`** (`views.py`) — the four
-endpoints in the table above. Each parses, makes one service call and serialises.
+**`CsrfView`**, **`SignInView`**, **`SignOutView`**, **`MeView`**, **`SetupView`** (`views.py`) —
+the endpoints in the table above. Each parses, makes one service call and serialises.
 
 **`SignInSerializer`** / **`IdentitySerializer`** (`serializers.py`) — the sign-in input and
 the identity output. Shape only; `IdentitySerializer` mirrors the frontend's `Identity`.
@@ -112,6 +127,11 @@ loaded, so returning both costs nothing.
 
 **`with_groups()` prefetches.** `/api/auth/me/` reads groups and permissions on
 every call. Without the prefetch it is four queries per request.
+
+**The first account needs the setup code.** A pip-installed Mesbah has no environment file
+to seed an administrator, and an open "create the admin" form is a race anyone on the network
+can win. The code is printed where Mesbah started, so whoever has it started the server. Two
+requests that both pass the check race on deleting the code file; the loser is rolled back.
 
 ## Adding a group
 

@@ -4,7 +4,7 @@ import { firstValueFrom } from 'rxjs';
 
 import type { ApiError } from '@core/http/api.types';
 import { AuthApi } from '../data/auth.api';
-import type { Credentials, Identity } from '../data/auth.types';
+import type { Credentials, Identity, OwnerAccount } from '../data/auth.types';
 
 @Injectable({ providedIn: 'root' })
 export class AuthStore {
@@ -45,6 +45,30 @@ export class AuthStore {
     try {
       await firstValueFrom(this.api.primeCsrf());
       this.identity.set(await firstValueFrom(this.api.signIn(credentials)));
+      return true;
+    } catch (error) {
+      this.error.set(error as ApiError);
+      return false;
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async setupNeeded(): Promise<boolean> {
+    try {
+      return (await firstValueFrom(this.api.setupStatus())).needed;
+    } catch {
+      return false;
+    }
+  }
+
+  async setUp(owner: OwnerAccount): Promise<boolean> {
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      await firstValueFrom(this.api.primeCsrf());
+      this.identity.set(await firstValueFrom(this.api.setUp(owner)));
+      this.resolved.set(true);
       return true;
     } catch (error) {
       this.error.set(error as ApiError);

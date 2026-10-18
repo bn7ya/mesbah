@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import type { Observable } from 'rxjs';
 
-import type { Credentials, Identity } from './auth.types';
+import type { Credentials, Identity, OwnerAccount, SetupStatus } from './auth.types';
 
 @Injectable({ providedIn: 'root' })
 export class AuthApi {
@@ -23,5 +23,13 @@ export class AuthApi {
 
   me(): Observable<Identity> {
     return this.http.get<Identity>(`${this.base}/me/`);
+  }
+
+  setupStatus(): Observable<SetupStatus> {
+    return this.http.get<SetupStatus>(`${this.base}/setup/`);
+  }
+
+  setUp(owner: OwnerAccount): Observable<Identity> {
+    return this.http.post<Identity>(`${this.base}/setup/`, owner);
   }
 }

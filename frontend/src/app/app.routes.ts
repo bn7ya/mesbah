@@ -1,6 +1,6 @@
 import type { Routes } from '@angular/router';
 
-import { authGuard, guestGuard } from '@core/auth/guards/auth.guard';
+import { authGuard, guestGuard, setupGuard } from '@core/auth/guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -8,6 +8,11 @@ export const routes: Routes = [
     canActivate: [guestGuard],
     loadComponent: () =>
       import('@core/auth/pages/sign-in/sign-in').then((m) => m.SignInPage),
+  },
+  {
+    path: 'setup',
+    canActivate: [setupGuard],
+    loadComponent: () => import('@core/auth/pages/setup/setup').then((m) => m.SetupPage),
   },
   {
     path: '',

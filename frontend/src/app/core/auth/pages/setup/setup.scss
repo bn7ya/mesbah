@@ -1,0 +1,49 @@
+@use "layout" as *;
+
+.setup {
+  display: grid;
+  place-items: center;
+  min-block-size: 100dvh;
+  padding: var(--app-space-7) var(--app-space-4);
+}
+
+.setup__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-7);
+  inline-size: 100%;
+  max-inline-size: $card-max;
+  padding: var(--app-space-7);
+}
+
+.setup__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+
+  h1,
+  p {
+    margin: 0;
+  }
+}
+
+.setup__failure {
+  display: flex;
+  gap: var(--app-space-3);
+  align-items: center;
+  padding: var(--app-space-3) var(--app-space-4);
+  margin: 0;
+  color: var(--mat-sys-on-error-container);
+  background: var(--mat-sys-error-container);
+  border-radius: var(--mat-sys-corner-small);
+}
+
+.setup__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+}
+
+.setup__submit {
+  margin-block-start: var(--app-space-3);
+}

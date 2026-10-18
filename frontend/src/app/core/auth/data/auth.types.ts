@@ -14,3 +14,14 @@ export interface Credentials {
   readonly username: string;
   readonly password: string;
 }
+
+export interface SetupStatus {
+  readonly needed: boolean;
+}
+
+export interface OwnerAccount {
+  readonly code: string;
+  readonly username: string;
+  readonly password: string;
+  readonly first_name: string;
+}

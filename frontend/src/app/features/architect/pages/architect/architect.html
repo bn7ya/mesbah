@@ -75,7 +75,7 @@
       <app-designer-form />
     </mat-card>
 
-    <mat-card appearance="outlined" class="architect__panel architect__results" [attr.aria-busy]="estimating()">
+    <mat-card appearance="outlined" class="architect__panel" [attr.aria-busy]="estimating()">
       <h3>{{ 'architect.results.title' | t }}</h3>
 
       @if (estimating()) {

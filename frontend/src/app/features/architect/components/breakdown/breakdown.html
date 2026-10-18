@@ -25,7 +25,7 @@
       @for (row of rows(); track row.key) {
         <li class="breakdown__item">
           <span class="breakdown__swatch" [class]="'breakdown__swatch--' + row.tone" aria-hidden="true"></span>
-          <span class="breakdown__name"><app-term [key]="row.termKey" /></span>
+          <span><app-term [key]="row.termKey" /></span>
           <span class="breakdown__count">{{ row.value | compact }}</span>
           <span class="breakdown__share text-secondary">{{ percent(row.ratio) }}</span>
         </li>

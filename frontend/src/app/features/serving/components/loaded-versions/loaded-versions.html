@@ -2,7 +2,6 @@
   @for (version of versions(); track version.id) {
     <li class="loaded__item">
       <a
-        class="loaded__link"
         dir="auto"
         [routerLink]="['/projects', version.project.id, 'versions']"
         [attr.aria-label]="'serving.versionsOf' | t: { name: version.project.name }"

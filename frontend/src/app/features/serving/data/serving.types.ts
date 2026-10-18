@@ -40,7 +40,6 @@ export interface Engine {
   readonly base_url: string;
   readonly model_name: string;
   readonly has_api_key: boolean;
-  readonly managed: boolean;
   readonly enabled: boolean;
   readonly is_default: boolean;
   readonly last_seen_at: string | null;

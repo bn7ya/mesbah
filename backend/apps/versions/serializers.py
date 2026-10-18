@@ -19,7 +19,6 @@ class VersionSerializer(serializers.Serializer[dict[str, Any]]):
     kind = serializers.ChoiceField(choices=ModelVersion.Kind.choices, read_only=True)
     parent_id = serializers.UUIDField(read_only=True, allow_null=True)
     is_active = serializers.BooleanField(read_only=True)
-    children_count = serializers.IntegerField(read_only=True, allow_null=True)
     size_bytes = serializers.IntegerField(read_only=True)
     full_size_bytes = serializers.IntegerField(read_only=True)
     lora_rank = serializers.IntegerField(read_only=True, allow_null=True)

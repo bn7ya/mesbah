@@ -56,7 +56,6 @@ class EngineService:
             "base_url": endpoint_of(engine).base_url,
             "model_name": engine.model_name,
             "has_api_key": bool(engine.sealed_api_key),
-            "managed": engine.kind == Engine.Kind.BUILTIN,
             "enabled": engine.enabled,
             "is_default": engine.is_default,
             "last_seen_at": engine.last_seen_at,

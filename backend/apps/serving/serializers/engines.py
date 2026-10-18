@@ -40,7 +40,6 @@ class EngineSerializer(serializers.Serializer[dict[str, Any]]):
     base_url = serializers.CharField(read_only=True)
     model_name = serializers.CharField(read_only=True, allow_blank=True)
     has_api_key = serializers.BooleanField(read_only=True)
-    managed = serializers.BooleanField(read_only=True)
     enabled = serializers.BooleanField(read_only=True)
     is_default = serializers.BooleanField(read_only=True)
     last_seen_at = serializers.DateTimeField(read_only=True, allow_null=True)

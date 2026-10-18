@@ -26,7 +26,6 @@ function version(id: string, number: number, parent: string | null, overrides: P
     kind: number === 0 ? 'base' : 'lora',
     parent_id: parent,
     is_active: false,
-    children_count: 0,
     size_bytes: number === 0 ? 0 : 84_000_000,
     full_size_bytes: 16_000_000_000,
     lora_rank: number === 0 ? null : 16,

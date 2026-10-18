@@ -73,7 +73,7 @@
 
         @for (field of group.fields; track field.key) {
           @if (field.termKey; as termKey) {
-            <p class="designer__term"><app-term [key]="termKey" /></p>
+            <p><app-term [key]="termKey" /></p>
           }
         }
 

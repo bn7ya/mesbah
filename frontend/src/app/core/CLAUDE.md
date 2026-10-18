@@ -13,7 +13,7 @@ in that feature.
 core/
   auth/
     data/auth.types.ts      Identity — mirrors IdentitySerializer
-    data/auth.api.ts        /api/auth/{csrf,login,logout,me}
+    data/auth.api.ts        /api/auth/{csrf,login,logout,me,setup}
     state/auth.store.ts     root-provided; who the user is
     guards/auth.guard.ts    authGuard, guestGuard, groupGuard(...)
     roles.ts                the role ladder; roleGuard(role)
@@ -42,8 +42,8 @@ Its backend counterpart is `backend/apps/accounts/` — mounted at `/api/auth/`.
 
 ## Classes and methods
 
-**`AuthApi`** (`auth/data/`) — the four calls under `/api/auth/`: prime the CSRF cookie,
-sign in, sign out, and ask who the user is.
+**`AuthApi`** (`auth/data/`) — the calls under `/api/auth/`: prime the CSRF cookie,
+sign in, sign out, ask who the user is, and read the setup status and create the owner.
 
 **`AuthStore`** (`auth/state/`) — who the user is, application-wide, as signals: the
 identity, whether it has been resolved yet, busy, the last error, the groups and a display
@@ -63,8 +63,8 @@ requires one of the named groups, or goes to `/forbidden`.
 
 **Roles** (`auth/roles.ts`, Mesbah) — the ladder viewers → reviewers → trainers → admins
 (`ROLE_LADDER`), mirroring `apps/members/roles.py`. `rolesFrom()` lists a role and every role
-above it, `highestRole()` picks a user's role, `roleGuard()` is `groupGuard()` over
-`rolesFrom()`. The menu shows each destination to its role and above.
+above it, `roleGuard()` is `groupGuard()` over `rolesFrom()`. The menu shows each destination
+to its role and above.
 
 **`SetupPage`** (`auth/pages/setup/`, Mesbah) — the first-run form: the setup code from the
 terminal, a name, a username and a password; creates the owner through

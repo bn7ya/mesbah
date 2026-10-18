@@ -38,7 +38,6 @@ function engine(id: string, overrides: Partial<Engine> = {}): Engine {
     base_url: `http://gpu-${id}:8000`,
     model_name: '',
     has_api_key: false,
-    managed: false,
     enabled: true,
     is_default: false,
     last_seen_at: null,
@@ -51,7 +50,6 @@ function builtin(overrides: Partial<Engine> = {}): Engine {
   return engine('builtin', {
     name: 'Mesbah',
     kind: 'builtin',
-    managed: true,
     is_default: true,
     base_url: 'http://127.0.0.1:8078',
     ...overrides,

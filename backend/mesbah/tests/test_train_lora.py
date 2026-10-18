@@ -13,10 +13,10 @@ pytest.importorskip("transformers")
 pytest.importorskip("peft")
 pytest.importorskip("trl")
 
-import torch  # noqa: E402
+import torch
 
-from mesbah.train import lora  # noqa: E402
-from mesbah.train.contract import (  # noqa: E402
+from mesbah.train import lora
+from mesbah.train.contract import (
     BaseModelRef,
     EventWriter,
     ExampleSource,
@@ -26,8 +26,8 @@ from mesbah.train.contract import (  # noqa: E402
     TrainConfig,
     read_events,
 )
-from mesbah.train.data import Conversation, Message, Pair, Prepared, prepare  # noqa: E402
-from mesbah.train.deltas import LoraModule, read_adapter  # noqa: E402
+from mesbah.train.data import Conversation, Message, Pair, Prepared, prepare
+from mesbah.train.deltas import LoraModule, read_adapter
 
 if TYPE_CHECKING:
     from torch import Tensor

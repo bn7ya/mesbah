@@ -14,7 +14,6 @@ export interface Version {
   readonly kind: VersionKind;
   readonly parent_id: string | null;
   readonly is_active: boolean;
-  readonly children_count: number | null;
   readonly size_bytes: number;
   readonly full_size_bytes: number;
   readonly lora_rank: number | null;

@@ -90,7 +90,6 @@ export class TrainingStore {
   readonly planError = computed(() => this.failure(this.planned.status() === 'error' ? this.planned.error() : undefined));
 
   readonly versions = computed<readonly StartVersion[]>(() => (this.versionList.hasValue() ? this.versionList.value() : []));
-  readonly versionsLoading = computed(() => this.versionList.isLoading());
   readonly versionsError = computed(() =>
     this.failure(this.versionList.status() === 'error' ? this.versionList.error() : undefined),
   );

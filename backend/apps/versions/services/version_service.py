@@ -48,7 +48,6 @@ class VersionService:
             "kind": version.kind,
             "parent_id": version.parent_id,
             "is_active": version.pk == active,
-            "children_count": getattr(version, "children_count", None),
             "size_bytes": version.size_bytes,
             "full_size_bytes": version.full_size_bytes,
             "lora_rank": version.lora_rank,

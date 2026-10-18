@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from django.db.models import Count, Max, Q, QuerySet
+from django.db.models import Max, QuerySet
 
 from apps.common.repositories import BaseRepository
 from apps.versions.models import ModelVersion
@@ -19,7 +19,6 @@ class VersionRepository(BaseRepository[ModelVersion]):
             self.active()
             .filter(project_id=project_id)
             .select_related("created_by")
-            .annotate(children_count=Count("children", filter=Q(children__deleted_at__isnull=True)))
             .order_by("number")
         )
         return rows

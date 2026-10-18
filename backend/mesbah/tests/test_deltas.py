@@ -9,10 +9,10 @@ import pytest
 
 pytest.importorskip("torch")
 
-import torch  # noqa: E402
+import torch
 
-from mesbah.train.contract import DeltaStats  # noqa: E402
-from mesbah.train.deltas import adapter_size_bytes, delta_stats, lora_scale  # noqa: E402
+from mesbah.train.contract import DeltaStats
+from mesbah.train.deltas import adapter_size_bytes, delta_stats, lora_scale
 
 if TYPE_CHECKING:
     from torch import Tensor

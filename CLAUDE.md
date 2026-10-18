@@ -2,6 +2,40 @@
 
 This is the root memory file. Every session reads it. `frontend/CLAUDE.md` and `backend/CLAUDE.md` narrow these rules to their side; each feature directory carries its own `CLAUDE.md`.
 
+## Mesbah
+
+**مصباح · Mesbah** ("lamp") is a studio for customizing language models, for one person or
+a whole team. Pick any model on HuggingFace, chat with it, correct its replies and its
+thinking in place, add HuggingFace datasets, and train. Every training run adds a
+**version** that stores only the change to the model's weights, so versions are cheap to
+keep, branch and roll back. A version runs on the built-in engine or on vLLM, llama.cpp or
+Ollama, exports to their formats, and is served over OpenAI- and Ollama-compatible APIs.
+Mesbah can also design and pretrain a new model from scratch, MoE or encoder-decoder.
+
+| Concept | What it is |
+|---|---|
+| Project | one model being customized: a HuggingFace base, or a model designed from scratch |
+| Version | a node in a project's tree; the root is the base, every other node is one LoRA delta measured from the base |
+| Conversation / message | a chat with a version; an edited reply or thinking chain is a correction |
+| Dataset | an install-wide library entry: a HuggingFace import, an upload, or a project's published corrections |
+| Training run | turns corrections and datasets into a new version |
+| Engine / deployment | an OpenAI-compatible server a version runs on |
+
+It is this Template's product, so every rule below holds. Where Mesbah departs from the
+Template, an ADR in `.claude/docs/adr/` (003 onward) says why. Mesbah edits these
+Template-owned files, so `/template-sync` conflicts in them are expected:
+`compose.yaml`, `backend/config/settings/base.py`, `frontend/src/index.html`,
+`frontend/src/app/core/i18n/{en,ar}.json`, `frontend/src/app/core/i18n/locale.store{,.spec}.ts`,
+`frontend/src/app/core/CLAUDE.md`, `.gitignore`,
+`.claude/docs/language.md`, `README.md` and this file.
+
+Mesbah handles no money. `MoneyField`, `<app-money>` and the rial font stay because they
+are the Template's, kept so sync applies cleanly; rule 5 does not remove them.
+
+The interface is Arabic first: a new visitor gets Arabic, and English is one switch away.
+Model names and a fixed technical vocabulary (LoRA, GPU, VRAM, loss…) render as-is,
+always beside an explanation (ADR-007, `.claude/docs/language.md`).
+
 ## Stack
 
 | Layer | Technology |

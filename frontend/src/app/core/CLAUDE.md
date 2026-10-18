@@ -54,7 +54,7 @@ requires one of the named groups, or goes to `/forbidden`.
 fields and shows each error through `mat-error` (an `ErrorStateMatcher` per field reads the
 signals), toggles password visibility, signs in through the store and follows `?next=`.
 
-**`LocaleStore`** (`i18n/`) — the current language, persisted, and the dictionary of every
+**`LocaleStore`** (`i18n/`) — the current language, persisted (Arabic until someone chooses), and the dictionary of every
 registered bundle. Writes `lang` and `dir` on the document, and turns the CDK's root
 `Directionality` with them, so Material components and overlays follow the language.
 `translate()` resolves a key and fills `{name}` placeholders; a missing key renders as

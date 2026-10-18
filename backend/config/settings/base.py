@@ -149,8 +149,8 @@ REST_FRAMEWORK: dict[str, Any] = {
 }
 
 SPECTACULAR_SETTINGS: dict[str, Any] = {
-    "TITLE": "Template API",
-    "DESCRIPTION": "Vertical slice + service/repository.",
+    "TITLE": "Mesbah API",
+    "DESCRIPTION": "Mesbah: customize, version and serve language models.",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": "/api",

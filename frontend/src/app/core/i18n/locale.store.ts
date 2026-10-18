@@ -78,8 +78,7 @@ function readInitialLocale(): Locale {
   if (isLocale(stored)) {
     return stored;
   }
-  const preferred = navigator.language.split('-')[0];
-  return isLocale(preferred) ? preferred : 'en';
+  return 'ar';
 }
 
 function isLocale(value: string | null): value is Locale {

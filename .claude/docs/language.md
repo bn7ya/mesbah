@@ -42,7 +42,7 @@ argues with a reader who was not doubting anything.
    Arabic counts with the singular and English with the plural.
 8. **No bare jargon.** A technical term is either replaced by the word a reader uses or
    spelled out once. A model, algorithm, library or user-agent name never renders to a
-   user.
+   user. Mesbah's exception is below under "Technical terms" (ADR-007).
 9. **The backend sends keys, not prose.** An error carries a stable `code` and the
    frontend resolves `errors.<code>`; seeded prose with a stable key resolves through a
    key with the server's text as fallback. A sentence the frontend prints verbatim from
@@ -60,6 +60,30 @@ Grow this table from the first feature. One row per concept, both languages, no 
 | reviewed by a person | خضع لمراجعة بشرية | reviewed by a person |
 | not yet verified | لم يتم التحقق منه بعد | not yet verified |
 | a filter control | تصفية | filter |
+
+## Technical terms
+
+Mesbah only (ADR-007). Model, dataset and engine names render as their publishers write
+them, with `dir="ltr"` on the name. These terms stay in English in both languages, each with
+an `<app-term>` explanation in the reader's language:
+
+LoRA · QLoRA · GPU · VRAM · RAM · CPU · loss · learning rate · token · MoE · GGUF ·
+safetensors · API · API key
+
+| Concept | Arabic | English |
+|---|---|---|
+| the product | مصباح | Mesbah |
+| a model being customized | مشروع | project |
+| a node in a project's tree | نسخة | version |
+| the change a version stores | التغيير | change |
+| the model a project starts from | النموذج الأساسي | base model |
+| a chat with a version | محادثة | conversation |
+| the model's reasoning before a reply | سلسلة التفكير | thinking |
+| changing a reply or thinking | تعديل | edit |
+| the marker on a changed reply | تم التعديل | edited |
+| an install-wide data entry | مجموعة بيانات | dataset |
+| turning data into a version | تدريب | training |
+| a server a version runs on | محرك | engine |
 
 ## What a native reader rejects
 

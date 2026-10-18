@@ -1,8 +1,22 @@
-# Template
+# مصباح · Mesbah
 
-An Angular + Django template built around one design pattern and a set of agents
-that keep it. Everything about how work happens here is in
-[`CLAUDE.md`](CLAUDE.md) and [`.claude/docs/design-pattern.md`](.claude/docs/design-pattern.md).
+A studio for customizing language models, for one person or a whole team.
+
+- Pick any model on HuggingFace and chat with it.
+- Correct a reply in place, the way you edit a sent message, and correct its thinking
+  separately.
+- Add HuggingFace datasets and train. Each run adds a **version** that stores only the
+  change to the model's weights, so versions are cheap to keep, branch and roll back.
+- Run a version on the built-in engine, vLLM, llama.cpp or Ollama, export it to their
+  formats, and serve it over OpenAI- and Ollama-compatible APIs.
+- Design and pretrain a new model from scratch, MoE or encoder-decoder.
+- Every technical detail on screen comes with a plain explanation.
+
+The interface is Arabic first, with English one switch away.
+
+Mesbah is built on [bn7ya/Template](https://github.com/bn7ya/Template). Everything about
+how work happens here is in [`CLAUDE.md`](CLAUDE.md) and
+[`.claude/docs/design-pattern.md`](.claude/docs/design-pattern.md).
 
 ## Stack
 

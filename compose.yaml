@@ -11,7 +11,7 @@
 # (frontend/proxy.conf.json), so development is same-origin and needs no CORS
 # configuration — which is how production behaves behind nginx.
 
-name: template
+name: mesbah
 
 services:
   db:

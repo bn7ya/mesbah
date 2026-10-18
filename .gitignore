@@ -38,3 +38,10 @@ prompt.txt
 
 # Playwright MCP snapshots and screenshots from naive_user runs
 .playwright-mcp/
+
+# Mesbah: packaging and local data
+*.egg-info/
+backend/build/
+backend/dist/
+backend/mesbah/_spa/
+.mesbah/

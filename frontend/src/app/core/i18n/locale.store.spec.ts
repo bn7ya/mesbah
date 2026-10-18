@@ -20,6 +20,10 @@ describe('LocaleStore', () => {
     expect(store.translate('auth.signIn.title')).toBe('Sign in');
   });
 
+  it('starts in Arabic when no language was chosen', () => {
+    expect(store.locale()).toBe('ar');
+  });
+
   it('returns the key itself when there is no translation', () => {
     expect(store.translate('nothing.here')).toBe('nothing.here');
   });

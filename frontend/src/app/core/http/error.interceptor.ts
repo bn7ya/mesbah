@@ -33,6 +33,17 @@ function isSessionFailure(response: HttpErrorResponse, url: string): boolean {
   return !url.includes('/api/auth/');
 }
 
+function readBody(raw: unknown): ApiErrorResponse | null {
+  if (typeof raw !== 'string') {
+    return raw as ApiErrorResponse | null;
+  }
+  try {
+    return JSON.parse(raw) as ApiErrorResponse | null;
+  } catch {
+    return null;
+  }
+}
+
 function toApiError(response: unknown, locale: LocaleStore): ApiError {
   if (!(response instanceof HttpErrorResponse)) {
     return { code: 'unknown', message: locale.translate('errors.generic') };
@@ -42,7 +53,7 @@ function toApiError(response: unknown, locale: LocaleStore): ApiError {
     return { code: 'network', message: locale.translate('auth.errors.unavailable') };
   }
 
-  const body = response.error as ApiErrorResponse | null;
+  const body = readBody(response.error);
   if (body?.error?.message) {
     const key = `errors.${body.error.code}`;
     const translated = locale.translate(key);

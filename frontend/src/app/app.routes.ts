@@ -36,6 +36,10 @@ export const routes: Routes = [
           const { projectFrame } = await import('@features/projects/projects.routes');
           return projectFrame([
             {
+              path: 'chat',
+              loadChildren: () => import('@features/chat/chat.routes').then((m) => m.routes),
+            },
+            {
               path: 'versions',
               loadChildren: () => import('@features/versions/versions.routes').then((m) => m.routes),
             },

@@ -35,10 +35,12 @@ export function formatPercent(ratio: number, locale: Locale): string {
   return `${LTR_START}${formatNumber(percent, locale, percent < 10 ? 1 : 0)}%${LTR_END}`;
 }
 
-export function formatDateTime(iso: string, locale: Locale): string {
-  return new Intl.DateTimeFormat(NUMBER_LOCALES[locale], { dateStyle: 'long', timeStyle: 'short' }).format(
-    new Date(iso),
-  );
+export function formatDateTime(
+  iso: string,
+  locale: Locale,
+  dateStyle: NonNullable<Intl.DateTimeFormatOptions['dateStyle']> = 'long',
+): string {
+  return new Intl.DateTimeFormat(NUMBER_LOCALES[locale], { dateStyle, timeStyle: 'short' }).format(new Date(iso));
 }
 
 export function formatBytes(bytes: number, locale: Locale): string {

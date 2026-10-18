@@ -176,7 +176,9 @@ whose default font set is `fa-solid`:
 
 **An icon sits in Material's icon box.** `mat-icon` reserves `--app-icon-box`, and
 `_theme.scss` sets the glyph at `--app-icon-size` in the middle of it, the optical size of
-the icons Material's own buttons and fields are drawn around.
+the icons Material's own buttons and fields are drawn around. Beside small label text, such as a
+mark in a message footer, `class="app-icon-small"` gives the glyph a smaller box
+(`--app-icon-box-small`), set in the theme.
 
 **Directional glyphs mirror, or they are not directional.** Font Awesome does not flip
 itself — so prefer a glyph with no direction, and where direction is the point, add

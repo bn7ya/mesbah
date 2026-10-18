@@ -15,6 +15,7 @@
     "tabs": {
       "label": "Project pages",
       "overview": "Overview",
+      "chat": "Chat",
       "versions": "Versions"
     },
     "empty": {

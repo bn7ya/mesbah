@@ -56,4 +56,23 @@ describe('errorInterceptor', () => {
 
     expect(error.message).toBe('Server prose');
   });
+
+  it('reads the error of a request whose body is read as text', async () => {
+    const request = firstValueFrom(http.post('/api/thing/', {}, { responseType: 'text' }));
+    backend
+      .expectOne('/api/thing/')
+      .flush(JSON.stringify({ error: { code: 'sample_code', message: 'Server prose' } }), {
+        status: 409,
+        statusText: 'Conflict',
+      });
+
+    await expect(request).rejects.toEqual({ code: 'sample_code', message: 'بالعربية' });
+  });
+
+  it('does not fail on a text body that is not JSON', async () => {
+    const request = firstValueFrom(http.post('/api/thing/', {}, { responseType: 'text' }));
+    backend.expectOne('/api/thing/').flush('Bad gateway', { status: 502, statusText: 'Bad Gateway' });
+
+    await expect(request).rejects.toMatchObject({ code: 'unknown' });
+  });
 });

@@ -1,0 +1,23 @@
+:host {
+  display: block;
+}
+
+.thinking {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+  font: var(--mat-sys-body-medium);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.thinking__head {
+  display: flex;
+  gap: var(--app-space-1);
+  align-items: center;
+  font: var(--mat-sys-label-large);
+}
+
+.thinking__body {
+  padding-inline-start: var(--app-space-4);
+  border-inline-start: var(--app-hairline) solid var(--mat-sys-outline);
+}

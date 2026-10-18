@@ -1,0 +1,222 @@
+@let item = message();
+
+<article
+  #bubble
+  tabindex="-1"
+  class="bubble"
+  [class.bubble--user]="isUser()"
+  [class.bubble--editing]="editing() !== null"
+  [attr.aria-label]="(isUser() ? 'chat.sender.you' : 'chat.sender.model') | t"
+  [attr.aria-busy]="busy() || streaming()"
+>
+  @if (!isUser() && (thinking() || editing() === 'thinking')) {
+    <app-thinking-section [streaming]="live() !== null" [editing]="editing() === 'thinking'">
+      @if (editing() === 'thinking') {
+        <app-message-editor
+          labelKey="chat.edit.thinkingLabel"
+          hintKey="chat.edit.thinkingHint"
+          [initial]="editFrom()"
+          [original]="item.thinking_edited_at ? item.original_thinking : null"
+          [busy]="busy()"
+          (saved)="save('thinking', $event)"
+          (cancelled)="finishEditing()"
+        />
+      } @else {
+        <p class="bubble__thinking" dir="auto">{{ thinking() }}</p>
+      }
+    </app-thinking-section>
+  }
+
+  @if (editing() === 'content') {
+    <app-message-editor
+      labelKey="chat.edit.replyLabel"
+      [initial]="editFrom()"
+      [requireText]="true"
+      [original]="item.content_edited_at ? item.original_content : null"
+      [busy]="busy()"
+      (saved)="save('content', $event)"
+      (cancelled)="finishEditing()"
+    />
+  } @else if (content()) {
+    <p class="bubble__text" dir="auto">{{ content() }}</p>
+  }
+
+  @if (!isUser()) {
+    <div class="bubble__status" aria-live="polite">
+      @if (progress(); as text) {
+        <p class="bubble__progress">
+          <mat-icon fontIcon="fa-circle-notch" class="fa-spin app-icon-small" />
+          {{ text }}
+        </p>
+      }
+      @if (reason(); as text) {
+        <p class="bubble__failure">
+          <mat-icon fontIcon="fa-circle-exclamation" class="app-icon-small" />
+          <span>
+            {{ text }}
+            @if (engineNotRunning()) {
+              <a routerLink="/engines">{{ 'chat.status.openEngines' | t }}</a>
+            }
+          </span>
+        </p>
+      }
+    </div>
+  }
+
+  @if (editing() === null) {
+    <footer class="bubble__foot">
+      <div class="bubble__facts text-secondary">
+        @if (!isUser()) {
+          @if (version(); as label) {
+            <span class="bubble__fact">
+              <mat-icon fontIcon="fa-code-branch" class="app-icon-small" />
+              <span dir="ltr">v{{ label.number }}</span>
+              <span dir="auto">{{ label | versionName }}</span>
+            </span>
+          } @else if (item.version; as ref) {
+            <span class="bubble__fact">
+              <mat-icon fontIcon="fa-code-branch" class="app-icon-small" />
+              <span dir="auto">{{ ref.name }}</span>
+            </span>
+          }
+        }
+        <time class="bubble__fact" [attr.datetime]="item.created_at">{{ item.created_at | datetime: 'medium' }}</time>
+        @if (item.approved) {
+          <span class="bubble__fact bubble__fact--approved">
+            <mat-icon fontIcon="fa-check-double" class="app-icon-small" />
+            {{ 'chat.marks.approved' | t }}
+          </span>
+        }
+        @if (item.content_edited_at) {
+          <span class="bubble__fact">
+            <mat-icon fontIcon="fa-pen" class="app-icon-small" />
+            {{ 'chat.marks.edited' | t }}
+          </span>
+        }
+        @if (item.thinking_edited_at) {
+          <span class="bubble__fact">
+            <mat-icon fontIcon="fa-pen" class="app-icon-small" />
+            {{ 'chat.marks.thinkingEdited' | t }}
+          </span>
+        }
+        @if (item.status === 'stopped') {
+          <span class="bubble__fact">
+            <mat-icon fontIcon="fa-circle-stop" class="app-icon-small" />
+            {{ 'chat.marks.stopped' | t }}
+          </span>
+        }
+        @if (item.status === 'failed') {
+          <span class="bubble__fact bubble__fact--failed">
+            <mat-icon fontIcon="fa-circle-exclamation" class="app-icon-small" />
+            {{ 'chat.marks.failed' | t }}
+          </span>
+        }
+        @if (!isUser() && !item.include_in_training) {
+          <span class="bubble__fact">
+            <mat-icon fontIcon="fa-ban" class="app-icon-small" />
+            {{ 'chat.marks.notTrained' | t }}
+          </span>
+        }
+      </div>
+
+      @if (canAct()) {
+        <button
+          matIconButton
+          type="button"
+          class="bubble__menu"
+          [matMenuTriggerFor]="actions"
+          [disabled]="busy()"
+          [attr.aria-label]="'chat.menu.label' | t"
+        >
+          <mat-icon fontIcon="fa-ellipsis-vertical" />
+        </button>
+        <mat-menu #actions="matMenu">
+          <button mat-menu-item type="button" (click)="startEdit('content')">
+            <mat-icon fontIcon="fa-pen" />
+            <span>{{ 'chat.menu.editReply' | t }}</span>
+          </button>
+          <button mat-menu-item type="button" (click)="startEdit('thinking')">
+            <mat-icon fontIcon="fa-brain" />
+            <span>{{ (item.thinking ? 'chat.menu.editThinking' : 'chat.menu.addThinking') | t }}</span>
+          </button>
+          <mat-divider />
+          <button mat-menu-item type="button" (click)="toggleApproved()">
+            <mat-icon [fontIcon]="item.approved ? 'fa-xmark' : 'fa-check-double'" />
+            <span>{{ (item.approved ? 'chat.menu.withdraw' : 'chat.menu.approve') | t }}</span>
+          </button>
+          <button
+            mat-menu-item
+            type="button"
+            role="menuitemcheckbox"
+            [attr.aria-checked]="item.include_in_training"
+            (click)="toggleTraining()"
+          >
+            <mat-icon fontSet="fa-regular" [fontIcon]="item.include_in_training ? 'fa-square-check' : 'fa-square'" />
+            <span>{{ 'chat.menu.training' | t }}</span>
+          </button>
+          @if (item.content_edited_at || item.thinking_edited_at) {
+            <mat-divider />
+          }
+          @if (item.content_edited_at) {
+            <button mat-menu-item type="button" (click)="restore('content')">
+              <mat-icon fontIcon="fa-rotate-left" />
+              <span>{{ 'chat.menu.restoreReply' | t }}</span>
+            </button>
+          }
+          @if (item.thinking_edited_at) {
+            <button mat-menu-item type="button" (click)="restore('thinking')">
+              <mat-icon fontIcon="fa-rotate-left" />
+              <span>{{ 'chat.menu.restoreThinking' | t }}</span>
+            </button>
+          }
+          <mat-divider />
+          <button mat-menu-item type="button" [disabled]="!canCopy()" (click)="copy()">
+            <mat-icon fontIcon="fa-copy" />
+            <span>{{ 'chat.menu.copy' | t }}</span>
+          </button>
+        </mat-menu>
+      } @else if (canCopy()) {
+        <button matIconButton type="button" class="bubble__menu" [attr.aria-label]="'chat.menu.copy' | t" (click)="copy()">
+          <mat-icon fontIcon="fa-copy" />
+        </button>
+      }
+    </footer>
+
+    @if (expert() && !isUser()) {
+      <dl class="bubble__expert text-secondary">
+        @if (item.engine_name) {
+          <div>
+            <dt>{{ 'chat.expert.engine' | t }}</dt>
+            <dd dir="auto">{{ item.engine_name }}</dd>
+          </div>
+        }
+        @if (item.tokens_prompt !== null && item.tokens_completion !== null) {
+          <div>
+            <dt><app-term key="token" /></dt>
+            <dd>
+              {{ 'chat.expert.tokens' | t: { prompt: count(item.tokens_prompt), reply: count(item.tokens_completion) } }}
+            </dd>
+          </div>
+        }
+        @if (seconds(); as time) {
+          <div>
+            <dt>{{ 'chat.expert.duration' | t }}</dt>
+            <dd>{{ 'chat.expert.seconds' | t: { count: time } }}</dd>
+          </div>
+        }
+        @if (item.edited_by) {
+          <div>
+            <dt>{{ 'chat.expert.editedBy' | t }}</dt>
+            <dd dir="ltr">{{ item.edited_by }}</dd>
+          </div>
+        }
+        @if (item.approved && item.approved_by) {
+          <div>
+            <dt>{{ 'chat.expert.approvedBy' | t }}</dt>
+            <dd dir="ltr">{{ item.approved_by }}</dd>
+          </div>
+        }
+      </dl>
+    }
+  }
+</article>

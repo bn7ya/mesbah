@@ -1,0 +1,81 @@
+<h2 mat-dialog-title>{{ 'chat.settings.title' | t }}</h2>
+
+<form novalidate (ngSubmit)="save()">
+  <mat-dialog-content class="settings">
+    @if (failure(); as problem) {
+      <p class="settings__failure" role="alert">
+        <mat-icon fontIcon="fa-circle-exclamation" />
+        {{ problem.message }}
+      </p>
+    }
+
+    <p class="text-secondary">{{ 'chat.settings.intro' | t }}</p>
+
+    <div class="settings__field">
+      <p class="settings__label">
+        <span>{{ 'chat.settings.instructions' | t }}</span>
+        <app-term key="system_prompt" />
+      </p>
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>{{ 'chat.settings.instructionsLabel' | t }}</mat-label>
+        <textarea
+          matInput
+          name="systemPrompt"
+          dir="auto"
+          cdkTextareaAutosize
+          cdkAutosizeMinRows="3"
+          cdkAutosizeMaxRows="10"
+          [maxlength]="promptMax"
+          [ngModel]="systemPrompt()"
+          (ngModelChange)="systemPrompt.set($event)"
+        ></textarea>
+        <mat-hint>{{ 'chat.settings.instructionsHint' | t }}</mat-hint>
+      </mat-form-field>
+      @if (defaults()?.system_prompt; as projectPrompt) {
+        <div class="settings__project">
+          <p class="settings__hint text-secondary">{{ 'chat.settings.projectInstructions' | t }}</p>
+          <p class="settings__project-text" dir="auto">{{ projectPrompt }}</p>
+        </div>
+      } @else {
+        <p class="settings__hint text-secondary">{{ 'chat.settings.instructionsNone' | t }}</p>
+      }
+    </div>
+
+    @for (setting of settings; track setting.key) {
+      <div class="settings__field">
+        <div class="settings__head">
+          <p class="settings__label">
+            <span>{{ setting.labelKey | t }}</span>
+            <app-term [key]="setting.termKey" />
+          </p>
+          <span class="settings__value">{{ shown(setting) }}</span>
+        </div>
+        <mat-slider [min]="setting.range.min" [max]="setting.range.max" [step]="setting.range.step" [disabled]="busy()">
+          <input
+            matSliderThumb
+            [attr.aria-label]="setting.labelKey | t"
+            [value]="value(setting)"
+            (valueChange)="setValue(setting, $event)"
+          />
+        </mat-slider>
+        <div class="settings__foot">
+          <p class="settings__hint text-secondary">{{ setting.hintKey | t }}</p>
+          @if (overrides[setting.key]() !== null) {
+            <button matButton type="button" [disabled]="busy()" (click)="useProject(setting)">
+              {{ 'chat.settings.useProject' | t: { value: projectShown(setting) } }}
+            </button>
+          } @else {
+            <p class="settings__hint text-secondary">{{ 'chat.settings.fromProject' | t }}</p>
+          }
+        </div>
+      </div>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button matButton type="button" [mat-dialog-close]="false">{{ 'actions.cancel' | t }}</button>
+    <button matButton="filled" type="submit" [disabled]="busy() || !dirty()" [attr.aria-busy]="busy()">
+      {{ (busy() ? 'chat.settings.saving' : 'actions.save') | t }}
+    </button>
+  </mat-dialog-actions>
+</form>

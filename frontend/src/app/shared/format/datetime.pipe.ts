@@ -7,7 +7,7 @@ import { formatDateTime } from './format';
 export class DateTimePipe implements PipeTransform {
   private readonly locale = inject(LocaleStore);
 
-  transform(iso: string): string {
-    return formatDateTime(iso, this.locale.locale());
+  transform(iso: string, dateStyle?: Parameters<typeof formatDateTime>[2]): string {
+    return formatDateTime(iso, this.locale.locale(), dateStyle);
   }
 }

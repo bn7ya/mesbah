@@ -41,7 +41,7 @@ or `slug:vN`. Their errors take each API's own shape — OpenAI's `{"error": {"m
 views/engines.py → services/engine_service.py ─┐
 views/keys.py → services/api_key_service.py    │
 views/openai.py, views/ollama.py → services/gateway_service.py
-gateway, engines → services/deployment_service.py → services/engine_client.py → HTTP
+gateway, engines, apps.chat → services/deployment_service.py → services/engine_client.py → HTTP
                   └→ repositories/{engine,deployment,api_key}_repository.py → Engine, Deployment, ApiKey
 authentication.py → services/api_key_service.py   (Bearer keys, for /v1 and /ollama only)
 ```

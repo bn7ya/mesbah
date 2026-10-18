@@ -61,6 +61,7 @@ THIRD_PARTY_APPS: list[str] = [
 LOCAL_APPS: list[str] = [
     "apps.common",
     "apps.accounts",
+    "apps.chat",
     "apps.datasets",
     "apps.members",
     "apps.models",
@@ -177,6 +178,7 @@ SPECTACULAR_SETTINGS: dict[str, Any] = {
         "ExportFormatEnum": "apps.versions.models.Export.Format",
         "MemberRoleEnum": "apps.members.roles.LADDER",
         "MessageRoleEnum": ["system", "user", "assistant"],
+        "MessageStatusEnum": ["streaming", "complete", "stopped", "failed"],
         "ModelFamilyEnum": "apps.models.models.HubModel.Family",
         "ModelStatusEnum": "apps.models.models.HubModel.Status",
     },

@@ -1,0 +1,137 @@
+@if (conversation(); as current) {
+  <header class="head">
+    <div class="head__title">
+      @if (listButton()) {
+        <button matIconButton type="button" [attr.aria-label]="'chat.list.show' | t" (click)="showList.emit()">
+          <mat-icon fontIcon="fa-bars" />
+        </button>
+      }
+
+      @if (renaming()) {
+        <form class="head__rename" novalidate (ngSubmit)="saveTitle()">
+          <mat-form-field class="head__rename-field" subscriptSizing="dynamic">
+            <mat-label>{{ 'chat.header.titleLabel' | t }}</mat-label>
+            <input
+              matInput
+              #titleField
+              name="title"
+              dir="auto"
+              autocomplete="off"
+              [maxlength]="titleMax"
+              [ngModel]="draftTitle()"
+              (ngModelChange)="draftTitle.set($event)"
+              (keydown.escape)="cancelRename()"
+            />
+          </mat-form-field>
+          <button matButton="filled" type="submit" [disabled]="changing()">{{ 'actions.save' | t }}</button>
+          <button matButton type="button" (click)="cancelRename()">{{ 'actions.cancel' | t }}</button>
+        </form>
+      } @else {
+        <h2 class="head__name" dir="auto">{{ current.title || ('chat.list.untitled' | t) }}</h2>
+        @if (canWrite()) {
+          <button matIconButton type="button" [attr.aria-label]="'chat.header.rename' | t" (click)="startRename()">
+            <mat-icon fontIcon="fa-pen" />
+          </button>
+        }
+      }
+    </div>
+
+    @if (canWrite()) {
+      <div class="head__controls">
+        <mat-form-field class="head__select" subscriptSizing="dynamic">
+          <mat-label>{{ 'chat.header.version' | t }}</mat-label>
+          <mat-select [value]="versionValue()" (valueChange)="chooseVersion($event)">
+            <mat-select-trigger>
+              @if (pinnedVersion(); as pinned) {
+                <span class="head__label">
+                  <span dir="ltr">v{{ pinned.number }}</span>
+                  <span dir="auto">{{ pinned | versionName }}</span>
+                </span>
+              } @else {
+                {{ 'chat.header.activeVersion' | t }}
+              }
+            </mat-select-trigger>
+            <mat-option [value]="followActive">
+              <span class="head__label">
+                <span>{{ 'chat.header.activeVersion' | t }}</span>
+                @if (activeVersion(); as active) {
+                  <span class="head__label">
+                    <span dir="ltr">v{{ active.number }}</span>
+                    <span dir="auto">{{ active | versionName }}</span>
+                  </span>
+                }
+              </span>
+            </mat-option>
+            @for (version of versions(); track version.id) {
+              <mat-option [value]="version.id">
+                <span class="head__label">
+                  <span dir="ltr">v{{ version.number }}</span>
+                  <span dir="auto">{{ version | versionName }}</span>
+                </span>
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        @if (showEngines()) {
+          <mat-form-field class="head__select" subscriptSizing="dynamic">
+            <mat-label>{{ 'chat.header.engine' | t }}</mat-label>
+            <mat-select [value]="engineValue()" (valueChange)="chooseEngine($event)">
+              <mat-select-trigger>
+                @if (pinnedEngine(); as engine) {
+                  <span dir="auto">{{ engine.name }}</span>
+                } @else {
+                  {{ 'chat.header.defaultEngine' | t }}
+                }
+              </mat-select-trigger>
+              <mat-option [value]="defaultEngine">{{ 'chat.header.defaultEngine' | t }}</mat-option>
+              @for (engine of engines(); track engine.id) {
+                <mat-option [value]="engine.id"><span dir="auto">{{ engine.name }}</span></mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+
+        <div class="head__thinking">
+          <mat-slide-toggle
+            [checked]="thinkingValue()"
+            [aria-label]="'chat.header.thinking' | t"
+            (change)="toggleThinking($event.checked)"
+          />
+          <app-term key="thinking" />
+        </div>
+
+        <button matButton type="button" (click)="openSettings()">
+          <mat-icon fontIcon="fa-sliders" />
+          {{ 'chat.header.settings' | t }}
+        </button>
+      </div>
+    } @else {
+      <dl class="head__facts text-secondary">
+        <div>
+          <dt>{{ 'chat.header.version' | t }}</dt>
+          <dd>
+            @if (answeringVersion(); as answering) {
+              <span class="head__label">
+                <span dir="ltr">v{{ answering.number }}</span>
+                <span dir="auto">{{ answering | versionName }}</span>
+              </span>
+            } @else {
+              {{ 'chat.header.activeVersion' | t }}
+            }
+          </dd>
+        </div>
+        @if (engineName(); as name) {
+          <div>
+            <dt>{{ 'chat.header.engine' | t }}</dt>
+            <dd dir="auto">{{ name }}</dd>
+          </div>
+        }
+        <div>
+          <dt><app-term key="thinking" /></dt>
+          <dd>{{ (current.thinking ? 'chat.header.on' : 'chat.header.off') | t }}</dd>
+        </div>
+      </dl>
+    }
+  </header>
+}

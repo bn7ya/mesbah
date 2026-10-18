@@ -1,0 +1,27 @@
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" [attr.aria-label]="'chat.messages.loading' | t" />
+}
+
+<div
+  #scroller
+  class="messages"
+  role="region"
+  tabindex="0"
+  [attr.aria-label]="'chat.messages.label' | t"
+  (scroll)="scrolled()"
+  (cdkObserveContent)="changed()"
+>
+  @for (message of messages(); track message.id) {
+    <app-message-bubble [message]="message" />
+  }
+
+  @if (empty()) {
+    <p class="messages__empty text-secondary">{{ 'chat.messages.empty' | t }}</p>
+  }
+</div>
+
+@if (!pinned() && messages().length > 0) {
+  <button matMiniFab type="button" class="messages__jump" [attr.aria-label]="'chat.messages.jump' | t" (click)="jump()">
+    <mat-icon fontIcon="fa-arrow-down" />
+  </button>
+}

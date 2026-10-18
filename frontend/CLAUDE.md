@@ -152,7 +152,7 @@ binding and `paramsInheritanceStrategy: 'always'` (a page under `projects/:proje
 default font set, and the paginator's labels in the reader's language. **`routes`** — sign-in on its own, then the shell with every signed-in page as a child:
 the start redirect (to Projects), one lazy entry per feature and the status pages. A project's
 pages are the one place the app composes features: `projects/:projectId` loads the project
-frame through `projectFrame()` and passes it the tabs the other features own (`versions`), so
+frame through `projectFrame()` and passes it the tabs the other features own (`chat`, `versions`), so
 features never import each other. Per-module descriptions live in `core/`, `shared/` and each feature's
 `CLAUDE.md`.
 

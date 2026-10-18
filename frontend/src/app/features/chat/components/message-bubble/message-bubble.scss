@@ -1,0 +1,117 @@
+:host {
+  display: flex;
+  flex-direction: column;
+}
+
+.bubble {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+  align-self: flex-start;
+  max-inline-size: 85%;
+  padding: var(--app-space-3) var(--app-space-4);
+  color: var(--mat-sys-on-surface);
+  background: var(--mat-sys-surface-container-high);
+  border-radius: var(--mat-sys-corner-large);
+  border-start-start-radius: var(--mat-sys-corner-extra-small);
+}
+
+.bubble--user {
+  align-self: flex-end;
+  color: var(--mat-sys-on-primary-container);
+  background: var(--mat-sys-primary-container);
+  border-radius: var(--mat-sys-corner-large);
+  border-start-end-radius: var(--mat-sys-corner-extra-small);
+}
+
+.bubble--editing {
+  align-self: stretch;
+  max-inline-size: 100%;
+}
+
+.bubble__text,
+.bubble__thinking {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.bubble__status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+
+  &:empty {
+    display: none;
+  }
+}
+
+.bubble__progress,
+.bubble__failure {
+  display: flex;
+  gap: var(--app-space-2);
+  align-items: center;
+  margin: 0;
+  font: var(--mat-sys-body-medium);
+}
+
+.bubble__failure {
+  color: var(--mat-sys-error);
+}
+
+.bubble__foot {
+  display: flex;
+  gap: var(--app-space-2);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bubble__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-3);
+  align-items: center;
+  font: var(--mat-sys-label-medium);
+}
+
+.bubble--user .bubble__facts {
+  color: inherit;
+}
+
+.bubble__fact {
+  display: inline-flex;
+  gap: var(--app-space-1);
+  align-items: center;
+}
+
+.bubble__fact--approved {
+  color: var(--mat-sys-primary);
+}
+
+.bubble__fact--failed {
+  color: var(--mat-sys-error);
+}
+
+.bubble__menu {
+  flex-shrink: 0;
+  margin-block: calc(-1 * var(--app-space-2));
+  margin-inline-end: calc(-1 * var(--app-space-3));
+}
+
+.bubble__expert {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-4);
+  margin: 0;
+  font: var(--mat-sys-label-medium);
+
+  div {
+    display: flex;
+    gap: var(--app-space-1);
+    align-items: center;
+  }
+
+  dd {
+    margin: 0;
+  }
+}

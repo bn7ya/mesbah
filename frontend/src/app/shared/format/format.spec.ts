@@ -87,4 +87,9 @@ describe('formatDateTime', () => {
     expect(formatDateTime('2026-10-18T14:30:00Z', 'en')).toMatch(/2026/);
     expect(formatDateTime('2026-10-18T14:30:00Z', 'ar')).toMatch(/2026/);
   });
+
+  it('writes the month short when asked for a medium date', () => {
+    expect(formatDateTime('2026-10-18T14:30:00Z', 'en', 'medium')).toMatch(/Oct/);
+    expect(formatDateTime('2026-10-18T14:30:00Z', 'en')).toMatch(/October/);
+  });
 });

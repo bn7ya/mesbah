@@ -28,11 +28,11 @@
     "roles": {
       "viewers": {
         "name": "Viewer",
-        "can": "Sees projects and chats with their versions."
+        "can": "Sees projects, their versions and their conversations."
       },
       "reviewers": {
         "name": "Reviewer",
-        "can": "Also corrects replies and approves them for training."
+        "can": "Also chats with versions, corrects replies and approves them for training."
       },
       "trainers": {
         "name": "Trainer",

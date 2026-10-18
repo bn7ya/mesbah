@@ -51,6 +51,14 @@ mat-icon.mat-icon {
   line-height: var(--app-icon-box);
 }
 
+// A glyph set beside small label text, such as the marks in a message footer.
+mat-icon.mat-icon.app-icon-small {
+  inline-size: var(--app-icon-box-small);
+  block-size: var(--app-icon-box-small);
+  font-size: var(--app-icon-size-small);
+  line-height: var(--app-icon-box-small);
+}
+
 // A glossary term's help button sits inside a line of text, so it drops the touch-target margin.
 .app-term__button {
   @include mat.icon-button-overrides(

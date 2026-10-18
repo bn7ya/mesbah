@@ -102,7 +102,9 @@ same-origin session cookie, so CSRF is the price, and the built-in Angular optio
 absolute URLs and uses other names. **`errorInterceptor`** — turns every failure into an
 `ApiError`, and sends the user to sign in when a session has gone. When a bundle has
 `errors.<code>` for the error's code, that text replaces the server's English message, so a
-feature adds its error codes to its own bundle and every store keeps reading `message`.
+feature adds its error codes to its own bundle and every store keeps reading `message`. An error
+body that arrives as text, from a request made with `responseType: 'text'` such as a stream, is
+parsed as JSON first.
 
 ## Decisions worth not re-litigating
 

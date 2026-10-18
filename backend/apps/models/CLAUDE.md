@@ -17,12 +17,20 @@ machine, and downloading it. The backend half of the Models page.
 | `DELETE` | `/api/models/<id>/` | trainer | `204`; deletes the downloaded files |
 | `POST` | `/api/models/<id>/cancel/` | trainer | the model; the download stops on its next check |
 | `POST` | `/api/models/<id>/retry/` | trainer | `202` the model, queued again |
-| `GET` | `/api/models/hub/?search=&task=` | viewer | a page of HuggingFace results; empty search = popular models (cached 15 minutes) |
-| `GET` | `/api/models/hub/inspect/?repo=` | viewer | the architecture, the download size and the fit; `404 hub_model_not_found`, `503 hf_unreachable` |
+| `GET` | `/api/models/hub/?search=&task=` | viewer | a page of HuggingFace results; empty search = popular models (cached 15 minutes); a search shaped `owner/name` puts that exact model first, even when HuggingFace search does not list it |
+| `GET` | `/api/models/hub/inspect/?repo=` | viewer | the architecture, the download size, the free disk and the fit; `404 hub_model_not_found`, `400 hub_model_gated`, `503 hf_unreachable` |
 
 Every result carries `fit`: for `chat` (4-bit), `chat_full` (half precision) and `training`
 (QLoRA), a `verdict` (`fits`, `tight`, `too_large`, `cpu_only`, `unknown`), the bytes it needs
-and the VRAM Mesbah can use (`apps.system`).
+and the VRAM Mesbah can use (`apps.system`). With no GPU `available_bytes` is 0 and the verdict
+is `cpu_only` when the bytes fit in this machine's RAM, `too_large` when they do not.
+
+An inspection also carries `disk_free_bytes` (free space where models are kept) and `fits_disk`
+(whether `size_bytes`, with a 5% margin, fits in it — the same test `POST /api/models/` applies
+before it refuses with `507 disk_full`).
+
+A gated model is a `400`, not a `403`: the frontend's error interceptor reads 401 and 403 as a
+lost session.
 
 ## Layers
 
@@ -45,12 +53,15 @@ progress updates a download writes while it runs.
 
 **`HubClient`** — HuggingFace, through `HfApi` with the token from `apps.system`: `search()`
 (sorted by downloads, with the chat template's thinking support read from the result) and
-`detail()` (model info, the file list with sizes, and `config.json`). Turns HuggingFace failures
-into `hub_model_not_found` and `hf_unreachable`.
+`detail()` (model info, the file list with sizes, and `config.json`) and `lookup()` (one model
+by its exact repo id, or `None` when HuggingFace will not say). Turns HuggingFace failures into
+`hub_model_gated`, `hub_model_not_found` and `hf_unreachable`.
 
 **`ModelService`**, for the acting user:
-- `search()`, `featured()` — results with their fit and whether they are in the library.
-- `inspect()` — the architecture in plain fields (`mesbah.sizing`), download size and fit.
+- `search()`, `featured()` — results with their fit and whether they are in the library; a
+  query shaped `owner/name` is looked up exactly and its model goes first, as a normal result
+  (organisations HuggingFace hides from search, such as `hf-internal-testing`).
+- `inspect()` — the architecture in plain fields (`mesbah.sizing`), download size, free disk and fit.
 - `add()` — checks weights exist and the disk has room, records the model and queues the
   download; a failed or stopped model is queued again instead.
 - `cancel()`, `retry()`, `remove()` (soft-deletes the row and deletes the files).

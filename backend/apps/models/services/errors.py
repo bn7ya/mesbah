@@ -17,7 +17,7 @@ class ModelNotFoundOnHub(APIException):
 
 
 class ModelGated(APIException):
-    status_code = status.HTTP_403_FORBIDDEN
+    status_code = status.HTTP_400_BAD_REQUEST
     default_code = "hub_model_gated"
     default_detail = "This model needs a HuggingFace token with access to it."
 

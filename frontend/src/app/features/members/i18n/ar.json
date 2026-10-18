@@ -15,12 +15,14 @@
     "active": "نشط",
     "inactive": "معطل",
     "reactivate": "إعادة التفعيل",
+    "reactivateFor": "إعادة تفعيل {name}",
     "added": "تمت إضافة العضو.",
     "roleChanged": "تم تغيير الدور.",
     "deactivated": "تم تعطيل العضو.",
     "reactivated": "تمت إعادة تفعيل العضو.",
     "deactivate": {
       "open": "تعطيل",
+      "for": "تعطيل {name}",
       "title": "تعطيل {name}؟",
       "body": "لن يتمكن من تسجيل الدخول. تبقى مشاريعه ومحادثاته ونسخه كما هي.",
       "confirm": "تعطيل"
@@ -48,12 +50,14 @@
       "title": "إضافة عضو",
       "username": "اسم المستخدم",
       "usernameRequired": "أدخل اسم المستخدم.",
+      "usernameFormat": "استخدم الحروف والأرقام دون مسافات.",
       "password": "كلمة المرور",
       "passwordHint": "ثمانية أحرف على الأقل يصعب تخمينها.",
       "passwordRequired": "أدخل كلمة المرور.",
       "firstName": "الاسم الأول",
       "lastName": "اسم العائلة",
       "email": "البريد الإلكتروني",
+      "emailInvalid": "أدخل عنوان بريد إلكتروني صحيحا.",
       "submit": "إضافة عضو",
       "working": "جار الإضافة…"
     }

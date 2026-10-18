@@ -37,7 +37,7 @@
     }
   </div>
 
-  @if (cpuOnly()) {
+  @if (noGpu()) {
     <app-note icon="fa-microchip">{{ 'architect.memory.noGpu' | t }}</app-note>
   } @else {
     <p class="memory__available">

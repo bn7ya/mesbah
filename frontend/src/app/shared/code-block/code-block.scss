@@ -33,8 +33,8 @@
   font: var(--mat-sys-body-medium);
   font-family: var(--app-font-mono);
   color: var(--mat-sys-on-surface);
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
+  overflow-x: auto;
+  white-space: pre;
   background: var(--mat-sys-surface-container-high);
   border-radius: var(--mat-sys-corner-small);
 

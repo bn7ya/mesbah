@@ -5,5 +5,12 @@
     }
     <ng-content />
   </figcaption>
-  <pre class="code__body" dir="ltr"><code>{{ code() }}</code></pre>
+  <pre
+    #body
+    class="code__body"
+    dir="ltr"
+    [attr.role]="scrolls() ? 'region' : null"
+    [attr.tabindex]="scrolls() ? 0 : null"
+    [attr.aria-label]="scrolls() ? name() : null"
+  ><code>{{ code() }}</code></pre>
 </figure>

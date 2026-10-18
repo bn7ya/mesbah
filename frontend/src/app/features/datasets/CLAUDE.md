@@ -54,7 +54,8 @@ parameters for an empty search; `inspect()` sends only the parts of the query th
 `upload()` posts a `FormData` and reports progress events.
 
 **`DatasetsStore`** (`state/datasets.store.ts`), provided by the parent route:
-- The library page, `pageIndex`, `pageSize`, `loading`, `error`, `working` (ids mid-request),
+- The library page, `pageIndex`, `pageSize`, `loading`, `loadError` (the library could not be
+  loaded; the page offers Try again), `error` (a refused change), `working` (ids mid-request),
   `importing` and `uploadProgress` as signals; `canWrite`, `busy`, `uploading` and `openedBusy`
   are `computed`.
 - The HuggingFace search and the inspected dataset are `rxResource`s behind `hubResults`,

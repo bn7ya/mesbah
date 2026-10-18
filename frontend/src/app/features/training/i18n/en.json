@@ -86,7 +86,7 @@
     "expert": {
       "intro": "Every setting a run takes. The defaults suit this machine and model.",
       "default": "Default: {value}.",
-      "none": "None",
+      "noLimit": "No limit",
       "epochsHint": "Passes over all the examples. Maximum steps overrides it.",
       "rateHint": "Size of each learning step.",
       "rank": "LoRA rank",

@@ -57,7 +57,11 @@ function toApiError(response: unknown, locale: LocaleStore): ApiError {
   if (body?.error?.message) {
     const key = `errors.${body.error.code}`;
     const translated = locale.translate(key);
-    return translated === key ? body.error : { ...body.error, message: translated };
+    if (translated !== key) {
+      return { ...body.error, message: translated };
+    }
+    // The server writes English only, so any other language gets the generic message.
+    return locale.locale() === 'en' ? body.error : { ...body.error, message: locale.translate('errors.generic') };
   }
 
   return { code: 'unknown', message: locale.translate('errors.generic') };

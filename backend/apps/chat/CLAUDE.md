@@ -22,7 +22,7 @@ reader stops it. The backend half of the Chat page.
 | `GET` | `/api/chat/messages/<id>/` | viewer | one message |
 | `PATCH` | `/api/chat/messages/<id>/` | reviewer | the reply corrected: `content`, `thinking`, `include_in_training`, with `seen`; `409 message_changed`, `409 not_editable` |
 | `POST` | `/api/chat/messages/<id>/restore/` | reviewer | the reply with one `part` (`content` or `thinking`) as the model wrote it |
-| `POST` | `/api/chat/messages/<id>/approve/` | reviewer | the reply marked right as it is, or the mark taken back |
+| `POST` | `/api/chat/messages/<id>/approve/` | reviewer | the reply marked right as it is, or the mark taken back; `409 empty_reply` when approving a reply with no text and no thinking |
 
 The stream: `start` (`asked` and `reply`, both saved), `ready` (`engine`), `thinking` and
 `content` (`text`), then `done` (`reply`) or `error` (`code`, `message`, `reply`). A comment line
@@ -44,13 +44,15 @@ own prompt, thinking switch and reply settings over the
 project's. **`Message`** — one turn: position, role, status (`streaming`, `complete`, `stopped`,
 `failed`), the content and the thinking chain in separate fields with their originals and edit
 times, the version and engine that answered, the finish reason or error code, token counts,
-latency, and whether it is approved and used for training.
+latency, and whether it is approved and used for training; `is_empty` says it has neither text
+nor thinking (a reply stopped while the model was still loading).
 
 **`ConversationRepository`** — live conversations are those of a live project; a project's
 conversations with their message counts, one locked for a new turn, one with its project loaded.
 **`MessageRepository`** — live messages are those of a live conversation and project; a
 conversation's messages, its history for the engine (failed and unfinished replies left out), one
-locked for a correction, the next position.
+locked for a correction, the next position, and the approved replies a run learns (an empty one,
+approved or not, is left out).
 
 **`ConversationService`** — `listing()`, `find()`, `describe()`, `create()`, `change()` (a version
 must belong to the project, an engine must be on), `remove()`, `messages_of()`. **`describe_message()`** — a message as
@@ -71,9 +73,11 @@ the API shows it.
   reply. `seen` must match the reply's `updated_at`, so two people never overwrite each other.
   A reply can gain a thinking chain it never had.
 - `restore()` — puts one part back as the model wrote it; `approve()` marks a reply right as
-  it is, or takes the mark back. Only an assistant reply that is not still streaming qualifies.
+  it is, or takes the mark back. Only an assistant reply that is not still streaming qualifies,
+  and an empty one cannot be approved (`EmptyReply`).
 
-**`NoVersion`**, **`MessageChanged`**, **`NotEditable`** (`services/errors.py`) — the refusals.
+**`NoVersion`**, **`MessageChanged`**, **`NotEditable`**, **`EmptyReply`** (`services/errors.py`)
+— the refusals.
 
 ## Decisions worth not re-litigating
 

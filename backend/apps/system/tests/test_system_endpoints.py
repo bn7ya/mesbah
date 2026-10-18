@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -13,11 +14,12 @@ from rest_framework.test import APIClient
 
 from apps.accounts.repositories import UserRepository
 from apps.members.roles import ADMINS
+from apps.serving.services import EngineClient
 from apps.system.models import Secret
 from apps.system.repositories import SecretRepository
 from apps.system.services import SecretBox
 from apps.system.services.system_service import HUGGINGFACE_TOKEN
-from mesbah import hardware
+from mesbah import hardware, parts
 
 if TYPE_CHECKING:
     from rest_framework.response import _MonkeyPatchedResponse as ApiResponse
@@ -30,6 +32,16 @@ TWO_GPUS: tuple[hardware.Gpu, ...] = (
     hardware.Gpu(index=0, name="RTX 5080", memory_bytes=16 * GIB, compute_capability="12.0"),
     hardware.Gpu(index=1, name="RTX 3060", memory_bytes=12 * GIB, compute_capability="8.6"),
 )
+
+
+@pytest.fixture(autouse=True)
+def engine_down() -> Iterator[None]:
+    def refuse(request: httpx2.Request) -> httpx2.Response:
+        raise httpx2.ConnectError("no engine", request=request)
+
+    EngineClient.transport = httpx2.MockTransport(refuse)
+    yield
+    EngineClient.transport = None
 
 
 @pytest.fixture
@@ -92,6 +104,105 @@ def test_overview_without_a_gpu(client: APIClient, member: User) -> None:
     assert body["storage"]["free_bytes"] > 0
     assert {part["name"] for part in body["parts"]} >= {"torch", "transformers", "peft"}
     assert body["huggingface"] == {"configured": False, "hint": "", "account": ""}
+
+
+def installed_here(monkeypatch: pytest.MonkeyPatch, versions: dict[str, str]) -> None:
+    monkeypatch.setattr(parts, "installed", versions.get)
+
+
+def engine_says(body: dict[str, Any], seen: list[httpx2.Request]) -> None:
+    def answer(request: httpx2.Request) -> httpx2.Response:
+        seen.append(request)
+        return httpx2.Response(200, json=body)
+
+    EngineClient.transport = httpx2.MockTransport(answer)
+
+
+def by_name(body: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {part["name"]: part for part in body["parts"]}
+
+
+@pytest.mark.django_db
+@pytest.mark.usefixtures("no_gpus", "data_dir")
+def test_a_part_only_the_engine_has_counts_as_installed(
+    client: APIClient, member: User, monkeypatch: pytest.MonkeyPatch, settings: LazySettings
+) -> None:
+    settings.MESBAH_RUNTIME_TOKEN = "engine-token"
+    installed_here(monkeypatch, {"transformers": "5.0.0", "peft": "0.18.0"})
+    seen: list[httpx2.Request] = []
+    engine_says(
+        {
+            "loaded": False,
+            "busy": False,
+            "parts": [
+                {"name": "torch", "version": "2.9.0+cu128"},
+                {"name": "peft", "version": "0.17.1"},
+                {"name": "trl", "version": None},
+            ],
+        },
+        seen,
+    )
+    client.force_login(member)
+
+    found: dict[str, dict[str, Any]] = by_name(client.get("/api/system/").json())
+
+    assert found["torch"] == {
+        "name": "torch",
+        "purpose": "training",
+        "version": "2.9.0+cu128",
+        "cuda": True,
+        "found_in": "engine",
+    }
+    assert (found["peft"]["version"], found["peft"]["found_in"]) == ("0.18.0", "web")
+    assert (found["transformers"]["version"], found["transformers"]["found_in"]) == ("5.0.0", "web")
+    assert (found["trl"]["version"], found["trl"]["found_in"]) == (None, None)
+    assert found["unsloth"]["found_in"] is None
+    assert [request.url.path for request in seen] == ["/admin/status"]
+    assert seen[0].headers["Authorization"] == "Bearer engine-token"
+
+
+@pytest.mark.django_db
+@pytest.mark.usefixtures("no_gpus", "data_dir")
+def test_parts_stay_missing_while_the_engine_cannot_be_reached(
+    client: APIClient, member: User, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    installed_here(monkeypatch, {})
+    client.force_login(member)
+
+    found: dict[str, dict[str, Any]] = by_name(client.get("/api/system/").json())
+
+    assert {part["version"] for part in found.values()} == {None}
+    assert {part["found_in"] for part in found.values()} == {None}
+
+
+@pytest.mark.django_db
+@pytest.mark.usefixtures("no_gpus", "data_dir")
+def test_an_engine_that_sends_no_parts_adds_nothing(
+    client: APIClient, member: User, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    installed_here(monkeypatch, {})
+    engine_says({"loaded": False, "busy": False}, [])
+    client.force_login(member)
+
+    found: dict[str, dict[str, Any]] = by_name(client.get("/api/system/").json())
+
+    assert {part["found_in"] for part in found.values()} == {None}
+
+
+@pytest.mark.django_db
+@pytest.mark.usefixtures("no_gpus", "data_dir")
+def test_the_engine_is_not_asked_when_this_process_has_every_part(
+    client: APIClient, member: User, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    installed_here(monkeypatch, {name: "1.0.0" for name, _ in parts.PARTS})
+    seen: list[httpx2.Request] = []
+    engine_says({"loaded": False, "busy": False, "parts": []}, seen)
+    client.force_login(member)
+
+    found: dict[str, dict[str, Any]] = by_name(client.get("/api/system/").json())
+
+    assert {part["found_in"] for part in found.values()} == {"web"}
+    assert seen == []
 
 
 @pytest.mark.django_db

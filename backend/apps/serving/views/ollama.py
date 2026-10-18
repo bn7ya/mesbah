@@ -15,6 +15,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from apps.models.models import HubModel
+from apps.serving.parsers import AnyMediaTypeJSONParser
 from apps.serving.serializers import (
     OllamaChatSerializer,
     OllamaGenerateSerializer,
@@ -55,6 +56,8 @@ def _engine_body(
 
 
 class OllamaView(CompatView):
+    parser_classes = [AnyMediaTypeJSONParser]
+
     def body(self, code: str, message: str) -> dict[str, object]:
         return {"error": message}
 
@@ -154,7 +157,7 @@ class OllamaChatView(OllamaView):
         operation_id="ollama_chat",
         summary="Chat, as Ollama serves it",
         description="Newline-delimited JSON when `stream` is on (the default), like Ollama.",
-        request=OllamaChatSerializer,
+        request={"application/json": OllamaChatSerializer},
         responses={200: OpenApiResponse(OpenApiTypes.OBJECT)},
         tags=["ollama"],
     )
@@ -172,7 +175,7 @@ class OllamaGenerateView(OllamaView):
     @extend_schema(
         operation_id="ollama_generate",
         summary="Generate from a prompt, as Ollama serves it",
-        request=OllamaGenerateSerializer,
+        request={"application/json": OllamaGenerateSerializer},
         responses={200: OpenApiResponse(OpenApiTypes.OBJECT)},
         tags=["ollama"],
     )
@@ -231,7 +234,7 @@ class OllamaShowView(OllamaView):
     @extend_schema(
         operation_id="ollama_show",
         summary="One model, as Ollama describes it",
-        request=OllamaShowSerializer,
+        request={"application/json": OllamaShowSerializer},
         responses={200: OpenApiResponse(OpenApiTypes.OBJECT)},
         tags=["ollama"],
     )

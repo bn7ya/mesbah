@@ -29,10 +29,11 @@ The start page after signing in is Projects now, and the menu lists System after
 **`SystemApi`** (`data/system.api.ts`) — one method per endpoint above.
 
 **`SystemStore`** (`state/system.store.ts`), provided by the route — the overview, `loading`,
-`saving` and the last `error` as signals.
+`saving`, `loadError` (the overview could not be loaded; the page offers Try again) and the last
+`error` (a refused change) as signals.
 - `canManage`, `gpus`, `selectedGpus`, `trainingReady`, `torchWithoutCuda` are `computed` from
   the overview and the signed-in user.
-- `load()` fetches the overview; `selectGpus()`, `saveHuggingFaceToken()` and
+- `load()` fetches the overview and keeps a failure in `loadError`; `selectGpus()`, `saveHuggingFaceToken()` and
   `removeHuggingFaceToken()` send a change and keep the overview the server answers with,
   reporting success.
 

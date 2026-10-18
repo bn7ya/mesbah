@@ -13,7 +13,7 @@ from apps.members.roles import TRAINERS, VIEWERS
 from apps.models.models import HubModel
 from apps.models.repositories import HubModelRepository
 from apps.models.services import model_service
-from apps.models.services.errors import HubUnreachable
+from apps.models.services.errors import HubUnreachable, ModelGated
 from apps.models.services.hub_client import HubDetail, HubResult
 from mesbah import hardware
 
@@ -32,6 +32,28 @@ QWEN: HubResult = HubResult(
     license="apache-2.0",
     gated=False,
     model_type="qwen3",
+    supports_thinking=True,
+)
+HIDDEN: HubResult = HubResult(
+    repo_id="hf-internal-testing/tiny-random-LlamaForCausalLM",
+    downloads=12,
+    likes=0,
+    pipeline_tag="text-generation",
+    parameters=1_000_000,
+    license="",
+    gated=False,
+    model_type="llama",
+    supports_thinking=False,
+)
+DEEPSEEK: HubResult = HubResult(
+    repo_id="deepseek-ai/DeepSeek-V3.2",
+    downloads=1_000_000,
+    likes=900,
+    pipeline_tag="text-generation",
+    parameters=685_000_000_000,
+    license="mit",
+    gated=False,
+    model_type="deepseek_v32",
     supports_thinking=True,
 )
 QWEN_CONFIG: dict[str, object] = {
@@ -55,9 +77,16 @@ QWEN_FILES: list[tuple[str, int]] = [
 class FakeHub:
     def __init__(self, files: list[tuple[str, int]] = QWEN_FILES) -> None:
         self.files: list[tuple[str, int]] = files
+        self.looked_up: list[str] = []
+        self.hidden: dict[str, HubResult] = {}
+        self.found: list[HubResult] = [QWEN]
 
     def search(self, query: str, task: str, limit: int) -> list[HubResult]:
-        return [QWEN]
+        return self.found
+
+    def lookup(self, repo_id: str) -> HubResult | None:
+        self.looked_up.append(repo_id)
+        return self.hidden.get(repo_id)
 
     def detail(self, repo_id: str) -> HubDetail:
         return HubDetail(
@@ -72,6 +101,16 @@ class FakeHub:
 class DownHub(FakeHub):
     def search(self, query: str, task: str, limit: int) -> list[HubResult]:
         raise HubUnreachable
+
+
+class GatedHub(FakeHub):
+    def detail(self, repo_id: str) -> HubDetail:
+        raise ModelGated
+
+
+def serve(monkeypatch: pytest.MonkeyPatch, hub: FakeHub) -> FakeHub:
+    monkeypatch.setattr(model_service.ModelService, "hub", lambda _self: hub)
+    return hub
 
 
 @pytest.fixture(autouse=True)
@@ -137,6 +176,128 @@ def test_inspecting_explains_the_architecture(client: APIClient) -> None:
     assert body["architecture"]["context_length"] == 40960
     assert body["downloadable"] is True
     assert body["size_bytes"] == 16 * GIB + 728 + 11 * 1024**2
+
+
+@pytest.mark.django_db
+def test_inspecting_says_whether_the_download_fits_the_disk(
+    client: APIClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client.force_login(member(VIEWERS))
+    monkeypatch.setattr("shutil.disk_usage", lambda _p: _Usage(free=500 * GIB))
+    roomy: dict[str, Any] = client.get("/api/models/hub/inspect/?repo=Qwen/Qwen3-8B").json()
+    monkeypatch.setattr("shutil.disk_usage", lambda _p: _Usage(free=16 * GIB))
+    cramped: dict[str, Any] = client.get("/api/models/hub/inspect/?repo=Qwen/Qwen3-8B").json()
+
+    assert (roomy["disk_free_bytes"], roomy["fits_disk"]) == (500 * GIB, True)
+    assert (cramped["disk_free_bytes"], cramped["fits_disk"]) == (16 * GIB, False)
+    assert cramped["size_bytes"] == roomy["size_bytes"]
+
+
+@pytest.mark.django_db
+def test_a_download_that_just_fits_is_the_one_inspection_calls_a_fit(
+    client: APIClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    size: int = 16 * GIB + 728 + 11 * 1024**2
+    monkeypatch.setattr("shutil.disk_usage", lambda _p: _Usage(free=int(size * 1.05) + 1))
+    client.force_login(member(TRAINERS))
+
+    inspected: dict[str, Any] = client.get("/api/models/hub/inspect/?repo=Qwen/Qwen3-8B").json()
+    added: ApiResponse = client.post("/api/models/", {"repo_id": "Qwen/Qwen3-8B"}, format="json")
+
+    assert inspected["fits_disk"] is True
+    assert added.status_code == 202
+
+
+@pytest.mark.django_db
+def test_a_gated_model_answers_400_not_a_lost_session(
+    client: APIClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    serve(monkeypatch, GatedHub())
+    client.force_login(member(VIEWERS))
+
+    response: ApiResponse = client.get("/api/models/hub/inspect/?repo=org/gated")
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "hub_model_gated"
+
+
+@pytest.mark.django_db
+def test_an_exact_repo_id_search_finds_a_hidden_model_and_puts_it_first(
+    client: APIClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    hub: FakeHub = serve(monkeypatch, FakeHub())
+    hub.hidden[HIDDEN.repo_id] = HIDDEN
+    client.force_login(member(VIEWERS))
+
+    body: dict[str, Any] = client.get(f"/api/models/hub/?search={HIDDEN.repo_id}").json()
+
+    assert [row["repo_id"] for row in body["results"]] == [HIDDEN.repo_id, "Qwen/Qwen3-8B"]
+    assert body["count"] == 2
+    first: dict[str, Any] = body["results"][0]
+    assert first["fit"]["chat"]["verdict"] == "fits"
+    assert first["in_library"] is None
+    assert hub.looked_up == [HIDDEN.repo_id]
+
+
+@pytest.mark.django_db
+def test_an_exact_repo_id_that_cannot_be_looked_up_answers_as_before(
+    client: APIClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    hub: FakeHub = serve(monkeypatch, FakeHub())
+    client.force_login(member(VIEWERS))
+
+    body: dict[str, Any] = client.get("/api/models/hub/?search=nobody/nothing").json()
+
+    assert [row["repo_id"] for row in body["results"]] == ["Qwen/Qwen3-8B"]
+    assert hub.looked_up == ["nobody/nothing"]
+
+
+@pytest.mark.django_db
+def test_a_repo_id_search_already_returned_moves_that_model_first_without_a_lookup(
+    client: APIClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    hub: FakeHub = serve(monkeypatch, FakeHub())
+    hub.found = [HIDDEN, QWEN]
+    client.force_login(member(VIEWERS))
+
+    body: dict[str, Any] = client.get("/api/models/hub/?search=qwen/qwen3-8b").json()
+
+    assert [row["repo_id"] for row in body["results"]] == ["Qwen/Qwen3-8B", HIDDEN.repo_id]
+    assert hub.looked_up == []
+
+
+@pytest.mark.django_db
+def test_a_plain_search_does_not_look_anything_up(
+    client: APIClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    hub: FakeHub = serve(monkeypatch, FakeHub())
+    client.force_login(member(VIEWERS))
+
+    client.get("/api/models/hub/?search=qwen 3")
+    client.get("/api/models/hub/?search=qwen")
+
+    assert hub.looked_up == []
+
+
+@pytest.mark.django_db
+def test_without_a_gpu_a_model_beyond_the_ram_is_too_large_not_cpu_only(
+    client: APIClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(hardware, "gpus", lambda: ((), None))
+    monkeypatch.setattr(hardware, "ram_bytes", lambda: 16 * GIB)
+    hub: FakeHub = serve(monkeypatch, FakeHub())
+    hub.found = [DEEPSEEK, QWEN]
+    client.force_login(member(VIEWERS))
+
+    results: list[dict[str, Any]] = client.get("/api/models/hub/?search=model").json()["results"]
+
+    huge: dict[str, Any] = results[0]["fit"]
+    small: dict[str, Any] = results[1]["fit"]
+    assert [huge[use]["verdict"] for use in ("chat", "chat_full", "training")] == ["too_large"] * 3
+    assert huge["chat"]["available_bytes"] == 0
+    assert huge["chat"]["required_bytes"] > 300 * GIB
+    assert small["chat"]["verdict"] == "cpu_only"
+    assert small["chat_full"]["verdict"] == "too_large"
 
 
 @pytest.mark.django_db

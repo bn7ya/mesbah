@@ -29,6 +29,11 @@
   max-inline-size: 100%;
 }
 
+.bubble__empty {
+  margin: 0;
+  font: var(--mat-sys-body-medium);
+}
+
 .bubble__text,
 .bubble__thinking {
   margin: 0;

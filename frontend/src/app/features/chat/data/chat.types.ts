@@ -93,7 +93,15 @@ export interface MessageChange {
 export interface ProjectDefaults {
   readonly system_prompt: string;
   readonly thinking: boolean;
+  readonly supports_thinking: boolean;
   readonly generation: FullReplySettings;
+}
+
+export interface ProjectWire {
+  readonly system_prompt: string;
+  readonly thinking: boolean;
+  readonly generation: FullReplySettings;
+  readonly base_model: { readonly supports_thinking: boolean } | null;
 }
 
 export interface VersionOption {

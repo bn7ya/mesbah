@@ -16,8 +16,8 @@ from apps.models.models import HubModel
 from apps.models.repositories import HubModelRepository
 from apps.projects.models import Project
 from apps.projects.repositories import ProjectRepository
-from apps.versions.models import ModelVersion
-from apps.versions.repositories import VersionRepository
+from apps.versions.models import Export, ModelVersion
+from apps.versions.repositories import ExportRepository, VersionRepository
 from apps.versions.services import ExportService, VersionService
 
 if TYPE_CHECKING:
@@ -94,6 +94,33 @@ def test_a_lora_export_is_a_zip_with_instructions(
     ]
     assert "vllm serve org/tiny" in archive.read("README.md").decode()
     assert download["Content-Disposition"].endswith('tiny-v1-lora.zip"')
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("out_type", "filename"), [("q8_0", "tiny-v1-q8_0.gguf"), ("", "tiny-v1-f16.gguf")]
+)
+def test_a_gguf_download_is_named_for_the_project_version_and_type(
+    client: APIClient, trained: ModelVersion, data_dir: Path, out_type: str, filename: str
+) -> None:
+    made: Path = data_dir / "exports" / "output" / "model.gguf"
+    made.parent.mkdir(parents=True)
+    made.write_bytes(b"GGUF")
+    ready: Export = ExportRepository().create(
+        version=trained,
+        format=Export.Format.GGUF,
+        out_type=out_type,
+        status=Export.Status.READY,
+        path=str(made),
+        size_bytes=4,
+    )
+
+    download: FileResponse = cast(
+        "FileResponse", client.get(f"/api/versions/exports/{ready.pk}/download/")
+    )
+
+    assert download.getvalue() == b"GGUF"
+    assert download["Content-Disposition"] == f'attachment; filename="{filename}"'
 
 
 @pytest.mark.django_db

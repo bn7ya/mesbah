@@ -47,6 +47,8 @@
     "forbidden": "You don't have access to this.",
     "forbiddenBody": "Ask an administrator for access.",
     "goHome": "Go to Projects",
+    "authentication_failed": "That username and password don't match an account.",
+    "account_deactivated": "This account has been deactivated. Contact an administrator.",
     "setup_code_rejected": "That setup code doesn't match. Copy it again from the terminal.",
     "setup_done": "Mesbah is already set up. Sign in.",
     "weak_password": "That password is too easy to guess. Choose a longer or less common one.",
@@ -80,12 +82,15 @@
     "simple": "Simple",
     "expert": "Expert"
   },
+  "codeBlock": {
+    "name": "Code"
+  },
   "meter": {
     "free": "Free",
     "ofTotal": "of {total}"
   },
   "glossary": {
-    "whatIs": "What is {term}?",
+    "explainTerm": "Explain: {term}",
     "gpu": {
       "term": "GPU",
       "explain": "The graphics card. It does the heavy math for training and chat much faster than the main processor."

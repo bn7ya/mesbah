@@ -57,7 +57,9 @@ once. **`forget()`** — drops the cached GPU probe.
 hidden size, heads, context, experts), reading multimodal configs' `text_config`.
 **`active_parameters()`** — the parameters a mixture of experts uses per token.
 **`chat_bytes()`**, **`qlora_bytes()`**, **`fit()`** — memory estimates for chatting in 4-bit or
-half precision and for QLoRA training, and the verdict against the VRAM available.
+half precision and for QLoRA training, and the verdict against the VRAM available; with no VRAM
+the verdict is `cpu_only` when the bytes fit in `hardware.ram_bytes()` and `too_large` when they
+do not (an unknown size stays `cpu_only`).
 **`supports_thinking()`** — whether a chat template knows a thinking chain.
 
 **`Design`** (`architect.py`) — a model to build from nothing: its family (`dense_decoder`,
@@ -126,7 +128,9 @@ greedy. **`StopWhenSet`** — a stopping criterion that ends generation once an 
 
 **`create_app()`** (`runtime/app.py`) — the Starlette app: `/health` (public), OpenAI's
 `/v1/models` and `/v1/chat/completions` (streamed as server-sent events whose deltas are
-`reasoning_content` or `content`), and `/admin/load`, `/admin/unload`, `/admin/status`.
+`reasoning_content` or `content`), and `/admin/load`, `/admin/unload`, `/admin/status` (what is
+loaded, plus `parts`: each optional package's `name` and installed `version`, `null` when absent,
+as this process sees them — the System page counts them).
 **`Api`** — the handlers; engine calls run on worker threads, and a client that leaves stops its
 generation. **`RequireToken`** — the bearer token on everything but `/health`, when one is set.
 **`Reply`** — the id and time one response's chunks share.

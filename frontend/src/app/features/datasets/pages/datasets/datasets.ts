@@ -86,6 +86,7 @@ export class DatasetsPage {
   readonly pageSize = this.store.pageSize;
   readonly loading = this.store.loading;
   readonly error = this.store.error;
+  readonly loadError = this.store.loadError;
   readonly canWrite = this.store.canWrite;
   readonly hubQuery = this.store.hubQuery;
   readonly hubResults = this.store.hubResults;
@@ -103,12 +104,16 @@ export class DatasetsPage {
   readonly uploadName = signal('');
 
   readonly popular = computed(() => this.hubQuery() === '');
-  readonly libraryEmpty = computed(() => this.page().results.length === 0 && !this.loading() && this.error() === null);
+  readonly libraryEmpty = computed(() => this.page().results.length === 0 && !this.loading() && this.loadError() === null);
   readonly paged = computed(() => this.page().count > this.pageSize());
 
   constructor() {
     void this.store.load();
     this.store.watchImports().pipe(takeUntilDestroyed()).subscribe();
+  }
+
+  tryAgain(): void {
+    void this.store.load();
   }
 
   isWorking(dataset: Dataset): boolean {

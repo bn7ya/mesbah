@@ -286,6 +286,62 @@ describe('MessageBubble', () => {
     expect(approve).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'r1' }), false);
   });
 
+  describe('a reply with nothing written', () => {
+    async function menuItems(): Promise<string[]> {
+      host().querySelector<HTMLButtonElement>('button[aria-label="Reply actions"]')?.click();
+      await fixture.whenStable();
+      return Array.from(document.querySelectorAll('.mat-mdc-menu-panel [role^="menuitem"]')).map((item) =>
+        item.textContent.trim(),
+      );
+    }
+
+    it('shows a reply stopped while the model was loading as stopped with nothing written', async () => {
+      await show(message({ status: 'stopped', content: '', thinking: '', engine_name: '' }));
+
+      expect(host().querySelector('.bubble__empty')?.textContent).toContain('Stopped before the model wrote anything.');
+      expect(text()).toContain('Stopped');
+      expect(text()).not.toContain('Not used for training');
+    });
+
+    it('offers neither approval nor use for training', async () => {
+      await show(message({ status: 'stopped', content: '  ', thinking: '' }));
+
+      const items = await menuItems();
+
+      expect(items).toContain('Edit reply');
+      expect(items.some((item) => item.includes('Approve'))).toBe(false);
+      expect(items.some((item) => item.includes('Used for training'))).toBe(false);
+    });
+
+    it('still lets a person withdraw an approval it already has', async () => {
+      await show(message({ status: 'stopped', content: '', approved: true }));
+
+      const items = await menuItems();
+
+      expect(items.some((item) => item.includes('Withdraw approval'))).toBe(true);
+    });
+
+    it('says the model wrote nothing when a finished reply is empty', async () => {
+      await show(message({ status: 'complete', content: '', thinking: '' }));
+
+      expect(host().querySelector('.bubble__empty')?.textContent).toContain('The model wrote nothing.');
+    });
+
+    it('is not empty when only the thinking was written', async () => {
+      await show(message({ status: 'stopped', content: '', thinking: 'Let me check.' }));
+
+      expect(host().querySelector('.bubble__empty')).toBeNull();
+      expect((await menuItems()).some((item) => item.includes('Approve'))).toBe(true);
+    });
+
+    it('leaves a failed reply to its own reason', async () => {
+      await show(message({ status: 'failed', content: '', error_code: 'engine_failed' }));
+
+      expect(host().querySelector('.bubble__empty')).toBeNull();
+      expect(host().querySelector('.bubble__failure')).not.toBeNull();
+    });
+  });
+
   it('switches use for training with the reply\'s own flag', async () => {
     await show(message({ include_in_training: true }));
 

@@ -60,7 +60,8 @@ after one step, and recording new ones (a step already recorded is skipped).
 **`TrainingService`**, for the acting user:
 - `plan()` — `defaults()` for this machine and model (rank 16, alpha 32, two epochs, a longer
   sequence on 24 GB and more, 4-bit only when the model would not fit in half precision), the
-  approved replies, the QLoRA fit and the GPUs.
+  approved replies, the QLoRA fit and the GPUs. With no GPU the fit is `cpu_only` when QLoRA fits in
+  the machine's RAM and `too_large` when it does not.
 - `create()` — refuses a base model not downloaded and a run with nothing to learn, starts from
   the active version unless told otherwise, and queues the task after the commit.
 - `chosen_datasets()` — the datasets a run learns, each ready (`dataset_not_ready` otherwise),
@@ -71,7 +72,8 @@ after one step, and recording new ones (a step already recorded is skipped).
 - `cancel()`, `remove()` (finished runs only), `metrics_of()`, `listing()`, `find()`,
   `describe()`.
 
-**`ExampleService`** — approved replies as training rows: `corrections()`, `example()` (the
+**`ExampleService`** — approved replies as training rows (a reply with no text and no thinking
+is never one): `corrections()`, `example()` (the
 prompt, the earlier turns and the reply, each reply's thinking as `thinking`), `describe()` for
 the Examples tab, `write()` to a JSONL file.
 

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from mesbah import sizing
+import pytest
+
+from mesbah import hardware, sizing
 
 GIB: int = 1024**3
 
@@ -70,8 +72,30 @@ def test_a_14b_model_is_tight_for_qlora_on_16_gb() -> None:
     assert sizing.fit(sizing.qlora_bytes(14_768_307_200), 16 * GIB).verdict == "tight"
 
 
-def test_no_gpu_means_cpu_only() -> None:
+@pytest.fixture
+def sixteen_gib_of_ram(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(hardware, "ram_bytes", lambda: 16 * GIB)
+
+
+@pytest.mark.usefixtures("sixteen_gib_of_ram")
+def test_no_gpu_means_cpu_only_when_the_model_fits_in_ram() -> None:
     assert sizing.fit(5 * GIB, 0).verdict == "cpu_only"
+    assert sizing.fit(16 * GIB, 0).verdict == "cpu_only"
+    assert sizing.fit(None, 0).verdict == "cpu_only"
+
+
+@pytest.mark.usefixtures("sixteen_gib_of_ram")
+def test_no_gpu_and_more_than_the_ram_means_too_large() -> None:
+    verdict: sizing.Fit = sizing.fit(359 * GIB, 0)
+
+    assert verdict.verdict == "too_large"
+    assert (verdict.required_bytes, verdict.available_bytes) == (359 * GIB, 0)
+
+
+@pytest.mark.usefixtures("sixteen_gib_of_ram")
+def test_a_gpu_is_judged_by_its_own_memory_not_the_ram() -> None:
+    assert sizing.fit(20 * GIB, 8 * GIB).verdict == "too_large"
+    assert sizing.fit(5 * GIB, 8 * GIB).verdict == "fits"
 
 
 def test_thinking_is_read_from_the_chat_template() -> None:

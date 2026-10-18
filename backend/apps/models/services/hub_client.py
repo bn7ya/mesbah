@@ -11,7 +11,7 @@ from huggingface_hub import HfApi, hf_hub_download
 from huggingface_hub.errors import GatedRepoError, HfHubHTTPError, RepositoryNotFoundError
 from huggingface_hub.hf_api import ModelInfo
 
-from apps.models.services.errors import HubUnreachable, ModelNotFoundOnHub
+from apps.models.services.errors import HubUnreachable, ModelGated, ModelNotFoundOnHub
 from mesbah.sizing import supports_thinking
 
 SEARCH_FIELDS: list[str] = [
@@ -87,6 +87,8 @@ def _result(info: ModelInfo) -> HubResult:
 def _hub_errors() -> Iterator[None]:
     try:
         yield
+    except GatedRepoError as error:
+        raise ModelGated from error
     except RepositoryNotFoundError as error:
         raise ModelNotFoundOnHub from error
     except (HfHubHTTPError, httpx2.HTTPError, OSError) as error:
@@ -111,6 +113,12 @@ class HubClient:
                 )
             )
         return [_result(info) for info in found]
+
+    def lookup(self, repo_id: str) -> HubResult | None:
+        try:
+            return _result(self.api.model_info(repo_id, expand=SEARCH_FIELDS))  # type: ignore[arg-type]
+        except (HfHubHTTPError, httpx2.HTTPError, OSError):
+            return None
 
     def detail(self, repo_id: str) -> HubDetail:
         with _hub_errors():

@@ -94,7 +94,8 @@ group with each option in its own language.
 **`Shell`** (`shell/`) — the frame of every signed-in page: a side menu (`NAVIGATION`) that
 stays open on wide screens and slides over on narrow ones, a top bar with the Simple/Expert
 switch, the language switch and the user's menu, and the `<main id="main">` the skip link
-targets. On narrow screens the switches and sign-out move into the side menu.
+targets (`tabindex="-1"`, so the skip link can focus it). On narrow screens the switches and
+sign-out move into the side menu.
 
 **`UiModeStore`** (`ui/`) — Simple or Expert, persisted like the language; Simple until someone
 chooses. `expert` is the `computed` pages read to show more technical detail.
@@ -105,7 +106,10 @@ same-origin session cookie, so CSRF is the price, and the built-in Angular optio
 absolute URLs and uses other names. **`errorInterceptor`** — turns every failure into an
 `ApiError`, and sends the user to sign in when a session has gone. When a bundle has
 `errors.<code>` for the error's code, that text replaces the server's English message, so a
-feature adds its error codes to its own bundle and every store keeps reading `message`. An error
+feature adds its error codes to its own bundle and every store keeps reading `message`. A code
+with no text keeps the server's message in English and becomes `errors.generic` in any other
+language, so Arabic never shows English prose. The sign-in refusals (`authentication_failed`,
+`account_deactivated`) are in the core bundles. An error
 body that arrives as text, from a request made with `responseType: 'text'` such as a stream, is
 parsed as JSON first.
 

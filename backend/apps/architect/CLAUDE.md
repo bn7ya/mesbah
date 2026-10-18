@@ -38,8 +38,8 @@ reads it, the tokenizer it will reuse, and the sequence length and batch it is s
 
 **`ArchitectService`**, for the acting user:
 - `presets()` — the starting points with their counts.
-- `estimate()` — a design's counts, memory and fit against the GPUs chosen on the System page,
-  and the note when the vocabulary is most of the model; counted at the tokenizer's vocabulary
+- `estimate()` — a design's counts, memory and fit against the GPUs chosen on the System page
+  (with none, against the machine's RAM: `cpu_only` or `too_large`), and the note when the vocabulary is most of the model; counted at the tokenizer's vocabulary
   when that is larger (`tokenizer_vocabulary()`: the size a library model's config gives, else
   unknown), since training grows the model to it. The design comes back as it was given.
 - `listing()`, `find()`, `describe()` (a draft with its estimate), `create()` and `change()`

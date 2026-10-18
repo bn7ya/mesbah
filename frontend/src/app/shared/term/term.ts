@@ -27,7 +27,7 @@ export class Term {
 
   readonly word = computed(() => this.locale.translate(`glossary.${this.key()}.term`));
   readonly explanation = computed(() => this.locale.translate(`glossary.${this.key()}.explain`));
-  readonly buttonLabel = computed(() => this.locale.translate('glossary.whatIs', { term: this.word() }));
+  readonly buttonLabel = computed(() => this.locale.translate('glossary.explainTerm', { term: this.word() }));
 
   readonly positions: ConnectedPosition[] = [
     { originX: 'start', originY: 'bottom', overlayX: 'start', overlayY: 'top', offsetY: GAP },

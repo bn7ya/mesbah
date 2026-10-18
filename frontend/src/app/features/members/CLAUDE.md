@@ -25,11 +25,15 @@ every endpoint (`IsAdministrator`). The menu shows the page to administrators on
 
 **`MembersPage`** (`pages/members/`) — a table of members: who they are, a role menu (each role
 with what it can do), the status and the deactivate or reactivate action, with a paginator.
-The owner's role and the user's own account cannot be changed from here. Deactivating asks
-first.
+Below 48rem (`BreakpointObserver`) the Status and action columns fold under the person, so the
+table fits a phone with no sideways scroll. Every action button is named for its member
+("Deactivate noor"). The owner's role and the user's own account cannot be changed from here.
+Deactivating asks first.
 
 **`AddMemberDialog`** (`dialogs/add-member/`) — username, password, role (with what it can do
-underneath), names and email. Opened with the page's injector so it shares the route's store;
+underneath), names and email. The username (letters, digits and `. @ + - _`, no spaces) and the
+email (when given) are checked in the dialog, each with its own `mat-error`, so a bad one never
+reaches the server. Opened with the page's injector so it shares the route's store;
 closes with `true` once the member exists.
 
 **`membersGuard`** (`guards/`) — administrators only.

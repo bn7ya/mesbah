@@ -139,8 +139,10 @@ route with `provideTranslations(en, ar)`, so a feature's strings load with the
 feature. A missing key renders as the key itself, on purpose.
 
 **Errors.** The interceptor normalises every failure to `ApiError`. Stores read
-`error.message` — already user-facing copy from the backend — and never inspect
-status codes.
+`error.message` — already user-facing copy in the reader's language — and never inspect
+status codes. The message comes from `errors.<code>` in a bundle; a code with no entry keeps the
+server's English message when the reader is in English and shows `errors.generic` in any other
+language, so a feature adds a text for every code its pages can meet.
 
 **Zoneless.** `provideZonelessChangeDetection()` is on. Anything mutating state
 outside a signal will not render. That is the point.
@@ -148,6 +150,8 @@ outside a signal will not render. That is the point.
 ## Classes and methods at the root
 
 **`App`** (`app/app.ts`) — the skip link, the direction on the content and the router outlet.
+`skipToContent()` handles the skip link's click: it cancels the navigation (`<base href="/">` would turn
+`#main` into a trip to `/`) and moves focus to the `<main id="main" tabindex="-1">` of the page.
 Signed-in pages render inside `core/shell/`; sign-in renders alone. **`appConfig`** — zoneless change detection, the router with component input
 binding and `paramsInheritanceStrategy: 'always'` (a page under `projects/:projectId` receives
 `projectId` as an input), HTTP with the CSRF and error interceptors, Font Awesome as `mat-icon`'s

@@ -1,4 +1,7 @@
-import { ChangeDetectionStrategy, Component, Injector, inject } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { ChangeDetectionStrategy, Component, Injector, computed, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
@@ -18,7 +21,7 @@ import {
   MatRowDef,
   MatTable,
 } from '@angular/material/table';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 
 import { ROLE_LADDER, type Role } from '@core/auth/roles.types';
 import { LocaleStore } from '@core/i18n/locale.store';
@@ -29,6 +32,9 @@ import { Status } from '@shared/status/status';
 import type { Member } from '../../data/members.types';
 import { AddMemberDialog } from '../../dialogs/add-member/add-member';
 import { MembersStore } from '../../state/members.store';
+
+// Mirrors $screen-md in src/styles/_layout.scss: a media query in code cannot read the Sass variable.
+const WIDE = '(min-width: 48rem)';
 
 @Component({
   selector: 'app-members-page',
@@ -50,6 +56,7 @@ import { MembersStore } from '../../state/members.store';
     MatRow,
     MatRowDef,
     MatTable,
+    NgTemplateOutlet,
     Note,
     Status,
     TranslatePipe,
@@ -72,8 +79,17 @@ export class MembersPage {
   readonly busy = this.store.busy;
   readonly error = this.store.error;
 
+  readonly wide = toSignal(
+    inject(BreakpointObserver)
+      .observe(WIDE)
+      .pipe(map((state) => state.matches)),
+    { initialValue: true },
+  );
+
   readonly roles = ROLE_LADDER;
-  readonly columns = ['person', 'role', 'status', 'actions'];
+  readonly columns = computed(() =>
+    this.wide() ? ['person', 'role', 'status', 'actions'] : ['person', 'role'],
+  );
 
   constructor() {
     void this.store.load();

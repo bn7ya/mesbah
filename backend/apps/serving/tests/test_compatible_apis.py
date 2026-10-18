@@ -28,6 +28,8 @@ pytestmark: pytest.MarkDecorator = pytest.mark.filterwarnings(
 
 PASSWORD: str = "correct-horse-battery-staple"  # noqa: S105
 LOADED: dict[str, object] = {"loaded": True, "base": "/models/org-tiny", "adapters": []}
+CHAT: list[dict[str, str]] = [{"role": "user", "content": "Hi"}]
+INVALID_KEY: str = "This API key isn't valid. Create a new one on the Engines page."
 
 
 def chunk(delta: dict[str, str], finish: str | None = None) -> str:
@@ -124,6 +126,56 @@ def test_without_a_key_the_answer_is_an_openai_error(project: Project) -> None:
     assert response.status_code == 401
     assert response.json()["error"]["code"] == "invalid_api_key"
     assert response["WWW-Authenticate"].startswith("Bearer")
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("path", "shape"),
+    [("/v1/models", "openai"), ("/ollama/api/tags", "ollama")],
+)
+def test_a_key_that_is_not_valid_is_told_so(
+    project: Project, key: str, path: str, shape: str
+) -> None:
+    response: ApiResponse = client("msb_not-a-key").get(path)
+
+    assert response.status_code == 401
+    assert response["WWW-Authenticate"].startswith("Bearer")
+    error: Any = response.json()["error"]
+    if shape == "openai":
+        assert error == {
+            "message": INVALID_KEY,
+            "type": "invalid_request_error",
+            "code": "invalid_api_key",
+        }
+    else:
+        assert error == INVALID_KEY
+
+
+@pytest.mark.django_db
+def test_a_revoked_key_is_told_it_is_not_valid(trainer: User, project: Project, key: str) -> None:
+    api: APIClient = APIClient()
+    api.force_login(trainer)
+    key_id: str = api.get("/api/serving/keys/").json()["results"][0]["id"]
+    api.delete(f"/api/serving/keys/{key_id}/")
+
+    response: ApiResponse = client(key).post(
+        "/v1/chat/completions",
+        {"model": "tiny", "messages": [{"role": "user", "content": "Hi"}]},
+        format="json",
+    )
+
+    assert response.status_code == 401
+    assert response.json()["error"]["message"] == INVALID_KEY
+    assert response.json()["error"]["code"] == "invalid_api_key"
+
+
+@pytest.mark.django_db
+def test_no_key_keeps_its_own_message_on_both_apis(project: Project) -> None:
+    openai: ApiResponse = client(None).get("/v1/models")
+    ollama: ApiResponse = client(None).get("/ollama/api/tags")
+
+    assert openai.json()["error"]["message"] == "Send a Mesbah API key as a Bearer token."
+    assert ollama.json() == {"error": "Send a Mesbah API key as a Bearer token."}
 
 
 @pytest.mark.django_db
@@ -227,6 +279,49 @@ def test_ollama_generate_in_one_answer(project: Project, key: str) -> None:
 
     assert body["response"] == "Hello there"
     assert body["done"] is True
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("path", "body"),
+    [
+        ("/ollama/api/chat", {"model": "tiny", "stream": False, "messages": CHAT}),
+        ("/ollama/api/generate", {"model": "tiny", "stream": False, "prompt": "Hi"}),
+        ("/ollama/api/show", {"model": "tiny"}),
+    ],
+)
+def test_ollama_reads_json_whatever_the_content_type_says(
+    project: Project, key: str, path: str, body: dict[str, Any]
+) -> None:
+    response: ApiResponse = client(key).post(
+        path, data=json.dumps(body), content_type="application/x-www-form-urlencoded"
+    )
+
+    assert response.status_code == 200
+    assert "error" not in response.json()
+
+
+@pytest.mark.django_db
+def test_ollama_reports_a_body_that_is_not_json_in_its_own_shape(
+    project: Project, key: str
+) -> None:
+    response: ApiResponse = client(key).post(
+        "/ollama/api/chat", data="model=tiny", content_type="application/x-www-form-urlencoded"
+    )
+
+    assert response.status_code == 400
+    assert isinstance(response.json()["error"], str)
+
+
+@pytest.mark.django_db
+def test_openai_still_wants_its_json_content_type(project: Project, key: str) -> None:
+    response: ApiResponse = client(key).post(
+        "/v1/chat/completions",
+        data=json.dumps({"model": "tiny", "messages": CHAT}),
+        content_type="application/x-www-form-urlencoded",
+    )
+
+    assert response.status_code == 415
 
 
 @pytest.mark.django_db

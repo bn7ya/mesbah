@@ -106,7 +106,7 @@ export class TrainForm {
 
   readonly corrections = computed(() => this.plan()?.corrections ?? 0);
   readonly fit = computed<Fit | null>(() => this.plan()?.fit ?? null);
-  readonly fitTerm = computed(() => (this.fit()?.verdict === 'cpu_only' ? 'gpu' : 'vram'));
+  readonly fitTerm = computed(() => (this.fit()?.available_bytes === 0 ? 'gpu' : 'vram'));
 
   readonly selected = computed<StartVersion | null>(
     () => this.versions().find((version) => version.id === this.startsFrom()) ?? null,

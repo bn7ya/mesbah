@@ -94,11 +94,18 @@
 
         <div class="head__thinking">
           <mat-slide-toggle
+            [aria-describedby]="thinkingUnsupported() ? 'chat-thinking-reason' : ''"
             [checked]="thinkingValue()"
+            [disabled]="thinkingUnsupported()"
             [aria-label]="'chat.header.thinking' | t"
             (change)="toggleThinking($event.checked)"
           />
           <app-term key="thinking" />
+          @if (thinkingUnsupported()) {
+            <span class="head__reason text-secondary" id="chat-thinking-reason">
+              {{ 'chat.header.thinkingUnsupported' | t }}
+            </span>
+          }
         </div>
 
         <button matButton type="button" (click)="openSettings()">

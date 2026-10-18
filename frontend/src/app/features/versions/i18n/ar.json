@@ -80,7 +80,7 @@
       },
       "gguf": {
         "name": "ملف GGUF",
-        "explain": "ملف واحد يعمل مع llama.cpp و Ollama، ومعه ملف Modelfile."
+        "explain": "ملف واحد يعمل مع llama.cpp و Ollama."
       },
       "noChange": "لا يحمل النموذج الأساسي أي تغيير لتصديره. يمكن تصديره بصيغة ملف GGUF.",
       "quality": {

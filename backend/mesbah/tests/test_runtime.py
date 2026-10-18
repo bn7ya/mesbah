@@ -359,4 +359,5 @@ def test_the_command_serves_the_engine_behind_the_token(monkeypatch: pytest.Monk
     with client_for(served["app"], token=None) as anonymous:
         assert anonymous.get("/admin/status").status_code == 401
     with client_for(served["app"]) as owner:
-        assert owner.get("/admin/status").json() == {"loaded": False, "busy": False}
+        status: dict[str, Any] = owner.get("/admin/status").json()
+        assert (status["loaded"], status["busy"]) == (False, False)

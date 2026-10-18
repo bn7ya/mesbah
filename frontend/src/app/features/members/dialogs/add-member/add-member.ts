@@ -15,6 +15,9 @@ import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { Note } from '@shared/note/note';
 import { MembersStore } from '../../state/members.store';
 
+const USERNAME = /^[\p{L}\p{N}_.@+-]+$/u;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
 @Component({
   selector: 'app-add-member',
   imports: [
@@ -60,10 +63,18 @@ export class AddMemberDialog {
 
   readonly busy = this.store.busy;
 
-  readonly usernameInvalid = computed(() => this.submitted() && this.username().trim() === '');
+  readonly usernameMissing = computed(() => this.username().trim() === '');
+  readonly usernameInvalid = computed(
+    () => this.submitted() && (this.usernameMissing() || !USERNAME.test(this.username().trim())),
+  );
   readonly passwordInvalid = computed(() => this.submitted() && this.password() === '');
+  readonly emailInvalid = computed(() => {
+    const email = this.email().trim();
+    return this.submitted() && email !== '' && !EMAIL.test(email);
+  });
   readonly usernameErrors: ErrorStateMatcher = { isErrorState: () => this.usernameInvalid() };
   readonly passwordErrors: ErrorStateMatcher = { isErrorState: () => this.passwordInvalid() };
+  readonly emailErrors: ErrorStateMatcher = { isErrorState: () => this.emailInvalid() };
 
   readonly revealLabel = computed(() =>
     this.locale.translate(this.revealed() ? 'auth.signIn.hidePassword' : 'auth.signIn.showPassword'),
@@ -75,7 +86,7 @@ export class AddMemberDialog {
 
   async submit(): Promise<void> {
     this.submitted.set(true);
-    if (this.usernameInvalid() || this.passwordInvalid()) {
+    if (this.usernameInvalid() || this.passwordInvalid() || this.emailInvalid()) {
       return;
     }
     const failure = await this.store.add({

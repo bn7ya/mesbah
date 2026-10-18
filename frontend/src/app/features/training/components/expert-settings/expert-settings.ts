@@ -84,7 +84,7 @@ export class ExpertSettings {
 
   defaultOf(field: NumberField): string {
     const value = this.defaults()[field.key] as number | null;
-    return value === null ? this.locale.translate('training.expert.none') : this.plain(value);
+    return value === null ? this.locale.translate('training.expert.noLimit') : this.plain(value);
   }
 
   flag(field: SwitchField): boolean {

@@ -13,6 +13,9 @@
 
 @if (error(); as failure) {
   <app-note kind="error">{{ failure.message }}</app-note>
+  <div>
+    <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
+  </div>
 }
 
 <section class="projects__section" [attr.aria-busy]="loading()">

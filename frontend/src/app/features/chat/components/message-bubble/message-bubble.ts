@@ -88,6 +88,22 @@ export class MessageBubble {
   readonly canCopy = computed(
     () => this.message().role === 'assistant' && !this.streaming() && this.message().content !== '',
   );
+  readonly empty = computed(() => {
+    const message = this.message();
+    return (
+      message.role === 'assistant' &&
+      message.status !== 'streaming' &&
+      message.content.trim() === '' &&
+      message.thinking.trim() === ''
+    );
+  });
+  readonly emptyKey = computed(() => {
+    const status = this.message().status;
+    if (!this.empty() || status === 'failed') {
+      return null;
+    }
+    return status === 'stopped' ? 'chat.status.stoppedEmpty' : 'chat.status.emptyReply';
+  });
   readonly version = computed(() => this.store.versionLabel(this.message().version));
 
   readonly progress = computed(() => {

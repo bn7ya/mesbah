@@ -7,7 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthStore } from '@core/auth/state/auth.store';
 import type { Page } from '@core/http/api.types';
 import { errorInterceptor } from '@core/http/error.interceptor';
-import type { Conversation, EngineOption, ProjectDefaults, VersionOption } from '../data/chat.types';
+import { LocaleStore } from '@core/i18n/locale.store';
+import type { Conversation, EngineOption, ProjectDefaults, ProjectWire, VersionOption } from '../data/chat.types';
 import { ConversationsStore } from './conversations.store';
 
 function conversation(id: string, overrides: Partial<Conversation> = {}): Conversation {
@@ -34,7 +35,15 @@ function page<T>(rows: T[], overrides: Partial<Page<T>> = {}): Page<T> {
 const DEFAULTS: ProjectDefaults = {
   system_prompt: 'You are a friendly support agent.',
   thinking: false,
+  supports_thinking: true,
   generation: { temperature: 0.7, top_p: 0.9, max_tokens: 1024 },
+};
+
+const PROJECT: ProjectWire = {
+  system_prompt: DEFAULTS.system_prompt,
+  thinking: DEFAULTS.thinking,
+  generation: DEFAULTS.generation,
+  base_model: { supports_thinking: true },
 };
 
 const VERSIONS: VersionOption[] = [
@@ -65,7 +74,7 @@ describe('ConversationsStore', () => {
     store.open('p1');
     await settle();
     conversations().flush(page(rows));
-    backend.expectOne('/api/projects/p1/').flush(DEFAULTS);
+    backend.expectOne('/api/projects/p1/').flush(PROJECT);
     backend.expectOne((request) => request.url === '/api/versions/').flush(page(VERSIONS));
     backend.expectOne((request) => request.url === '/api/serving/engines/').flush(page(ENGINES));
     await settle();
@@ -84,6 +93,7 @@ describe('ConversationsStore', () => {
         { provide: AuthStore, useValue: { hasAnyGroup: (names: readonly string[]) => names.some((name) => groups.includes(name)) } },
       ],
     });
+    TestBed.inject(LocaleStore).setLocale('en');
     store = TestBed.inject(ConversationsStore);
     backend = TestBed.inject(HttpTestingController);
   });
@@ -105,7 +115,7 @@ describe('ConversationsStore', () => {
     expect(request.request.params.get('page')).toBe('1');
     expect(store.loading()).toBe(true);
     request.flush(page([conversation('c1')]));
-    backend.expectOne('/api/projects/p1/').flush(DEFAULTS);
+    backend.expectOne('/api/projects/p1/').flush(PROJECT);
     backend.expectOne((r) => r.url === '/api/versions/').flush(page(VERSIONS));
     backend.expectOne((r) => r.url === '/api/serving/engines/').flush(page(ENGINES));
     await settle();
@@ -127,7 +137,7 @@ describe('ConversationsStore', () => {
     store.open('p1');
     await settle();
     conversations().flush(page([conversation('c1')], { count: 2, next: 'http://x/?page=2' }));
-    backend.expectOne('/api/projects/p1/').flush(DEFAULTS);
+    backend.expectOne('/api/projects/p1/').flush(PROJECT);
     backend.expectOne((r) => r.url === '/api/versions/').flush(page(VERSIONS));
     backend.expectOne((r) => r.url === '/api/serving/engines/').flush(page(ENGINES));
     await settle();
@@ -148,7 +158,7 @@ describe('ConversationsStore', () => {
     store.open('p1');
     await settle();
     conversations().flush({ error: { code: 'unknown', message: 'Nope' } }, { status: 500, statusText: 'Error' });
-    backend.expectOne('/api/projects/p1/').flush(DEFAULTS);
+    backend.expectOne('/api/projects/p1/').flush(PROJECT);
     backend.expectOne((r) => r.url === '/api/versions/').flush(page(VERSIONS));
     backend.expectOne((r) => r.url === '/api/serving/engines/').flush(page(ENGINES));
     await settle();

@@ -49,6 +49,7 @@ export class DatasetsStore {
   readonly pageSize = signal(PAGE_SIZE);
   readonly loading = signal(false);
   readonly error = signal<ApiError | null>(null);
+  readonly loadError = signal<ApiError | null>(null);
   readonly working = signal<readonly string[]>([]);
   readonly importing = signal(false);
   readonly uploadProgress = signal<number | null>(null);
@@ -96,11 +97,11 @@ export class DatasetsStore {
 
   async load(pageIndex = this.pageIndex(), pageSize = this.pageSize()): Promise<void> {
     this.loading.set(true);
-    this.error.set(null);
+    this.loadError.set(null);
     try {
       await this.fetch(pageIndex, pageSize);
     } catch (error) {
-      this.error.set(error as ApiError);
+      this.loadError.set(error as ApiError);
     } finally {
       this.loading.set(false);
     }

@@ -25,7 +25,7 @@ class NewMemberSerializer(serializers.Serializer[dict[str, Any]]):
     role = serializers.ChoiceField(choices=list(LADDER))
     first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
     last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
-    email = serializers.EmailField(required=False, allow_blank=True)
+    email = serializers.EmailField(required=False, allow_blank=True, max_length=254)
 
 
 class MemberChangeSerializer(serializers.Serializer[dict[str, Any]]):

@@ -11,7 +11,7 @@ from rest_framework.exceptions import NotFound
 from apps.chat.models import Message
 from apps.chat.repositories import MessageRepository
 from apps.chat.services.conversation_service import describe_message
-from apps.chat.services.errors import MessageChanged, NotEditable
+from apps.chat.services.errors import EmptyReply, MessageChanged, NotEditable
 
 type Part = Literal["content", "thinking"]
 
@@ -70,6 +70,8 @@ class MessageService:
     @transaction.atomic
     def approve(self, message_id: str, approved: bool) -> dict[str, Any]:
         message: Message = self._assistant(message_id)
+        if approved and message.is_empty:
+            raise EmptyReply
         message = self.messages.update(
             message, approved=approved, approved_by=self._actor() if approved else None
         )

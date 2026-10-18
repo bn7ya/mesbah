@@ -110,7 +110,8 @@ kind from `GROUPS` and `FIELDS`. A field's error state reads `ArchitectStore.fie
 
 **`Breakdown`** (`components/breakdown/`) — the parameter total, what each token uses, the bar and the
 legend with a term button per part, and the note when the vocabulary is most of the model. **`TrainingMemory`**
-(`components/memory/`) — the two optimizer panels and the GPU line.
+(`components/memory/`) — the two optimizer panels and the GPU line, which says there is no GPU when no
+GPU memory is available (`available_bytes` is 0), whatever the verdict is.
 
 **`SaveDraftDialog`** (`dialogs/save-draft/`) — name and notes; saves the designer's design or only
 renames, by the dialog's mode. **`TrainDialog`** (`dialogs/train/`) — the train form described above.

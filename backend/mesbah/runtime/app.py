@@ -18,6 +18,7 @@ from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.routing import Route
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from mesbah import parts
 from mesbah.runtime.engine import Engine, Generation
 from mesbah.runtime.errors import EngineError, InvalidRequest
 from mesbah.runtime.specs import ChatRequest, LoadSpec
@@ -48,6 +49,10 @@ def deltas(pieces: list[Piece]) -> list[dict[str, str]]:
     return [
         {"reasoning_content" if kind == "thinking" else "content": text} for kind, text in pieces
     ]
+
+
+def installed_parts() -> list[dict[str, str | None]]:
+    return [{"name": part.name, "version": part.version} for part in parts.parts()]
 
 
 def usage(generation: Generation) -> dict[str, int]:
@@ -156,7 +161,7 @@ class Api:
         return JSONResponse({"object": "list", "data": cards})
 
     async def status(self, _request: Request) -> Response:
-        return JSONResponse(self.engine.status())
+        return JSONResponse({**self.engine.status(), "parts": installed_parts()})
 
     async def load(self, request: Request) -> Response:
         spec: LoadSpec = LoadSpec.from_json(await read_json(request))

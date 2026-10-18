@@ -69,11 +69,13 @@ keyed by id.
   `ActiveVersionChanges`, so the chip changes when the versions page makes another version
   active or renames it, without reloading the project.
 
-**`ProjectsPage`** (`pages/projects/`) — the list and its empty states, the paginator and the
-New project dialog, opened with the page's injector; a successful create shows a snack bar and
+**`ProjectsPage`** (`pages/projects/`) — the list and its empty states, a failure with Try again,
+the paginator and the New project dialog, opened with the page's injector; a successful create shows a snack bar and
 goes to the project.
 
-**`NewProjectDialog`** (`dialogs/new-project/`) — the form above. The chosen model and the
+**`NewProjectDialog`** (`dialogs/new-project/`) — the form above. The model `mat-select` is bound
+with `ngModel`: Material only re-reads an `ErrorStateMatcher` on a select that has a form
+control, so without it the "Choose the base model" error never appears. The chosen model and the
 Thinking toggle are `linkedSignal`s, so choosing another model resets the toggle to what that
 model supports. Closes with the new project's id.
 

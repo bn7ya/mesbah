@@ -71,9 +71,9 @@
         @if (model.architecture.context_length !== null) {
           <div>
             <dt><app-term key="context" /></dt>
-            <dd>
-              {{ count(model.architecture.context_length) }}
+            <dd class="details__count">
               <app-term key="token" />
+              <span>: {{ count(model.architecture.context_length) }}</span>
             </dd>
           </div>
         }
@@ -143,8 +143,11 @@
             <span class="text-secondary">
               @if (fit.required_bytes === null) {
                 {{ 'models.fit.needUnknown' | t }}
-              } @else if (fit.verdict === 'cpu_only') {
-                {{ 'models.fit.needMemory' | t: { required: (fit.required_bytes | bytes) } }}
+              } @else if (fit.available_bytes === 0) {
+                {{
+                  (fit.verdict === 'too_large' ? 'models.fit.needMemoryTooLarge' : 'models.fit.needMemory')
+                    | t: { required: (fit.required_bytes | bytes) }
+                }}
               } @else {
                 {{
                   'models.fit.need'
@@ -165,7 +168,7 @@
 
 <mat-dialog-actions align="end">
   @if (blocker(); as reason) {
-    <p class="details__reason text-secondary" id="details-reason">{{ reason | t }}</p>
+    <p class="details__reason text-secondary" id="details-reason">{{ reason.key | t: reason.values }}</p>
   }
   <button matButton type="button" [mat-dialog-close]="false">{{ 'models.details.close' | t }}</button>
   @if (canWrite()) {

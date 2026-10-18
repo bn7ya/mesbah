@@ -69,6 +69,7 @@ export class SystemPage {
   readonly loading = this.store.loading;
   readonly saving = this.store.saving;
   readonly error = this.store.error;
+  readonly loadError = this.store.loadError;
   readonly canManage = this.store.canManage;
   readonly gpus = this.store.gpus;
   readonly selectedGpus = this.store.selectedGpus;
@@ -103,6 +104,10 @@ export class SystemPage {
   readonly tokenErrors: ErrorStateMatcher = { isErrorState: () => this.tokenInvalid() };
 
   constructor() {
+    void this.store.load();
+  }
+
+  tryAgain(): void {
     void this.store.load();
   }
 

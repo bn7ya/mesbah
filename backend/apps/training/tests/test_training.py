@@ -27,6 +27,7 @@ from apps.training.repositories import RunRepository
 from apps.training.services import RunnerService, TrainingService
 from apps.versions.models import ModelVersion
 from apps.versions.services import VersionService
+from mesbah import hardware
 
 if TYPE_CHECKING:
     from rest_framework.response import _MonkeyPatchedResponse as ApiResponse
@@ -78,7 +79,9 @@ def project(trainer: User) -> Project:
     return found
 
 
-def approve_a_reply(project: Project, thinking: str = "Recall the capital.") -> Message:
+def approve_a_reply(
+    project: Project, thinking: str = "Recall the capital.", content: str = "In France."
+) -> Message:
     conversation: Conversation = ConversationRepository().create(project=project, title="Paris")
     messages: MessageRepository = MessageRepository()
     messages.create(conversation=conversation, position=0, role="user", content="Where is Paris?")
@@ -86,7 +89,7 @@ def approve_a_reply(project: Project, thinking: str = "Recall the capital.") -> 
         conversation=conversation,
         position=1,
         role="assistant",
-        content="In France.",
+        content=content,
         thinking=thinking,
         approved=True,
     )
@@ -287,6 +290,43 @@ def test_the_plan_and_the_examples(client: APIClient, project: Project) -> None:
         "user",
         "assistant",
     ]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(("ram_gib", "verdict"), [(2, "too_large"), (64, "cpu_only")])
+def test_without_a_gpu_the_plan_compares_the_model_with_the_ram(
+    client: APIClient,
+    project: Project,
+    monkeypatch: pytest.MonkeyPatch,
+    ram_gib: int,
+    verdict: str,
+) -> None:
+    monkeypatch.setattr(hardware, "gpus", lambda: ((), None))
+    monkeypatch.setattr(hardware, "ram_bytes", lambda: ram_gib * 1024**3)
+
+    plan: dict[str, Any] = client.get("/api/training/plan/", {"project": str(project.pk)}).json()
+
+    assert plan["fit"]["verdict"] == verdict
+    assert plan["fit"]["available_bytes"] == 0
+
+
+@pytest.mark.django_db
+def test_an_empty_reply_approved_before_is_not_an_example(
+    client: APIClient, project: Project
+) -> None:
+    approve_a_reply(project)
+    approve_a_reply(project, thinking="", content="")
+    approve_a_reply(project, thinking=" \n", content="\n")
+    approve_a_reply(project, thinking="Only thinking.", content="")
+
+    plan: dict[str, Any] = client.get("/api/training/plan/", {"project": str(project.pk)}).json()
+    examples: dict[str, Any] = client.get(
+        "/api/training/examples/", {"project": str(project.pk)}
+    ).json()
+
+    assert plan["corrections"] == examples["count"] == 2
+    replies: list[str] = [row["messages"][-1].get("thinking", "") for row in examples["results"]]
+    assert sorted(replies) == ["Only thinking.", "Recall the capital."]
 
 
 @pytest.mark.django_db

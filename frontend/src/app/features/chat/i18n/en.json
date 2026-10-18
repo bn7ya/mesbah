@@ -41,6 +41,7 @@
       "defaultEngine": "The default engine",
       "thinking": "Thinking",
       "settings": "Settings",
+      "thinkingUnsupported": "This base model doesn't write out its thinking.",
       "on": "On",
       "off": "Off"
     },
@@ -64,6 +65,8 @@
     },
     "status": {
       "failedUnknown": "The reply couldn't be completed. Send the message again.",
+      "stoppedEmpty": "Stopped before the model wrote anything.",
+      "emptyReply": "The model wrote nothing.",
       "openEngines": "Go to Engines"
     },
     "marks": {
@@ -157,7 +160,8 @@
     "training_in_progress": "Training is using the memory chat needs. Try again when the run ends.",
     "no_version": "This project has no version to chat with.",
     "message_changed": "Someone else changed this reply. Try again to replace their change.",
-    "not_editable": "Only a finished reply from the model can be edited."
+    "not_editable": "Only a finished reply from the model can be edited.",
+    "empty_reply": "An empty reply can't be approved."
   },
   "glossary": {
     "approved": {

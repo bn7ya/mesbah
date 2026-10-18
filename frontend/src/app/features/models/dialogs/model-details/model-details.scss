@@ -53,6 +53,10 @@
   }
 }
 
+.details__facts dd.details__count {
+  gap: 0;
+}
+
 .details__lead {
   display: flex;
   flex-wrap: wrap;

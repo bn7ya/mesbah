@@ -156,6 +156,48 @@ def test_approving_a_reply_as_it_is(client: APIClient) -> None:
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize("content", ["", "  \n"])
+def test_an_empty_reply_cannot_be_approved(client: APIClient, content: str) -> None:
+    message: Message = reply(content=content)
+
+    response: ApiResponse = client.post(
+        f"/api/chat/messages/{message.pk}/approve/", {"approved": True}, format="json"
+    )
+
+    assert response.status_code == 409
+    assert response.json()["error"] == {
+        "code": "empty_reply",
+        "message": "An empty reply can't be approved.",
+    }
+    assert opened(client, message)["approved"] is False
+
+
+@pytest.mark.django_db
+def test_a_reply_with_only_thinking_can_be_approved(client: APIClient) -> None:
+    message: Message = reply(content="", thinking="Weighing it up.")
+
+    response: ApiResponse = client.post(
+        f"/api/chat/messages/{message.pk}/approve/", {"approved": True}, format="json"
+    )
+
+    assert response.status_code == 200
+    assert response.json()["approved"] is True
+
+
+@pytest.mark.django_db
+def test_the_mark_on_an_empty_reply_can_still_be_taken_back(client: APIClient) -> None:
+    message: Message = reply(content="")
+    MessageRepository().update(message, approved=True)
+
+    response: ApiResponse = client.post(
+        f"/api/chat/messages/{message.pk}/approve/", {"approved": False}, format="json"
+    )
+
+    assert response.status_code == 200
+    assert response.json()["approved"] is False
+
+
+@pytest.mark.django_db
 def test_the_question_is_not_a_reply_to_correct(client: APIClient) -> None:
     message: Message = reply()
     question: Message | None = (

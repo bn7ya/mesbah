@@ -10,7 +10,11 @@ from rest_framework.request import Request
 from apps.accounts.repositories import UserRepository
 
 INVALID_CREDENTIALS: str = "That username and password don't match an account."
-INACTIVE_ACCOUNT: str = "This account has been deactivated. Contact an administrator."
+
+
+class AccountDeactivated(AuthenticationFailed):
+    default_code = "account_deactivated"
+    default_detail = "This account has been deactivated. Contact an administrator."
 
 
 class AccountService:
@@ -23,7 +27,7 @@ class AccountService:
         if user is None:
             existing: User | None = self.users.find_by_username(username)
             if existing is not None and not existing.is_active:
-                raise AuthenticationFailed(INACTIVE_ACCOUNT)
+                raise AccountDeactivated
             raise AuthenticationFailed(INVALID_CREDENTIALS)
 
         login(request, user)

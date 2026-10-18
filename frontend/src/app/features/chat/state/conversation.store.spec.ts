@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthStore } from '@core/auth/state/auth.store';
 import type { Page } from '@core/http/api.types';
 import { errorInterceptor } from '@core/http/error.interceptor';
+import { LocaleStore } from '@core/i18n/locale.store';
 import { SETTLE_ATTEMPTS, SETTLE_DELAY_MS, type Conversation, type Message } from '../data/chat.types';
 import { ConversationStore } from './conversation.store';
 import { ConversationsStore } from './conversations.store';
@@ -118,6 +119,7 @@ describe('ConversationStore', () => {
         { provide: AuthStore, useValue: { hasAnyGroup: () => true } },
       ],
     });
+    TestBed.inject(LocaleStore).setLocale('en');
     store = TestBed.inject(ConversationStore);
     backend = TestBed.inject(HttpTestingController);
   });
@@ -399,6 +401,64 @@ describe('ConversationStore', () => {
       await settle();
       backend.expectOne('/api/chat/c2/').flush(conversation({ id: 'c2' }));
       backend.expectOne((r) => r.url === '/api/chat/c2/messages/').flush(page([]));
+    });
+  });
+
+  describe('the conversation list', () => {
+    it('shows the new message count as soon as the reply starts', async () => {
+      const list = TestBed.inject(ConversationsStore);
+      list.items.set([conversation({ message_count: 0 })]);
+      await open([]);
+      expect(list.items()[0].message_count).toBe(0);
+
+      const { request } = await begin();
+      await settle();
+
+      expect(list.items()[0].message_count).toBe(2);
+      store.leave();
+      expect(request.cancelled).toBe(true);
+    });
+
+    it('keeps the count and takes the new title when the reply is saved', async () => {
+      const list = TestBed.inject(ConversationsStore);
+      list.items.set([conversation({ message_count: 0 })]);
+      await open([]);
+      const { request } = await begin();
+
+      push(request, frame('done', { reply: SAVED }));
+      request.flush(streamed);
+      await settle();
+      backend.expectOne('/api/chat/c1/').flush(conversation({ title: 'Where is my order?' }));
+      await settle();
+
+      expect(list.items()[0]).toMatchObject({ title: 'Where is my order?', message_count: 2 });
+    });
+
+    it('counts a reply that was stopped', async () => {
+      const list = TestBed.inject(ConversationsStore);
+      list.items.set([conversation({ message_count: 0 })]);
+      await open([]);
+      await begin();
+
+      const stopping = store.stop();
+      await settle();
+      backend.expectOne('/api/chat/messages/r1/').flush(message('r1', { status: 'stopped', content: '' }));
+      await settle();
+      backend.expectOne('/api/chat/c1/').flush(conversation());
+      await stopping;
+      await settle();
+
+      expect(list.items()[0].message_count).toBe(2);
+    });
+
+    it('counts the messages a conversation has when it opens', async () => {
+      const list = TestBed.inject(ConversationsStore);
+      list.items.set([conversation({ message_count: null })]);
+
+      await open([ASKED, SAVED]);
+      await settle();
+
+      expect(list.items()[0].message_count).toBe(2);
     });
   });
 

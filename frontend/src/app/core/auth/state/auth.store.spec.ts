@@ -5,6 +5,7 @@ import { provideRouter } from '@angular/router';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { errorInterceptor } from '@core/http/error.interceptor';
+import { LocaleStore } from '@core/i18n/locale.store';
 import type { Identity } from '../data/auth.types';
 import { AuthStore } from './auth.store';
 
@@ -27,6 +28,7 @@ describe('AuthStore', () => {
   let http: HttpTestingController;
 
   beforeEach(() => {
+    localStorage.clear();
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(withInterceptors([errorInterceptor])),
@@ -82,7 +84,8 @@ describe('AuthStore', () => {
     expect(store.busy()).toBe(false);
   });
 
-  it('keeps the failure message when signing in is refused', async () => {
+  it('keeps the failure message when signing in is refused, in the reader language', async () => {
+    TestBed.inject(LocaleStore).setLocale('en');
     const signingIn = store.signIn({ username: 'sara', password: 'wrong' });
 
     http.expectOne('/api/auth/csrf/').flush(null);

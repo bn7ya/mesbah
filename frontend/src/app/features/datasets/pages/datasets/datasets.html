@@ -3,6 +3,13 @@
   <p class="text-secondary">{{ 'datasets.subtitle' | t }}</p>
 </header>
 
+@if (loadError(); as failure) {
+  <app-note kind="error">{{ failure.message }}</app-note>
+  <div>
+    <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
+  </div>
+}
+
 @if (error(); as failure) {
   <app-note kind="error">{{ failure.message }}</app-note>
 }

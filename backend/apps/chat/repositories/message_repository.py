@@ -5,6 +5,8 @@ from django.db.models import Max, QuerySet
 from apps.chat.models import Conversation, Message
 from apps.common.repositories import BaseRepository
 
+BLANK: str = r"^\s*$"
+
 
 class MessageRepository(BaseRepository[Message]):
     model = Message
@@ -55,6 +57,7 @@ class MessageRepository(BaseRepository[Message]):
                 include_in_training=True,
             )
             .exclude(status=Message.Status.STREAMING)
+            .exclude(content__regex=BLANK, thinking__regex=BLANK)
             .select_related("conversation", "conversation__project", "approved_by")
             .order_by("created_at")
         )

@@ -87,6 +87,23 @@ describe('SystemStore', () => {
     expect(store.overview()?.gpu_choice).toBe('chosen');
   });
 
+  it('keeps a failed load apart from a failed save, and clears it when trying again works', async () => {
+    const loading = store.load();
+    backend.expectOne('/api/system/').flush({ error: { code: 'unknown', message: 'Down' } }, { status: 500, statusText: 'Server Error' });
+    await loading;
+
+    expect(store.loadError()).not.toBeNull();
+    expect(store.error()).toBeNull();
+    expect(store.overview()).toBeNull();
+
+    const again = store.load();
+    expect(store.loadError()).toBeNull();
+    backend.expectOne('/api/system/').flush(overview());
+    await again;
+
+    expect(store.overview()?.machine.cpu_count).toBe(16);
+  });
+
   it('reports a refused token without losing what was shown', async () => {
     const loading = store.load();
     backend.expectOne('/api/system/').flush(overview());
@@ -99,6 +116,7 @@ describe('SystemStore', () => {
 
     expect(await saving).toBe(false);
     expect(store.error()).not.toBeNull();
+    expect(store.loadError()).toBeNull();
     expect(store.overview()?.machine.cpu_count).toBe(16);
   });
 });

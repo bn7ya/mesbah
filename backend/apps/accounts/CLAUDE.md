@@ -65,7 +65,8 @@ hashed password, adds users to groups, grants permissions to groups, and deactiv
 **`AccountService`** (`services/account_service.py`) — the session and the identity, for the
 acting user.
 - `sign_in()` authenticates and starts a session; an unknown username and a wrong password
-  get the same refusal, a deactivated account its own.
+  get the same refusal (`authentication_failed`), a deactivated account its own
+  (`AccountDeactivated`, `account_deactivated`).
 - `sign_out()` ends the session, and is safe to call twice.
 - `identity()` is what `/api/auth/me/` returns: the user, their group names and permissions.
 - `has_group()` — superusers are in every group.

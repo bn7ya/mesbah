@@ -20,6 +20,7 @@ import {
   type MessagePart,
   type NewConversation,
   type ProjectDefaults,
+  type ProjectWire,
   type ReplyEvent,
   type VersionOption,
 } from './chat.types';
@@ -97,8 +98,15 @@ export class ChatApi {
 
   project(id: string): Observable<ProjectDefaults> {
     return this.http
-      .get<ProjectDefaults>(`/api/projects/${id}/`)
-      .pipe(map(({ system_prompt, thinking, generation }) => ({ system_prompt, thinking, generation })));
+      .get<ProjectWire>(`/api/projects/${id}/`)
+      .pipe(
+        map(({ system_prompt, thinking, generation, base_model }) => ({
+          system_prompt,
+          thinking,
+          supports_thinking: base_model?.supports_thinking ?? false,
+          generation,
+        })),
+      );
   }
 
   versions(project: string, page: number): Observable<Page<VersionOption>> {

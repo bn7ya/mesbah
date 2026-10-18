@@ -16,6 +16,7 @@ export class SystemStore {
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly error = signal<ApiError | null>(null);
+  readonly loadError = signal<ApiError | null>(null);
 
   readonly canManage = computed(() => this.auth.hasAnyGroup(rolesFrom('admins')));
 
@@ -38,11 +39,11 @@ export class SystemStore {
 
   async load(): Promise<void> {
     this.loading.set(true);
-    this.error.set(null);
+    this.loadError.set(null);
     try {
       this.overview.set(await firstValueFrom(this.api.overview()));
     } catch (error) {
-      this.error.set(error as ApiError);
+      this.loadError.set(error as ApiError);
     } finally {
       this.loading.set(false);
     }

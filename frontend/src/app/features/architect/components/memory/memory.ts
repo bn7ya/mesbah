@@ -39,5 +39,5 @@ export class TrainingMemory {
     ];
   });
 
-  readonly cpuOnly = computed(() => this.memory().fit.verdict === 'cpu_only');
+  readonly noGpu = computed(() => this.memory().fit.available_bytes === 0);
 }

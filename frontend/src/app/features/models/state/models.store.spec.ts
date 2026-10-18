@@ -28,6 +28,7 @@ function model(id: string, overrides: Partial<LibraryModel> = {}): LibraryModel 
   return {
     id,
     repo_id: `org/model-${id}`,
+    origin: 'hub',
     revision: 'abc',
     family: 'dense_decoder',
     model_type: 'qwen3',
@@ -92,6 +93,8 @@ function inspection(repo: string): Inspection {
     has_chat_template: true,
     downloadable: true,
     size_bytes: 16 * GIB,
+    disk_free_bytes: 200 * GIB,
+    fits_disk: true,
   };
 }
 

@@ -22,7 +22,7 @@ the composer, the menu, rename and remove from viewers.
 `GET|PATCH /api/chat/messages/<id>/`, `POST .../restore/` and `.../approve/`. `chat.types.ts`
 mirrors the serializers, the page envelope included. Three reads belong to other apps, the only
 places this feature touches them: `GET /api/projects/<id>/` (the project's instructions and reply
-settings, shown as what a conversation follows), `GET /api/versions/?project=` (the version
+settings, shown as what a conversation follows, and whether its base model can think), `GET /api/versions/?project=` (the version
 select, and a version's number for the footer of a reply) and `GET /api/serving/engines/` (the
 engine select, only the ones that are on). The error codes the engine and the corrections can
 answer with have `errors.*` entries in this bundle, and `glossary.approved` lives here too.
@@ -48,7 +48,10 @@ drawer opened from the header on narrow ones. The open conversation fills the re
   (`errors.<code>`), with a link to Engines when the engine is not running. Expert mode adds the
   engine, tokens and duration. The menu (reviewers and above): Edit reply, Edit or Add thinking,
   Approve as it is or Withdraw approval, Used for training, Restore the model's reply or thinking
-  (only when edited, asks first), Copy.
+  (only when edited, asks first), Copy. A reply with no text and no thinking (stopped while the
+  model was loading) says "Stopped before the model wrote anything", and its menu offers neither
+  Approve nor Used for training; a server refusal (`409 empty_reply`) reads the same in
+  `errors.empty_reply`.
 - **Editing**: the text turns into a `mat-form-field` textarea in the bubble with Save and
   Cancel. Escape cancels, Ctrl or Command with Enter saves, a blank reply is refused. "Show what
   the model wrote" reveals the original beside the draft. Focus goes to the editor when it opens
@@ -110,6 +113,9 @@ conversation, its messages, and the reply being written.
   `message_changed` refusal also reloads that reply. `change()` saves the conversation's title,
   version, engine, thinking, instructions or reply settings.
 - `versionLabel()` names the version that answered from the project's versions, with its number.
+- An `effect` publishes the open conversation, with the count of the messages that are loaded,
+  to `ConversationsStore.replace()` whenever either changes, so the list's "Messages: n" follows a
+  send the moment the reply starts and a reply that is saved or stopped, without a reload.
 
 **`ChatPage`** (`pages/chat/`) — the sidenav layout. Opens the project and the conversation from
 its two inputs, stops the reply when destroyed, and shows what to do when no conversation is open
@@ -168,6 +174,7 @@ the editor keeps what was typed, so saving again replaces the other change on pu
 
 **Restoring asks first.** It discards a person's correction.
 
-**The Thinking switch stays on offer for every base model.** The project's switch is disabled
-when the base model cannot write thinking; this one only sends `enable_thinking` to the engine,
-which the backend accepts for any model, so the page does not second-guess it.
+**The Thinking switch follows the base model, as the project's does.** `ChatApi.project()` reads
+`base_model.supports_thinking` into `ProjectDefaults`; when it is `false` the switch is disabled
+and the reason sits beside it. While the project is still loading nothing is judged, so the switch
+stays on offer.

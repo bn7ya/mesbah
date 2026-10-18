@@ -22,7 +22,7 @@ describe('Term', () => {
 
     expect(host.querySelector('.term__word')?.textContent.trim()).toBe('VRAM');
     const button = host.querySelector<HTMLButtonElement>('button');
-    expect(button?.getAttribute('aria-label')).toBe('What is VRAM?');
+    expect(button?.getAttribute('aria-label')).toBe('Explain: VRAM');
     expect(button?.getAttribute('aria-expanded')).toBe('false');
 
     button?.click();

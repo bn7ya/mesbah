@@ -43,6 +43,7 @@
     "remove": {
       "title": "Remove {name}?",
       "body": "The downloaded files are deleted from this machine. The model stays on HuggingFace and can be downloaded again.",
+      "bodyTrained": "The model's files are deleted from this machine for good. It was trained here, so no other copy exists.",
       "confirm": "Remove"
     },
     "find": {
@@ -87,6 +88,7 @@
       },
       "need": "Needs about {required} of {available}",
       "needMemory": "Needs about {required} of memory",
+      "needMemoryTooLarge": "Needs about {required} of memory, more than this machine has",
       "needUnknown": "The size of this model isn't known."
     },
     "details": {
@@ -113,6 +115,7 @@
       "gated": "This model needs you to accept its terms on HuggingFace. Then save a HuggingFace token with access.",
       "notDownloadable": "This repository has no model files that can be loaded.",
       "inLibrary": "This model is already in the library.",
+      "diskFull": "There isn't enough free disk space. Download size: {size}. Free space: {free}.",
       "readOnly": "Only a trainer or an administrator can download models.",
       "download": "Download",
       "starting": "Starting…",

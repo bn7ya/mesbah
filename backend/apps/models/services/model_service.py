@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import shutil
 from fnmatch import fnmatch
 from typing import Any
@@ -30,6 +31,7 @@ SEARCH_LIMIT: int = 24
 DEFAULT_TASK: str = "text-generation"
 WEIGHT_SUFFIXES: tuple[str, ...] = (".safetensors", ".bin")
 DISK_MARGIN: float = 1.05
+REPO_ID: re.Pattern[str] = re.compile(r"^[\w.-]+/[\w.-]+$")
 
 
 def _fits(parameters: int | None, vram: int) -> dict[str, dict[str, Any]]:
@@ -39,6 +41,14 @@ def _fits(parameters: int | None, vram: int) -> dict[str, dict[str, Any]]:
         "training": sizing.qlora_bytes(parameters) if parameters else None,
     }
     return {use: vars(sizing.fit(required, vram)) for use, required in shown.items()}
+
+
+def _disk_free() -> int:
+    return shutil.disk_usage(hub_cache_dir()).free
+
+
+def _fits_disk(size: int, free: int) -> bool:
+    return free >= size * DISK_MARGIN
 
 
 class ModelService:
@@ -85,7 +95,11 @@ class ModelService:
         }
 
     def search(self, query: str, task: str) -> list[dict[str, Any]]:
-        results: list[HubResult] = self.hub().search(query.strip(), task, SEARCH_LIMIT)
+        hub: HubClient = self.hub()
+        text: str = query.strip()
+        results: list[HubResult] = hub.search(text, task, SEARCH_LIMIT)
+        if REPO_ID.match(text):
+            results = self._exact_first(hub, text, results)
         return self._listed(results)
 
     def featured(self) -> list[dict[str, Any]]:
@@ -102,6 +116,8 @@ class ModelService:
         active: int | None = sizing.active_parameters(detail.result.parameters, shape)
         existing: HubModel | None = self.models.find_by_repo(repo_id)
         vram: int = self.system.usable_vram_bytes()
+        size: int = self._size(detail)
+        free: int = _disk_free()
         return {
             **vars(detail.result),
             "revision": detail.revision,
@@ -110,7 +126,9 @@ class ModelService:
             "active_parameters": active,
             "has_chat_template": detail.has_chat_template,
             "downloadable": self._downloadable(detail),
-            "size_bytes": self._size(detail),
+            "size_bytes": size,
+            "disk_free_bytes": free,
+            "fits_disk": _fits_disk(size, free),
             "fit": _fits(detail.result.parameters, vram),
             "in_library": None
             if existing is None
@@ -129,7 +147,7 @@ class ModelService:
         if not self._downloadable(detail):
             raise NotDownloadable
         size: int = self._size(detail)
-        if shutil.disk_usage(hub_cache_dir()).free < size * DISK_MARGIN:
+        if not _fits_disk(size, _disk_free()):
             raise NotEnoughDisk
         shape: sizing.Architecture = sizing.architecture(detail.config)
         fields: dict[str, Any] = {
@@ -196,6 +214,18 @@ class ModelService:
                 }
             )
         return listed
+
+    @staticmethod
+    def _exact_first(hub: HubClient, repo_id: str, results: list[HubResult]) -> list[HubResult]:
+        wanted: str = repo_id.lower()
+        found: HubResult | None = next(
+            (result for result in results if result.repo_id.lower() == wanted), None
+        )
+        exact: HubResult | None = found or hub.lookup(repo_id)
+        if exact is None:
+            return results
+        others: list[HubResult] = [result for result in results if result is not exact]
+        return [exact, *others][:SEARCH_LIMIT]
 
     @staticmethod
     def _downloadable(detail: HubDetail) -> bool:

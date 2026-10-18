@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { firstValueFrom, last, repeat, take, takeWhile, type Observable, type Subscription } from 'rxjs';
 
@@ -68,6 +68,18 @@ export class ConversationStore {
       this.failure(this.messagesLoaded.status() === 'error' ? this.messagesLoaded.error() : undefined),
   );
   readonly canWrite = computed(() => this.auth.hasAnyGroup(rolesFrom('reviewers')));
+
+  private readonly messageCount = computed(() => (this.messagesLoaded.hasValue() ? this.messagesLoaded.value().length : null));
+
+  constructor() {
+    effect(() => {
+      const open = this.conversation();
+      const count = this.messageCount();
+      if (open !== null && count !== null) {
+        this.list.replace({ ...open, message_count: count });
+      }
+    });
+  }
 
   open(id: string | null): void {
     if (this.conversationId() === id) {
@@ -162,7 +174,6 @@ export class ConversationStore {
     try {
       const updated = await firstValueFrom(this.api.change(id, change));
       this.conversationLoaded.set(updated);
-      this.list.replace(this.withCount(updated));
       return null;
     } catch (error) {
       return error as ApiError;
@@ -261,7 +272,6 @@ export class ConversationStore {
       const updated = await firstValueFrom(this.api.conversation(id));
       if (this.conversationId() === id) {
         this.conversationLoaded.set(updated);
-        this.list.replace(this.withCount(updated));
       }
     } catch {
       // The header keeps the title it had; the list refreshes the next time it opens.
@@ -294,10 +304,6 @@ export class ConversationStore {
 
   private replaceMessage(message: Message): void {
     this.messagesLoaded.update((rows) => (rows ?? []).map((row) => (row.id === message.id ? message : row)));
-  }
-
-  private withCount(conversation: Conversation): Conversation {
-    return { ...conversation, message_count: this.messagesLoaded.hasValue() ? this.messages().length : null };
   }
 
   private failure(error: Error | undefined): ApiError | null {

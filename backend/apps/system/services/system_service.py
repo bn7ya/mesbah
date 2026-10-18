@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -46,15 +47,7 @@ class SystemService:
             "gpu_choice": "chosen" if chosen else "automatic",
             "usable_vram_bytes": sum(gpu.memory_bytes for gpu in selected),
             "storage": self._storage(settings.MESBAH_DATA_DIR),
-            "parts": [
-                {
-                    "name": part.name,
-                    "purpose": part.purpose,
-                    "version": part.version,
-                    "cuda": part.cuda,
-                }
-                for part in parts.parts()
-            ],
+            "parts": self._parts(),
             "huggingface": self._huggingface(),
         }
 
@@ -118,6 +111,50 @@ class SystemService:
     def _storage(path: Path) -> dict[str, Any]:
         usage: shutil._ntuple_diskusage = shutil.disk_usage(ensure(path))
         return {"path": str(path), "free_bytes": usage.free, "total_bytes": usage.total}
+
+    def _parts(self) -> list[dict[str, Any]]:
+        here: tuple[parts.Part, ...] = parts.parts()
+        engine: dict[str, str] = (
+            self._engine_parts() if any(part.version is None for part in here) else {}
+        )
+        shown: list[dict[str, Any]] = []
+        for part in here:
+            from_engine: bool = part.version is None and part.name in engine
+            seen: parts.Part = replace(part, version=engine[part.name]) if from_engine else part
+            found_in: str | None = (
+                "engine" if from_engine else None if part.version is None else "web"
+            )
+            shown.append(
+                {
+                    "name": seen.name,
+                    "purpose": seen.purpose,
+                    "version": seen.version,
+                    "cuda": seen.cuda,
+                    "found_in": found_in,
+                }
+            )
+        return shown
+
+    @staticmethod
+    def _engine_parts() -> dict[str, str]:
+        # apps.serving imports this module, so it is imported where it is used.
+        from apps.serving.services.deployment_service import builtin_endpoint
+        from apps.serving.services.engine_client import EngineClient, EngineError
+
+        try:
+            status: dict[str, object] = EngineClient(builtin_endpoint()).status()
+        except EngineError:
+            return {}
+        reported: object = status.get("parts")
+        if not isinstance(reported, list):
+            return {}
+        return {
+            row["name"]: row["version"]
+            for row in reported
+            if isinstance(row, dict)
+            and isinstance(row.get("name"), str)
+            and isinstance(row.get("version"), str)
+        }
 
     def _huggingface(self) -> dict[str, Any]:
         secret: Secret | None = self.secrets.find_by_name(HUGGINGFACE_TOKEN)

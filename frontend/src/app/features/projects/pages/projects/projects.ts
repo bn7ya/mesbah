@@ -69,6 +69,10 @@ export class ProjectsPage {
     void this.store.visit();
   }
 
+  tryAgain(): void {
+    void this.store.load();
+  }
+
   turnPage(event: PageEvent): void {
     void this.store.load(event.pageIndex, event.pageSize);
   }

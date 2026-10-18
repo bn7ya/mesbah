@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from mesbah import hardware
 from mesbah.architect import (
     ADAM_8BIT_BYTES_PER_PARAMETER,
     ADAMW_BYTES_PER_PARAMETER,
@@ -216,13 +217,24 @@ def test_training_memory_is_bytes_per_parameter_plus_activations() -> None:
     assert short.fit.verdict == "fits"
 
 
-def test_the_fit_verdict_reads_the_memory_available() -> None:
+def test_the_fit_verdict_reads_the_memory_available(monkeypatch: pytest.MonkeyPatch) -> None:
     big: Design = by_name()["dense_500m"].design
+    monkeypatch.setattr(hardware, "ram_bytes", lambda: 256 * GIB)
 
     assert memory(big, 0, 2_048, 1).fit.verdict == "cpu_only"
     assert memory(big, 4 * GIB, 2_048, 1).fit.verdict == "too_large"
     assert memory(big, 4 * GIB, 2_048, 1).fit_8bit.verdict == "too_large"
     assert memory(big, 80 * GIB, 2_048, 1).fit.verdict == "fits"
+
+
+def test_without_a_gpu_a_design_beyond_the_ram_is_too_large(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    big: Design = by_name()["dense_500m"].design
+    monkeypatch.setattr(hardware, "ram_bytes", lambda: 4 * GIB)
+
+    assert memory(big, 0, 2_048, 1).fit.verdict == "too_large"
+    assert memory(big, 0, 2_048, 1).fit_8bit.verdict == "too_large"
 
 
 def test_a_mixture_holds_every_expert_in_memory() -> None:

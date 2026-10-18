@@ -80,7 +80,7 @@
       },
       "gguf": {
         "name": "GGUF file",
-        "explain": "One file for llama.cpp and Ollama, with a Modelfile."
+        "explain": "One file for llama.cpp and Ollama."
       },
       "noChange": "A base model has no change to export. It can be exported as a GGUF file.",
       "quality": {

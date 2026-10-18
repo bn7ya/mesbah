@@ -39,6 +39,8 @@
     />
   } @else if (content()) {
     <p class="bubble__text" dir="auto">{{ content() }}</p>
+  } @else if (emptyKey(); as key) {
+    <p class="bubble__empty text-secondary">{{ key | t }}</p>
   }
 
   @if (!isUser()) {
@@ -111,7 +113,7 @@
             {{ 'chat.marks.failed' | t }}
           </span>
         }
-        @if (!isUser() && !item.include_in_training) {
+        @if (!isUser() && !empty() && !item.include_in_training) {
           <span class="bubble__fact">
             <mat-icon fontIcon="fa-ban" class="app-icon-small" />
             {{ 'chat.marks.notTrained' | t }}
@@ -139,21 +141,25 @@
             <mat-icon fontIcon="fa-brain" />
             <span>{{ (item.thinking ? 'chat.menu.editThinking' : 'chat.menu.addThinking') | t }}</span>
           </button>
-          <mat-divider />
-          <button mat-menu-item type="button" (click)="toggleApproved()">
-            <mat-icon [fontIcon]="item.approved ? 'fa-xmark' : 'fa-check-double'" />
-            <span>{{ (item.approved ? 'chat.menu.withdraw' : 'chat.menu.approve') | t }}</span>
-          </button>
-          <button
-            mat-menu-item
-            type="button"
-            role="menuitemcheckbox"
-            [attr.aria-checked]="item.include_in_training"
-            (click)="toggleTraining()"
-          >
-            <mat-icon fontSet="fa-regular" [fontIcon]="item.include_in_training ? 'fa-square-check' : 'fa-square'" />
-            <span>{{ 'chat.menu.training' | t }}</span>
-          </button>
+          @if (!empty() || item.approved) {
+            <mat-divider />
+            <button mat-menu-item type="button" (click)="toggleApproved()">
+              <mat-icon [fontIcon]="item.approved ? 'fa-xmark' : 'fa-check-double'" />
+              <span>{{ (item.approved ? 'chat.menu.withdraw' : 'chat.menu.approve') | t }}</span>
+            </button>
+          }
+          @if (!empty()) {
+            <button
+              mat-menu-item
+              type="button"
+              role="menuitemcheckbox"
+              [attr.aria-checked]="item.include_in_training"
+              (click)="toggleTraining()"
+            >
+              <mat-icon fontSet="fa-regular" [fontIcon]="item.include_in_training ? 'fa-square-check' : 'fa-square'" />
+              <span>{{ 'chat.menu.training' | t }}</span>
+            </button>
+          }
           @if (item.content_edited_at || item.thinking_edited_at) {
             <mat-divider />
           }

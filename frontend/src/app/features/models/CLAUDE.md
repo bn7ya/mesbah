@@ -15,7 +15,9 @@ reviewers (`ModelsStore.canWrite`). The menu lists it before System.
 `backend/apps/models/` — `GET|POST /api/models/`, `GET|DELETE /api/models/<id>/`,
 `POST /api/models/<id>/cancel/` and `.../retry/`, `GET /api/models/hub/` (popular models, or a
 search with `search` and `task`), `GET /api/models/hub/inspect/?repo=`. `models.types.ts`
-mirrors the serializers, the page envelope included.
+mirrors the serializers, the page envelope included. A library model carries its `origin`
+(`hub` or `trained`, a model trained from nothing and named `local/<name>`); an inspection carries
+`disk_free_bytes` and `fits_disk`.
 
 ## What the page shows
 
@@ -23,7 +25,9 @@ mirrors the serializers, the page envelope included.
   words, a Thinking marker, and its state: waiting or downloading (a progress bar and
   "done of total", with Cancel), ready (with its size), failed (the reason from `error_code`,
   with Try again; a gated model links to the System page for a token) or stopped (Try again).
-  Remove asks first. An empty library says so, with what a reader may do about it.
+  Remove asks first: a downloaded model "stays on HuggingFace and can be downloaded again", a model
+  trained here "is deleted for good" (`models.remove.bodyTrained`). An empty library says so, with
+  what a reader may do about it.
 - **Find a model**: a search field (Enter or the search button) and a Text generation / Text
   to text toggle. An empty search lists the popular models, and the toggle is disabled until
   there is text. Results are cards: downloads and likes, parameters, license, a lock when gated,
@@ -54,16 +58,23 @@ signals, subscribes to `watchDownloads()` until it is destroyed, opens the detai
 its own injector, asks before removing and reports each change in a snack bar.
 
 **`ModelDetailsDialog`** (`dialogs/model-details/`) — loads the inspection through the store
-and forgets it on close. Download is disabled, with the reason beside it, when the repository
-has no weights, the model is already in the library (a failed or stopped one can be downloaded
-again), or the reader cannot write. Closes with `true` once the download is queued.
+and forgets it on close. Download is disabled, with the reason beside it, when the reader cannot
+write, the repository has no weights, the model is already in the library (a failed or stopped
+one can be downloaded again), or the model does not fit on the disk (`fits_disk`; the reason
+gives the download size and the free space). Closes with `true` once the download is queued.
+With no GPU (`available_bytes` is 0) the note says so and the fit rows speak of memory instead of
+VRAM; a model bigger than the machine's RAM is `too_large` there and reads "more than this machine
+has". The
+context length is written as a label before the count: "token: 163,840".
 
 **`modelsGuard`** (`guards/`) — viewers and above.
 
 ## Errors
 
 Removing a model a project is built on answers `409 model_in_use`; `errors.model_in_use` in this
-bundle says so in the reader's language and the page shows it in its alert.
+bundle says so in the reader's language and the page shows it in its alert. A download that does
+not fit answers `507 disk_full` and a gated model `400 hub_model_gated` (not 403, which the
+error interceptor reads as a lost session); both have `errors.*` texts here.
 
 ## Decisions worth not re-litigating
 

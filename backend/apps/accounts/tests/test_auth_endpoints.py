@@ -89,6 +89,7 @@ def test_deactivated_account_gets_its_own_message(
     )
 
     assert response.status_code == REFUSED
+    assert response.json()["error"]["code"] == "account_deactivated"
     assert "deactivated" in response.json()["error"]["message"]
 
 

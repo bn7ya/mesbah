@@ -401,6 +401,22 @@ describe('DatasetsStore', () => {
     expect(store.pageIndex()).toBe(0);
   });
 
+  it('keeps a failed load apart from a refused action, and clears it when trying again works', async () => {
+    const loading = store.load();
+    library().flush({}, { status: 500, statusText: 'Server Error' });
+    await loading;
+
+    expect(store.loadError()).not.toBeNull();
+    expect(store.error()).toBeNull();
+
+    const again = store.load();
+    expect(store.loadError()).toBeNull();
+    library().flush(page([dataset('1')]));
+    await again;
+
+    expect(store.page().results).toHaveLength(1);
+  });
+
   it('keeps a refused removal as an error', async () => {
     await loadLibrary([dataset('1')]);
 
@@ -411,6 +427,7 @@ describe('DatasetsStore', () => {
 
     expect(await removing).toBe(false);
     expect(store.error()?.message).toBe('Gone.');
+    expect(store.loadError()).toBeNull();
     expect(store.page().results).toHaveLength(1);
   });
 

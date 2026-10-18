@@ -149,6 +149,8 @@ chosen datasets are `linkedSignal`s over the plan, the versions and the library,
 values keeps what was typed. Explains why Start is unavailable, starts the run and goes to it. While the
 store says there is no model it shows one sentence in place of the form, and cannot start.
 **`SimpleSettings`**, **`ExpertSettings`** — the two views of the same settings, bound with `model()`.
+A setting whose default is empty (Maximum steps) reads "Default: No limit." in Expert mode, and a
+run's settings list says "No limit" for it.
 **`RunList`**, **`RunRow`** — the runs and one run's card with Open, Stop and Remove; a pretrain run's card
 swaps "Started from" for "A new model, trained from nothing" and names the projects it learns from.
 **`RunStatus`** — a run's status or stage in words, drawn by the shared `<app-status>` (`prominent` on

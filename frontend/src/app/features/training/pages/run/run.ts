@@ -247,7 +247,7 @@ export class RunPage {
       return this.locale.translate(value ? 'training.run.yes' : 'training.run.no');
     }
     if (value === null || value === undefined) {
-      return this.locale.translate('training.expert.none');
+      return this.locale.translate('training.expert.noLimit');
     }
     return formatSignificant(value, this.locale.locale(), 6);
   }

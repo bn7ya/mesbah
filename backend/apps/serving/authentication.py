@@ -11,6 +11,7 @@ from apps.serving.models import ApiKey
 from apps.serving.services.api_key_service import ApiKeyService
 
 SCHEME: str = "bearer"
+KEY_INVALID: str = "This API key isn't valid. Create a new one on the Engines page."
 
 
 class ApiKeyAuthentication(BaseAuthentication):
@@ -22,7 +23,7 @@ class ApiKeyAuthentication(BaseAuthentication):
             return None
         key: ApiKey | None = ApiKeyService(AnonymousUser()).authenticate(secret.strip())
         if key is None or key.created_by is None:
-            raise AuthenticationFailed("This API key is not valid.", code="invalid_api_key")
+            raise AuthenticationFailed(KEY_INVALID, code="invalid_api_key")
         return key.created_by, key
 
     def authenticate_header(self, request: Request) -> str:

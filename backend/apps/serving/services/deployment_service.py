@@ -35,9 +35,13 @@ def served_name(version: ModelVersion) -> str:
     return str(version.pk) if version.kind == ModelVersion.Kind.LORA else BASE_NAME
 
 
+def builtin_endpoint() -> Endpoint:
+    return Endpoint(settings.MESBAH_RUNTIME_URL, settings.MESBAH_RUNTIME_TOKEN or None)
+
+
 def endpoint_of(engine: Engine) -> Endpoint:
     if engine.kind == Engine.Kind.BUILTIN:
-        return Endpoint(settings.MESBAH_RUNTIME_URL, settings.MESBAH_RUNTIME_TOKEN or None)
+        return builtin_endpoint()
     key: str | None = SecretBox().open(engine.sealed_api_key) if engine.sealed_api_key else None
     return Endpoint(engine.base_url.rstrip("/"), key)
 

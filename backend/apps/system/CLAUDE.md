@@ -19,8 +19,8 @@ Mesbah uses and the HuggingFace token. The backend half of the System page.
 The overview — mirrored by `SystemOverview` in `features/system/data/system.types.ts`:
 `machine` (GPUs with memory in bytes, driver, RAM, CPU count, OS, Python), `selected_gpus`,
 `gpu_choice` (`automatic` or `chosen`), `usable_vram_bytes` (sum over the selected GPUs),
-`storage` (the data folder and its disk), `parts` (optional packages and their versions)
-and `huggingface` (`configured`, the last four characters, the account name). No list
+`storage` (the data folder and its disk), `parts` (optional packages and their versions, each
+with `found_in`: `web`, `engine` or `null` when it is nowhere) and `huggingface` (`configured`, the last four characters, the account name). No list
 endpoint, so rule 17 does not apply.
 
 ## Layers
@@ -43,7 +43,10 @@ updates the live row or creates one.
 `SECRET_KEY`. A secret sealed under another key opens to `None`, which reads as "not saved".
 
 **`SystemService`** (`services/system_service.py`), for the acting user:
-- `overview()` — the machine, the effective GPU choice, storage, parts and token status.
+- `overview()` — the machine, the effective GPU choice, storage, parts and token status. A part
+  counts as installed when this process has it or, if any is missing here, the built-in engine
+  reports it in `/admin/status` (the web process has no torch in Docker or dev; the engine and
+  the heavy worker do). An engine that is down or sends no parts adds nothing.
 - `select_gpus()` — stores the chosen indices; refuses one the machine does not have.
 - `save_huggingface_token()` — asks HuggingFace who the token belongs to, then seals it.
 - `remove_huggingface_token()` — soft-deletes the secret.

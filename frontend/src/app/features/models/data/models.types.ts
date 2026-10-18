@@ -1,5 +1,7 @@
 export type ModelStatus = 'queued' | 'downloading' | 'ready' | 'failed' | 'cancelled';
 
+export type ModelOrigin = 'hub' | 'trained';
+
 export type ModelFamily = 'dense_decoder' | 'moe_decoder' | 'encoder_decoder' | 'other';
 
 export type FitVerdict = 'fits' | 'tight' | 'too_large' | 'cpu_only' | 'unknown';
@@ -57,11 +59,14 @@ export interface Inspection extends HubResult {
   readonly has_chat_template: boolean;
   readonly downloadable: boolean;
   readonly size_bytes: number;
+  readonly disk_free_bytes: number;
+  readonly fits_disk: boolean;
 }
 
 export interface LibraryModel {
   readonly id: string;
   readonly repo_id: string;
+  readonly origin: ModelOrigin;
   readonly revision: string;
   readonly family: ModelFamily;
   readonly model_type: string;
@@ -92,6 +97,11 @@ export interface NewModel {
 
 export interface InspectionDialogData {
   readonly repo: string;
+}
+
+export interface DownloadBlocker {
+  readonly key: string;
+  readonly values?: Readonly<Record<string, string>>;
 }
 
 export const ACTIVE_STATUSES: readonly ModelStatus[] = ['queued', 'downloading'];

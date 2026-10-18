@@ -51,11 +51,32 @@ describe('errorInterceptor', () => {
     expect(error).toEqual({ code: 'sample_code', message: 'بالعربية' });
   });
 
-  it('falls back to the server message for an unknown code', async () => {
+  it('keeps the server message for an unknown code when the reader is in English', async () => {
+    locale.setLocale('en');
+
     const error = await fail('something_else', 'Server prose');
 
-    expect(error.message).toBe('Server prose');
+    expect(error).toEqual({ code: 'something_else', message: 'Server prose' });
   });
+
+  it('shows the generic message in the reader language for an unknown code, never the server English', async () => {
+    const error = await fail('something_else', 'Server prose');
+
+    expect(error).toEqual({ code: 'something_else', message: locale.translate('errors.generic') });
+    expect(error.message).not.toBe('Server prose');
+    expect(error.message).not.toBe('errors.generic');
+  });
+
+  it.each(['authentication_failed', 'account_deactivated'])(
+    'writes the %s sign-in refusal in the reader language, from the core bundle',
+    async (code) => {
+      const error = await fail(code, 'Server prose');
+
+      expect(error.code).toBe(code);
+      expect(error.message).toMatch(/[\u0600-\u06ff]/);
+      expect(error.message).not.toBe(locale.translate('errors.generic'));
+    },
+  );
 
   it('reads the error of a request whose body is read as text', async () => {
     const request = firstValueFrom(http.post('/api/thing/', {}, { responseType: 'text' }));

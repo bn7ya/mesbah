@@ -59,8 +59,13 @@
 
 .head__thinking {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: var(--app-space-2);
   align-items: center;
+}
+
+.head__reason {
+  font: var(--mat-sys-body-medium);
 }
 
 .head__facts {

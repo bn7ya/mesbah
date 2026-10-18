@@ -35,6 +35,12 @@ A model name on the compatible APIs is a project's slug (its active version, als
 or `slug:vN`. Their errors take each API's own shape — OpenAI's `{"error": {"message", "type",
 "code"}}`, Ollama's `{"error": "…"}` — and they are not paginated: clients expect the lists whole.
 
+A request with no key answers `401` `invalid_api_key`, "Send a Mesbah API key as a Bearer
+token."; a Bearer key that is wrong, revoked or its owner's deactivated answers `401`
+`invalid_api_key` too, with "This API key isn't valid. Create a new one on the Engines page."
+Ollama's routes read the body as JSON whatever its `Content-Type` says (`curl -d '{…}'` sends
+`application/x-www-form-urlencoded`); OpenAI's keep requiring `application/json`.
+
 ## Layers
 
 ```
@@ -80,7 +86,8 @@ Failures become `EngineError` with a code: `engine_unreachable`, `engine_timeout
 **`served_name()`**, **`external_name()`** — what each kind of engine calls a version; on the
 built-in engine a root version (`base` or `scratch_root`) is the base model itself, `base`.
 **`endpoint_of()`** — an engine's address and key; the built-in one's come from
-`MESBAH_RUNTIME_URL` and `MESBAH_RUNTIME_TOKEN`.
+`MESBAH_RUNTIME_URL` and `MESBAH_RUNTIME_TOKEN` (**`builtin_endpoint()`**, which
+`apps.system` also uses to ask the engine which parts it has).
 
 **`EngineService`** — `listing()`, `find()`, `describe()` (with its live `state`), `create()`,
 `change()` (the built-in engine takes a name, on/off and default only), `remove()`, `unload()`.
@@ -88,13 +95,17 @@ built-in engine a root version (`base` or `scratch_root`) is the base model itse
 **`ApiKeyService`** — `listing()`, `describe()`, `create()` (`msb_` and 32 random bytes; the
 answer carries the key once), `revoke()`, `authenticate()` (a live key of an active owner; the
 last use is written at most once a minute). **`ApiKeyAuthentication`** — DRF authentication from
-`Authorization: Bearer`; **`ApiKeyScheme`** describes it to the schema.
+`Authorization: Bearer`; a key that does not authenticate raises `AuthenticationFailed` with the
+"isn't valid" message, no key at all is left to `NotAuthenticated`. **`ApiKeyScheme`** describes
+it to the schema. **`AnyMediaTypeJSONParser`** (`parsers.py`) — a JSON parser that matches every
+media type, for Ollama's routes.
 
 **`GatewayService`** — `served()` (every project by slug and every version as `slug:vN`),
 `resolve()` a name (`UnknownModel` when nothing matches), `target()`, `thinking_default()`, and
 `stream()` / `collect()` over the engine's pieces. **`CompatView`** (`views/compat.py`) — API
-key authentication and errors in OpenAI's shape; **`OllamaView`** — the same in Ollama's, NDJSON
-lines and their merge into one answer. **`ModelListView`**, **`ChatCompletionView`**,
+key authentication and errors in OpenAI's shape (`unauthorized()` is the 401, with the message
+for a missing or an invalid key); **`OllamaView`** — the same in Ollama's, any `Content-Type`
+read as JSON, NDJSON lines and their merge into one answer. **`ModelListView`**, **`ChatCompletionView`**,
 **`OllamaChatView`**, **`OllamaGenerateView`**, **`OllamaTagsView`**, **`OllamaShowView`**,
 **`OllamaVersionView`** — the routes above (`compat_urls.py`, mounted at `/v1/` and `/ollama/`).
 

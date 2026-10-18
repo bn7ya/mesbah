@@ -22,7 +22,7 @@ link records where a version was trained from. The backend half of the version t
 | `POST` | `/api/versions/<id>/exports/` | trainer | `202` an export: `lora`, `merged` or `gguf` (`out_type` f16, bf16, q8_0); `409 not_exportable` |
 | `GET` | `/api/versions/exports/<id>/` | viewer | one export, with its status and where it is |
 | `DELETE` | `/api/versions/exports/<id>/` | trainer | `204`; deletes its files |
-| `GET` | `/api/versions/exports/<id>/download/` | viewer | the zip or the GGUF file; `409 export_not_ready` |
+| `GET` | `/api/versions/exports/<id>/download/` | viewer | the zip (`<slug>-v<n>-lora.zip`) or the GGUF file (`<slug>-v<n>-<out_type>.gguf`); `409 export_not_ready` |
 
 ## Layers
 
@@ -63,7 +63,8 @@ exports, one with its version and project loaded.
 
 **`ExportService`** — `listing()`, `find()`, `describe()` (a merged folder is not offered as a
 download: it is as large as the model), `create()` (a LoRA or merged export needs a trained
-version; the task is queued after the commit), `remove()` (files too), `download()`, and `run()`,
+version; the task is queued after the commit), `remove()` (files too), `download()` (the file and
+the name it is sent under: **`Download`**), and `run()`,
 the tasks' body: zips the adapter, or writes a config and runs `mesbah.export`, then reads its
 status. **`package`** / **`convert`** (`tasks.py`) — the zip on the default queue; merging and
 converting on the `heavy` queue, because they load the whole model.

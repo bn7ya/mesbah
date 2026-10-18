@@ -3,6 +3,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,7 @@ from mesbah.export.contract import ExportConfig, ExportContractError, ExportStat
 from mesbah.paths import ensure
 
 LOG_TAIL: int = 2000
+DEFAULT_OUT_TYPE: str = "f16"
 EXPORT_PARTS: tuple[str, ...] = ("torch", "transformers", "peft")
 README: str = """# {name}
 
@@ -30,6 +32,12 @@ A LoRA adapter made with Mesbah: only the change to the weights of `{base}`.
 - vLLM: `vllm serve {base} --enable-lora --lora-modules {slug}=<this folder>`
 - PEFT: `PeftModel.from_pretrained(AutoModelForCausalLM.from_pretrained("{base}"), "<this folder>")`
 """
+
+
+@dataclass(frozen=True)
+class Download:
+    path: Path
+    filename: str
 
 
 def exports_dir() -> Path:
@@ -92,11 +100,16 @@ class ExportService:
         shutil.rmtree(exports_dir() / str(export.pk), ignore_errors=True)
         self.exports.soft_delete(export)
 
-    def download(self, export_id: str) -> Path:
+    def download(self, export_id: str) -> Download:
         export: Export = self.find(export_id)
-        if not self.describe(export)["downloadable"] or not Path(export.path).is_file():
+        path: Path = Path(export.path)
+        if not self.describe(export)["downloadable"] or not path.is_file():
             raise ExportNotReady
-        return Path(export.path)
+        if export.format != Export.Format.GGUF:
+            return Download(path, path.name)
+        version: ModelVersion = export.version
+        out_type: str = export.out_type or DEFAULT_OUT_TYPE
+        return Download(path, f"{version.project.slug}-v{version.number}-{out_type}.gguf")
 
     def run(self, export_id: str) -> None:
         export: Export | None = self.exports.with_version(export_id)
@@ -149,7 +162,7 @@ class ExportService:
                     "output_dir": str(folder / "output"),
                     "status_path": str(folder / "status.json"),
                     "tools_dir": str(ensure(Path(settings.MESBAH_DATA_DIR) / "tools")),
-                    "out_type": export.out_type or "f16",
+                    "out_type": export.out_type or DEFAULT_OUT_TYPE,
                     "name": f"{version.project.slug}-v{version.number}",
                     "system_prompt": version.project.system_prompt,
                 }

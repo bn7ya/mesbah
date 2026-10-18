@@ -45,10 +45,10 @@
         <mat-label>{{ 'projects.new.model' | t }}</mat-label>
         <mat-select
           name="model"
-          [value]="modelId()"
-          [disabled]="models().length === 0"
           [errorStateMatcher]="modelErrors"
-          (valueChange)="modelId.set($event)"
+          [disabled]="models().length === 0"
+          [ngModel]="modelId()"
+          (ngModelChange)="modelId.set($event)"
         >
           <mat-select-trigger>
             <span dir="ltr">{{ selected()?.repo_id }}</span>

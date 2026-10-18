@@ -100,5 +100,9 @@ class Message(BaseModel):
             )
         ]
 
+    @property
+    def is_empty(self) -> bool:
+        return not (self.content.strip() or self.thinking.strip())
+
     def __str__(self) -> str:
         return f"{self.role} #{self.position}"

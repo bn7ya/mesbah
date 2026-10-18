@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from pathlib import Path
 from typing import Any
 
 from django.http import FileResponse
@@ -23,7 +22,7 @@ from apps.versions.serializers import (
     VersionListQuerySerializer,
     VersionSerializer,
 )
-from apps.versions.services import ExportService, VersionService
+from apps.versions.services import Download, ExportService, VersionService
 
 
 class VersionListView(APIView):
@@ -163,8 +162,10 @@ class ExportDownloadView(APIView):
         responses={(200, "application/octet-stream"): OpenApiResponse(OpenApiTypes.BINARY)},
     )
     def get(self, request: Request, export_id: str) -> FileResponse:
-        path: Path = ExportService(request.user).download(export_id)
-        return FileResponse(path.open("rb"), as_attachment=True, filename=path.name)
+        download: Download = ExportService(request.user).download(export_id)
+        return FileResponse(
+            download.path.open("rb"), as_attachment=True, filename=download.filename
+        )
 
 
 class ChangesView(APIView):

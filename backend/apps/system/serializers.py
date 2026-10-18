@@ -32,6 +32,7 @@ class PartSerializer(serializers.Serializer[dict[str, Any]]):
     purpose = serializers.CharField(read_only=True)
     version = serializers.CharField(read_only=True, allow_null=True)
     cuda = serializers.BooleanField(read_only=True, allow_null=True)
+    found_in = serializers.ChoiceField(choices=["web", "engine"], read_only=True, allow_null=True)
 
 
 class HuggingFaceSerializer(serializers.Serializer[dict[str, Any]]):

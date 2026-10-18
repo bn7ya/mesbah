@@ -15,12 +15,14 @@
     "active": "Active",
     "inactive": "Deactivated",
     "reactivate": "Reactivate",
+    "reactivateFor": "Reactivate {name}",
     "added": "Member added.",
     "roleChanged": "Role changed.",
     "deactivated": "Member deactivated.",
     "reactivated": "Member reactivated.",
     "deactivate": {
       "open": "Deactivate",
+      "for": "Deactivate {name}",
       "title": "Deactivate {name}?",
       "body": "They can no longer sign in. Their projects, conversations and versions stay as they are.",
       "confirm": "Deactivate"
@@ -48,12 +50,14 @@
       "title": "Add a member",
       "username": "Username",
       "usernameRequired": "Enter a username.",
+      "usernameFormat": "Use letters and digits, with no spaces.",
       "password": "Password",
       "passwordHint": "At least 8 characters that are hard to guess.",
       "passwordRequired": "Enter a password.",
       "firstName": "First name",
       "lastName": "Last name",
       "email": "Email",
+      "emailInvalid": "Enter a valid email address.",
       "submit": "Add member",
       "working": "Adding…"
     }

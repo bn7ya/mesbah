@@ -20,3 +20,9 @@ class NoVersion(APIException):
     status_code = status.HTTP_409_CONFLICT
     default_code = "no_version"
     default_detail = "This project has no version to chat with."
+
+
+class EmptyReply(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_code = "empty_reply"
+    default_detail = "An empty reply can't be approved."

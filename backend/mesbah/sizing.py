@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from mesbah import hardware
+
 type Verdict = Literal["fits", "tight", "too_large", "cpu_only", "unknown"]
 
 GIB: int = 1024**3
@@ -114,7 +116,12 @@ def qlora_bytes(parameters: int) -> int:
 
 def fit(required: int | None, available: int) -> Fit:
     if available <= 0:
-        return Fit(verdict="cpu_only", required_bytes=required, available_bytes=0)
+        beyond_ram: bool = required is not None and required > hardware.ram_bytes()
+        return Fit(
+            verdict="too_large" if beyond_ram else "cpu_only",
+            required_bytes=required,
+            available_bytes=0,
+        )
     if required is None:
         return Fit(verdict="unknown", required_bytes=None, available_bytes=available)
     verdict: Verdict

@@ -1,4 +1,4 @@
-<a class="skip-link" href="#main">{{ 'app.skipToContent' | t }}</a>
+<a class="skip-link" href="#main" (click)="skipToContent($event)">{{ 'app.skipToContent' | t }}</a>
 
 <div class="app" [attr.dir]="direction()">
   <router-outlet />

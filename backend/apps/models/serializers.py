@@ -60,6 +60,8 @@ class InspectionSerializer(HubResultSerializer):
     has_chat_template = serializers.BooleanField(read_only=True)
     downloadable = serializers.BooleanField(read_only=True)
     size_bytes = serializers.IntegerField(read_only=True)
+    disk_free_bytes = serializers.IntegerField(read_only=True)
+    fits_disk = serializers.BooleanField(read_only=True)
 
 
 class LibraryModelSerializer(serializers.Serializer[dict[str, Any]]):

@@ -24,7 +24,7 @@ way and turns a shared component into a feature's private one.
 | `empty-state/` | A list, table or panel with nothing in it: an icon, a title, the reason and, when there is one, the way out |
 | `status/` | A state or a tag as an icon and a word — a run, an engine, a download, a member, "Default" |
 | `fit-verdict/` | Whether a model fits this machine, as a `status` with the verdict's own icon |
-| `code-block/` | A command, an address or an error's detail in a monospace block that wraps, with room beside its label for a Copy button |
+| `code-block/` | A command, an address or an error's detail in a monospace block that scrolls sideways inside itself, with room beside its label for a Copy button |
 
 `StatusPage` takes `titleKey` and `bodyKey` as translation keys, bound straight
 from route `data` by `withComponentInputBinding()`. A new status page is a route
@@ -39,7 +39,8 @@ title and body are translation keys from the route's `data`.
 digits in both languages, the rial sign beside it and the currency's name for screen
 readers. `RIAL_SIGN` is U+20C4.
 
-**`Term`** (`<app-term key="vram" />`) — a technical term followed by a small help button; the
+**`Term`** (`<app-term key="vram" />`) — a technical term followed by a small help button, named
+"Explain: {term}" (`glossary.explainTerm`) for screen readers; the
 button opens a note with the term's explanation (`glossary.<key>.term` and `.explain` in the
 core bundles), closed by Escape or a click outside. Built on the CDK overlay, since Material
 has no popover.
@@ -87,7 +88,9 @@ verdict (`FIT_ICONS`) and whose tone is `error` only when the model is too large
 content, translated by the feature that renders it.
 
 **`CodeBlock`** (`<app-code-block [code] [label]>`) — a `pre` in `--app-font-mono`, left to right,
-wrapped inside the block so it never scrolls the page. The `label` and anything projected into
+never wrapped: a long line scrolls inside the block, so the page never scrolls sideways. Once
+the block really scrolls (measured after render and on viewport changes) it is a `region` in the
+tab order, named by its `label` or `codeBlock.name`. The `label` and anything projected into
 it (a Copy button) sit in a bar above.
 
 **`ConfirmDialog`**, **`confirmAction()`** (`confirm-dialog/`) — a `MatDialog` that asks one

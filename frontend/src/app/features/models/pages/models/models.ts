@@ -158,7 +158,7 @@ export class ModelsPage {
   async remove(model: LibraryModel): Promise<void> {
     const confirmed = await confirmAction(this.dialog, {
       titleKey: 'models.remove.title',
-      bodyKey: 'models.remove.body',
+      bodyKey: model.origin === 'trained' ? 'models.remove.bodyTrained' : 'models.remove.body',
       confirmKey: 'models.remove.confirm',
       values: { name: model.repo_id },
       destructive: true,

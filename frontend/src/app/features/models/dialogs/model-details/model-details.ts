@@ -18,10 +18,10 @@ import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { FitVerdict } from '@shared/fit-verdict/fit-verdict';
 import { BytesPipe } from '@shared/format/bytes.pipe';
 import { CompactPipe } from '@shared/format/compact.pipe';
-import { formatNumber } from '@shared/format/format';
+import { formatBytes, formatNumber } from '@shared/format/format';
 import { Note } from '@shared/note/note';
 import { Term } from '@shared/term/term';
-import { FIT_USES, type InspectionDialogData, type LibraryRef } from '../../data/models.types';
+import { FIT_USES, type DownloadBlocker, type InspectionDialogData, type LibraryRef } from '../../data/models.types';
 import { ModelsStore } from '../../state/models.store';
 
 function blocksDownload(ref: LibraryRef | null): boolean {
@@ -68,20 +68,30 @@ export class ModelDetailsDialog {
   readonly failure = signal<ApiError | null>(null);
 
   readonly moe = computed(() => this.inspection()?.family === 'moe_decoder');
-  readonly noGpu = computed(() => this.inspection()?.fit.chat.verdict === 'cpu_only');
+  readonly noGpu = computed(() => this.inspection()?.fit.chat.available_bytes === 0);
 
-  readonly blocker = computed<string | null>(() => {
+  readonly blocker = computed<DownloadBlocker | null>(() => {
     const model = this.inspection();
     if (model === null) {
       return null;
     }
     if (!this.canWrite()) {
-      return 'models.details.readOnly';
+      return { key: 'models.details.readOnly' };
     }
     if (!model.downloadable) {
-      return 'models.details.notDownloadable';
+      return { key: 'models.details.notDownloadable' };
     }
-    return blocksDownload(model.in_library) ? 'models.details.inLibrary' : null;
+    if (blocksDownload(model.in_library)) {
+      return { key: 'models.details.inLibrary' };
+    }
+    if (!model.fits_disk) {
+      const locale = this.locale.locale();
+      return {
+        key: 'models.details.diskFull',
+        values: { size: formatBytes(model.size_bytes, locale), free: formatBytes(model.disk_free_bytes, locale) },
+      };
+    }
+    return null;
   });
 
   constructor() {

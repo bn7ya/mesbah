@@ -31,6 +31,10 @@
             @if (member.is_self) {
               <span class="text-secondary">{{ 'members.you' | t }}</span>
             }
+            @if (!wide()) {
+              <ng-container *ngTemplateOutlet="state; context: { $implicit: member }" />
+              <ng-container *ngTemplateOutlet="actions; context: { $implicit: member }" />
+            }
           </span>
         </td>
       </ng-container>
@@ -69,9 +73,7 @@
       <ng-container matColumnDef="status">
         <th mat-header-cell *matHeaderCellDef>{{ 'members.status' | t }}</th>
         <td mat-cell *matCellDef="let member">
-          <app-status [tone]="member.is_active ? 'ok' : 'neutral'" [icon]="member.is_active ? 'fa-circle-check' : 'fa-circle-minus'">
-            {{ (member.is_active ? 'members.active' : 'members.inactive') | t }}
-          </app-status>
+          <ng-container *ngTemplateOutlet="state; context: { $implicit: member }" />
         </td>
       </ng-container>
 
@@ -80,22 +82,12 @@
           <span class="cdk-visually-hidden">{{ 'members.actions' | t }}</span>
         </th>
         <td mat-cell *matCellDef="let member">
-          @if (!member.owner && !member.is_self) {
-            @if (member.is_active) {
-              <button matButton type="button" [disabled]="busy()" (click)="setActive(member, false)">
-                {{ 'members.deactivate.open' | t }}
-              </button>
-            } @else {
-              <button matButton type="button" [disabled]="busy()" (click)="setActive(member, true)">
-                {{ 'members.reactivate' | t }}
-              </button>
-            }
-          }
+          <ng-container *ngTemplateOutlet="actions; context: { $implicit: member }" />
         </td>
       </ng-container>
 
-      <tr mat-header-row *matHeaderRowDef="columns"></tr>
-      <tr mat-row *matRowDef="let row; columns: columns"></tr>
+      <tr mat-header-row *matHeaderRowDef="columns()"></tr>
+      <tr mat-row *matRowDef="let row; columns: columns()"></tr>
     </table>
   </div>
 
@@ -108,3 +100,35 @@
     (page)="turnPage($event)"
   />
 </section>
+
+<ng-template #state let-member>
+  <app-status [tone]="member.is_active ? 'ok' : 'neutral'" [icon]="member.is_active ? 'fa-circle-check' : 'fa-circle-minus'">
+    {{ (member.is_active ? 'members.active' : 'members.inactive') | t }}
+  </app-status>
+</ng-template>
+
+<ng-template #actions let-member>
+  @if (!member.owner && !member.is_self) {
+    @if (member.is_active) {
+      <button
+        matButton
+        type="button"
+        [disabled]="busy()"
+        [attr.aria-label]="'members.deactivate.for' | t: { name: member.username }"
+        (click)="setActive(member, false)"
+      >
+        {{ 'members.deactivate.open' | t }}
+      </button>
+    } @else {
+      <button
+        matButton
+        type="button"
+        [disabled]="busy()"
+        [attr.aria-label]="'members.reactivateFor' | t: { name: member.username }"
+        (click)="setActive(member, true)"
+      >
+        {{ 'members.reactivate' | t }}
+      </button>
+    }
+  }
+</ng-template>

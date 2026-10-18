@@ -71,6 +71,7 @@ export class ConversationHeader {
   readonly versions = this.context.versions;
   readonly engines = this.context.engines;
   readonly activeVersion = this.context.activeVersion;
+  readonly thinkingUnsupported = computed(() => this.context.defaults()?.supports_thinking === false);
 
   readonly followActive = FOLLOW_ACTIVE;
   readonly defaultEngine = DEFAULT_ENGINE;

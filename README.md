@@ -30,6 +30,37 @@ how work happens here is in [`CLAUDE.md`](CLAUDE.md) and
 | Backups | django-dbs (encrypted, redundant, self-healing) |
 | Serving | uvicorn (ASGI) behind nginx; Angular built statically. Or `mesbah start` on one machine |
 
+## What is in it
+
+One page per slice, each a Django app beside an Angular feature of the same name:
+
+| Page | What it does |
+|---|---|
+| Projects | one model being customized; its tabs are Overview, Chat, Training and Versions |
+| Chat | conversations with a version, streamed; edit a reply or its thinking in place, approve it |
+| Training | train a new version from approved replies and library datasets, watched live |
+| Versions | the version tree, each version only its change; activate (roll back), export, see what changed |
+| Models | search HuggingFace, see what a model is and whether it fits, download it |
+| Datasets | import a HuggingFace dataset or upload a file, read as conversations |
+| Architect | design a dense, mixture-of-experts or encoder-decoder model and train it from nothing |
+| Engines | the built-in engine and connected ones, API keys, and how other tools connect |
+| System | this machine's GPUs, memory and disk, the HuggingFace token, the installed parts |
+| Members | people and their roles: viewer, reviewer, trainer, administrator |
+
+The trainer, the built-in engine and the exporters live in `backend/mesbah/` and run as their own
+processes; Django talks to them through files and HTTP (ADR-003 to ADR-009 in
+`.claude/docs/adr/`).
+
+### First steps
+
+1. Run `mesbah start` and create the owner account with the setup code.
+2. On **Models**, download a small model, for example `Qwen/Qwen3-0.6B`.
+3. On **Projects**, make a project on it and open **Chat**.
+4. Correct a reply, or its thinking, where it stands, and approve the ones that are right.
+5. On **Training**, start a run; when it ends, the new version is active.
+6. On **Versions**, see what changed, roll back, or export it.
+7. On **Engines**, make an API key and call the project from the `openai` or `ollama` client.
+
 ## Install it
 
 ```bash
@@ -38,13 +69,26 @@ mesbah start
 ```
 
 `mesbah start` brings up its own PostgreSQL in your user data folder, opens the browser, and
-prints a one-time setup code that creates the owner account. Training needs the training parts:
+prints a one-time setup code that creates the owner account. Chatting and training need the
+training parts, which carry torch; GGUF exports need the `gguf` parts:
 
 ```bash
 pip install torch --index-url https://download.pytorch.org/whl/cu130   # NVIDIA GPU
-pip install "mesbah[train]"
+pip install "mesbah[train,gguf]"
 mesbah doctor                                                         # what is missing
 ```
+
+Unsloth is used when it is installed (one GPU) and is a separate install. From a checkout, without
+a wheel:
+
+```bash
+cd backend
+uv pip install -r pyproject.toml --extra dev --extra train --extra gguf
+python -m mesbah start
+```
+
+`python backend/tools/build_wheel.py` builds the Angular app into a wheel in `backend/dist/`;
+pushing a tag `vX.Y.Z` publishes it to PyPI (`.github/workflows/release.yml`).
 
 ## Running it with Docker
 
@@ -106,7 +150,7 @@ client = ollama.Client(host="http://localhost:8077/ollama", headers={"Authorizat
 client.chat(model="support-assistant", messages=[{"role": "user", "content": "مرحبا"}])
 ```
 
-A version also exports as a LoRA folder (vLLM, PEFT), merged weights (any engine) or a GGUF file
+A version also exports as a LoRA adapter (vLLM, PEFT), merged weights (any engine) or a GGUF file
 with a Modelfile (llama.cpp, Ollama), and vLLM, Ollama, llama.cpp or any OpenAI-compatible server
 can be connected as the engine that answers in the chat.
 
@@ -187,19 +231,6 @@ halves; `interface_designer`, `copywriter` and `translator` finish it; `cleaner`
 `mcp_engineer` are pulled in when the work calls for them.
 
 Sessions start in plan mode. See the table in [`CLAUDE.md`](CLAUDE.md).
-
-## What is here already
-
-- `backend/apps/common/` — `BaseModel`, `BaseRepository`, pagination, one error
-  envelope, `GET /api/health/`
-- `backend/apps/accounts/` — session auth at `/api/auth/`, groups and permissions
-- `frontend/src/app/core/` — auth store and guards, i18n with en/ar and RTL,
-  CSRF and error interceptors
-- `frontend/src/styles/` — the Material theme, the brand palettes and the spacing tokens
-- A working sign-in page, in both languages
-
-No feature slices yet. The first one replaces the placeholder redirect in
-`app.routes.ts`.
 
 ## Prompt log
 

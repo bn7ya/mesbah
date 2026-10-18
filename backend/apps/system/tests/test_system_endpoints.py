@@ -12,6 +12,7 @@ from huggingface_hub.errors import HfHubHTTPError
 from rest_framework.test import APIClient
 
 from apps.accounts.repositories import UserRepository
+from apps.members.roles import ADMINS
 from apps.system.models import Secret
 from apps.system.repositories import SecretRepository
 from apps.system.services import SecretBox
@@ -38,7 +39,8 @@ def client() -> APIClient:
 
 @pytest.fixture
 def admin(db: None) -> User:
-    return UserRepository().create(username="admin", password=PASSWORD, is_staff=True)
+    users: UserRepository = UserRepository()
+    return users.add_to_group(users.create(username="admin", password=PASSWORD), ADMINS)
 
 
 @pytest.fixture

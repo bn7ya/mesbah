@@ -1,0 +1,68 @@
+{
+  "members": {
+    "title": "Members",
+    "subtitle": "The people who use this Mesbah and what each of them can do.",
+    "loading": "Loading members",
+    "person": "Person",
+    "role": "Role",
+    "status": "Status",
+    "actions": "Actions",
+    "pages": "Pages of members",
+    "you": "You",
+    "owner": "Owner",
+    "noRole": "No role",
+    "changeRole": "Change the role of {name}",
+    "active": "Active",
+    "inactive": "Deactivated",
+    "reactivate": "Reactivate",
+    "added": "Member added.",
+    "roleChanged": "Role changed.",
+    "deactivated": "Member deactivated.",
+    "reactivated": "Member reactivated.",
+    "deactivate": {
+      "open": "Deactivate",
+      "title": "Deactivate {name}?",
+      "body": "They can no longer sign in. Their projects, chats and versions stay as they are.",
+      "confirm": "Deactivate"
+    },
+    "roles": {
+      "viewers": {
+        "name": "Viewer",
+        "can": "Sees projects and chats with their versions."
+      },
+      "reviewers": {
+        "name": "Reviewer",
+        "can": "Also corrects replies and approves them for training."
+      },
+      "trainers": {
+        "name": "Trainer",
+        "can": "Also downloads models, adds datasets, trains and exports."
+      },
+      "admins": {
+        "name": "Administrator",
+        "can": "Also manages members, the system and the engines."
+      }
+    },
+    "add": {
+      "open": "Add member",
+      "title": "Add a member",
+      "username": "Username",
+      "usernameRequired": "Enter a username.",
+      "password": "Password",
+      "passwordHint": "At least 8 characters that are hard to guess.",
+      "passwordRequired": "Enter a password.",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "submit": "Add member",
+      "working": "Adding…"
+    }
+  },
+  "errors": {
+    "username_taken": "That username is already in use.",
+    "weak_password": "That password is too easy to guess. Use at least 8 characters that are hard to guess.",
+    "last_administrator": "Mesbah needs at least one active administrator.",
+    "owner_locked": "The owner account stays an active administrator.",
+    "self_deactivation": "You can't deactivate your own account."
+  }
+}

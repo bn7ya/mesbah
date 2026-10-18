@@ -10,7 +10,7 @@
     </div>
 
     <mat-nav-list [attr.aria-label]="'nav.label' | t">
-      @for (item of items; track item.path) {
+      @for (item of items(); track item.path) {
         <a
           mat-list-item
           [routerLink]="item.path"

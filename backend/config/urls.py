@@ -11,6 +11,7 @@ from drf_spectacular.views import (
 api_patterns: list[URLPattern | URLResolver] = [
     path("health/", include("apps.common.urls")),
     path("auth/", include("apps.accounts.urls")),
+    path("members/", include("apps.members.urls")),
     path("system/", include("apps.system.urls")),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path(

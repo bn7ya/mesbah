@@ -25,6 +25,10 @@ export const routes: Routes = [
         loadChildren: () => import('@features/system/system.routes').then((m) => m.routes),
       },
       {
+        path: 'members',
+        loadChildren: () => import('@features/members/members.routes').then((m) => m.routes),
+      },
+      {
         path: 'forbidden',
         canActivate: [authGuard],
         data: { titleKey: 'errors.forbidden', bodyKey: 'errors.forbiddenBody' },

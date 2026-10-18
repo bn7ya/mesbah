@@ -10,6 +10,7 @@ import { MatToolbar } from '@angular/material/toolbar';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { map } from 'rxjs';
 
+import { rolesFrom } from '@core/auth/roles';
 import { AuthStore } from '@core/auth/state/auth.store';
 import { LocaleSwitcher } from '@core/i18n/locale-switcher/locale-switcher';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
@@ -61,7 +62,7 @@ export class Shell {
 
   readonly opened = computed(() => this.wide() || this.menuOpen());
 
-  readonly items = NAVIGATION;
+  readonly items = computed(() => NAVIGATION.filter((item) => this.auth.hasAnyGroup(rolesFrom(item.role))));
 
   readonly displayName = this.auth.displayName;
 

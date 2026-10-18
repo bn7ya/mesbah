@@ -1,6 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom, type Observable } from 'rxjs';
 
+import { rolesFrom } from '@core/auth/roles';
 import { AuthStore } from '@core/auth/state/auth.store';
 import type { ApiError } from '@core/http/api.types';
 import { SystemApi } from '../data/system.api';
@@ -16,10 +17,7 @@ export class SystemStore {
   readonly saving = signal(false);
   readonly error = signal<ApiError | null>(null);
 
-  readonly canManage = computed(() => {
-    const user = this.auth.user();
-    return user !== null && (user.is_staff || user.is_superuser);
-  });
+  readonly canManage = computed(() => this.auth.hasAnyGroup(rolesFrom('admins')));
 
   readonly gpus = computed<readonly Gpu[]>(() => this.overview()?.machine.gpus ?? []);
 

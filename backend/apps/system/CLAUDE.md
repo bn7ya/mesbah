@@ -51,7 +51,8 @@ updates the live row or creates one.
 **Errors** (`services/errors.py`) — `HuggingFaceTokenRejected`, `HuggingFaceUnreachable`,
 `UnknownGpu`: each a stable `code` the frontend translates.
 
-**`CanManageSystem`** (`permissions.py`) — who may change the system. **`SystemView`**,
+**`CanManageSystem`** (`permissions.py`) — who may change the system: administrators
+(`apps.members.permissions.IsAdministrator`). **`SystemView`**,
 **`GpuSelectionView`**, **`HuggingFaceTokenView`** — the endpoints above.
 
 ## Decisions worth not re-litigating

@@ -16,12 +16,14 @@ core/
     data/auth.api.ts        /api/auth/{csrf,login,logout,me}
     state/auth.store.ts     root-provided; who the user is
     guards/auth.guard.ts    authGuard, guestGuard, groupGuard(...)
+    roles.ts                the role ladder; roleGuard(role)
     pages/sign-in/          the sign-in page
   i18n/
     locale.store.ts         current language, the dictionary, the direction
     locale.types.ts
     translate.pipe.ts       {{ 'key' | t }}
     provide-translations.ts feature bundles register on their route
+    paginator-intl.ts       mat-paginator's labels in the reader's language
     locale-switcher/        a mat-button-toggle-group: one exclusive choice of language
     {en,ar}.json            application-wide strings only
   http/
@@ -55,6 +57,11 @@ name.
 return path; `guestGuard` keeps a signed-in user off sign-in; `groupGuard(...)` also
 requires one of the named groups, or goes to `/forbidden`.
 
+**Roles** (`auth/roles.ts`, Mesbah) — the ladder viewers → reviewers → trainers → admins
+(`ROLE_LADDER`), mirroring `apps/members/roles.py`. `rolesFrom()` lists a role and every role
+above it, `highestRole()` picks a user's role, `roleGuard()` is `groupGuard()` over
+`rolesFrom()`. The menu shows each destination to its role and above.
+
 **`SignInPage`** (`auth/pages/sign-in/`) — the sign-in form on a `mat-card`: validates both
 fields and shows each error through `mat-error` (an `ErrorStateMatcher` per field reads the
 signals), toggles password visibility, signs in through the store and follows `?next=`.
@@ -64,6 +71,9 @@ registered bundle. Writes `lang` and `dir` on the document, and turns the CDK's 
 `Directionality` with them, so Material components and overlays follow the language.
 `translate()` resolves a key and fills `{name}` placeholders; a missing key renders as
 itself. `register()` adds a feature's bundles.
+
+**`LocalePaginatorIntl`** (`i18n/paginator-intl.ts`) — every `mat-paginator`'s labels and range
+in the reader's language, refreshed when the language changes. Provided in `app.config.ts`.
 
 **`TranslatePipe`** (`t`) — `translate()` in a template; impure so a language switch reaches
 text already on screen. **`provideTranslations()`** registers a feature's bundles when its

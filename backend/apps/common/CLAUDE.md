@@ -68,6 +68,11 @@ by the API as a string (rule 29).
 **`DefaultPagination`** / **`LargeTablePagination`** (`pagination.py`) — page-number
 pagination for every list, and keyset pagination for tables too large for deep offsets.
 
+**`paginate()`**, **`page_of()`**, **`PAGE_PARAMETERS`** (`pages.py`, Mesbah) — a list endpoint
+on a plain `APIView`: `paginate()` pages a service's queryset with `DefaultPagination` and
+renders each row, `page_of()` builds the `{count, next, previous, results}` serializer the
+schema shows, and `PAGE_PARAMETERS` documents `page` and `page_size`.
+
 **`exception_handler`** (`exceptions.py`) — turns every DRF failure into the one error
 envelope; anything DRF does not handle is logged and left to Django's 500.
 

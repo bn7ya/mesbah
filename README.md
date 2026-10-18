@@ -1,1 +1,144 @@
-TODO: Later will be wrritten
+# Template
+
+An Angular + Django template built around one design pattern and a set of agents
+that keep it. Everything about how work happens here is in
+[`CLAUDE.md`](CLAUDE.md) and [`.claude/docs/design-pattern.md`](.claude/docs/design-pattern.md).
+
+## Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Angular 22 (standalone, signals, zoneless) + Angular Material 22 (Material 3) + Font Awesome 7 Pro |
+| Backend | Django 5.2 LTS + DRF + drf-spectacular |
+| Database | PostgreSQL 18 + pgvector 0.8.6 |
+| Cache / broker | Redis 8 |
+| Background jobs | Celery 5.6 + django-celery-beat |
+| Backups | django-dbs (encrypted, redundant, self-healing) |
+| Serving | gunicorn behind nginx; Angular built statically |
+
+## Running it
+
+```bash
+cp .env.example .env          # then set DJANGO_SECRET_KEY
+docker compose up --watch --build
+```
+
+| What | Where |
+|---|---|
+| Angular | http://localhost:4200 |
+| API | http://localhost:4200/api/ |
+| Swagger UI | http://localhost:4200/api/schema/swagger-ui/ |
+| Django admin | http://localhost:4200/admin/ |
+
+The Angular dev server proxies `/api`, `/admin`, `/static` and `/media` to
+Django, so development is same-origin and there is no CORS configuration
+anywhere in this project — which is exactly how production behaves behind nginx.
+
+`--watch` gives both sides hot reload: Angular rebuilds on a `src/` change,
+Django restarts on a Python change, and a dependency change rebuilds the image.
+
+Production:
+
+```bash
+docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+```
+
+Angular is built once into a volume; nginx serves it and proxies the API. One
+origin, one port.
+
+## The design pattern
+
+**Vertical Slice + Service/Repository.**
+
+```
+frontend/src/app/features/<feature>/     ⟷     backend/apps/<feature>/
+```
+
+One Angular feature directory mirrors one Django app mirrors one page.
+
+```
+Backend    View  →  Service  →  Repository  →  Model
+Frontend   Component  →  Store  →  Api  →  HttpClient
+```
+
+Each layer calls only the one below it. `.claude/docs/design-pattern.md` is the
+contract and the definition of done.
+
+## What is enforced, and how
+
+Some rules are mechanical, and those are checked rather than reviewed.
+
+| Where | What it blocks |
+|---|---|
+| `.claude/hooks/guard-checks.py` (`PostToolUse`) | raw px in feature styles, `setTimeout`, native dialogs, `.objects.` outside a repository, raw SQL, hard deletes |
+| `.claude/hooks/memory-sync.py` (`Stop`) | finishing a turn with a feature's `CLAUDE.md` missing or stale |
+| `.claude/hooks/prompt-log.py` (`UserPromptSubmit`) | nothing — appends every prompt to `prompt.txt` |
+| `.claude/hooks/git-flow-gate.py` (`UserPromptSubmit`) | nothing — restates the git flow on any prompt that reads as a feature, fix or refactor |
+| `frontend/eslint.config.js` | the same frontend rules, earlier |
+| `.github/workflows/ci.yml` | all of the above, plus missing migrations, undocumented endpoints, en/ar key drift, missing feature memory |
+
+Rules that need judgement — vertical slicing, dead code, deprecated APIs, visual
+hierarchy — belong to the agents and to review.
+
+## How work is committed
+
+Every feature, fix and refactor opens a GitHub issue before the first edit, and
+lands as commits small enough that any one of them can be checked out and run.
+The procedure is `.claude/skills/git-flow/SKILL.md`; the rules it enforces are
+in [`CLAUDE.md`](CLAUDE.md) under "How work gets committed".
+
+```
+issue  →  kind/12-what-it-does  →  gate  →  feat(scope): subject (#12)  →  push  →  PR
+```
+
+One issue is one commit is one working application. A request that needs several
+issues gets several commits on one branch, and the PR closes them all.
+
+## Backups
+
+`django-dbs` is the backup solution, and the `backup` service runs it on a loop.
+Each backup is one encrypted file holding two copies of the data plus
+Reed-Solomon parity, so silent corruption is repaired on restore rather than
+restored.
+
+It reads the models directly, so a backup covers every slice with nothing to
+register per feature. Superusers manage it at `/admin/dbs/`: the schedule,
+health, an audit trail, taking a backup and restoring one. Details and the
+per-model override hook are in [`backend/CLAUDE.md`](backend/CLAUDE.md).
+
+Two things to get right before it counts as a backup:
+
+- **`DBS_PASSPHRASE`.** The key is derived from it and never stored. Lose it and
+  every backup is unreadable. Keep it off the machine being backed up.
+- **Offsite.** Set `DBS_SSH_HOST`, and every scheduled backup is also pushed
+  there. A backup that only exists on the server it backs up dies with the
+  server.
+
+## The agents
+
+`.claude/agents/` holds twelve specialists. `architect` plans a slice and
+dispatches the rest; `django_engineer` and `angular_engineer` build the two
+halves; `interface_designer`, `copywriter` and `translator` finish it; `cleaner` and
+`user_journey_engineer` check it. `db_engineer`, `logic_engineer`, `unifier` and
+`mcp_engineer` are pulled in when the work calls for them.
+
+Sessions start in plan mode. See the table in [`CLAUDE.md`](CLAUDE.md).
+
+## What is here already
+
+- `backend/apps/common/` — `BaseModel`, `BaseRepository`, pagination, one error
+  envelope, `GET /api/health/`
+- `backend/apps/accounts/` — session auth at `/api/auth/`, groups and permissions
+- `frontend/src/app/core/` — auth store and guards, i18n with en/ar and RTL,
+  CSRF and error interceptors
+- `frontend/src/styles/` — the Material theme, the brand palettes and the spacing tokens
+- A working sign-in page, in both languages
+
+No feature slices yet. The first one replaces the placeholder redirect in
+`app.routes.ts`.
+
+## Prompt log
+
+Every prompt submitted in this project is appended to `prompt.txt` by a hook.
+The file is gitignored and stays on the machine that wrote it — a local record
+of what was asked, not part of the repository. Do not edit it by hand.

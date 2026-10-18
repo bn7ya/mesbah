@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """PreToolUse hook: warn before editing a file a live session is holding.
 
-Session awareness. The harness records every file each session edits, under
+Rule 28. The harness records every file each session edits, under
 ~/.claude/file-history/<session>/<sha256(absolute path)[:16]>@v<n>, so this hook
 writes nothing and only reads: hash the path, see who else has touched it, keep
 the ones whose process is still alive.
 
 The hash is of the **absolute** path, deliberately. Two sessions editing
-backend/app/features/inference/engine.py in two worktrees are editing two different
+frontend/src/styles/_layout.scss in two worktrees are editing two different
 files and are not in conflict at all; comparing repository-relative paths would
 invent that conflict, and a warning that is usually wrong gets switched off.
 
@@ -65,6 +65,11 @@ def main() -> int:
 
     now = time.time()
     editors = registry.editors_of(path)
+    # opencode records edits in its sidecars, not in the harness file-history.
+    # Union both so one shared view of who is holding a file survives either harness.
+    for editor, when in registry.sidecar_editors(path, session_id).items():
+        if when > editors.get(editor, 0.0):
+            editors[editor] = when
     if not editors:
         return 0
 

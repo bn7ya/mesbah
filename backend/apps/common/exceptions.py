@@ -1,12 +1,3 @@
-"""One error shape for the whole API.
-
-DRF's default body differs by exception type — sometimes a list, sometimes a
-dict, sometimes `{"detail": ...}`. This flattens all of it into one envelope:
-
-    {"error": {"code": "validation_error",
-               "message": "Enter a date after today.",
-               "fields": {"starts_on": ["Enter a date after today."]}}}
-"""
 from __future__ import annotations
 
 import logging
@@ -18,13 +9,12 @@ from rest_framework import exceptions
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
-GENERIC_MESSAGE = "Something went wrong. Try again."
+GENERIC_MESSAGE: str = "Something went wrong. Try again."
 
 
-def _flatten(detail: Any) -> str:
-    """First human-readable string out of DRF's nested detail structures."""
+def _flatten(detail: object) -> str:
     if isinstance(detail, str):
         return detail
     if isinstance(detail, list) and detail:
@@ -34,16 +24,16 @@ def _flatten(detail: Any) -> str:
     return GENERIC_MESSAGE
 
 
-def exception_handler(exc: Exception, context: dict) -> Response | None:
-    response = drf_exception_handler(exc, context)
+def exception_handler(exc: Exception, context: dict[str, Any]) -> Response | None:
+    response: Response | None = drf_exception_handler(exc, context)
 
     if response is None:
-        if not isinstance(exc, (Http404, PermissionDenied)):
+        if not isinstance(exc, Http404 | PermissionDenied):
             logger.exception("Unhandled exception in %s", context.get("view"))
         return None
 
-    detail = response.data
-    code = getattr(exc, "default_code", "error")
+    detail: Any = response.data
+    code: str = getattr(exc, "default_code", "error")
 
     fields: dict[str, Any] | None = None
     if isinstance(exc, exceptions.ValidationError) and isinstance(detail, dict):

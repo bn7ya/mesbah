@@ -1,0 +1,14 @@
+$content-max: 100rem;
+
+$card-max: 34rem;
+
+$screen-sm: 36rem;
+$screen-md: 48rem;
+$screen-lg: 64rem;
+$screen-xl: 80rem;
+
+@mixin from($width) {
+  @media (min-width: $width) {
+    @content;
+  }
+}

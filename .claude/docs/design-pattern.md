@@ -1,78 +1,48 @@
 # The Design Pattern
 
-**Vertical Slice + Service/Repository**, on the Django side, ported from
-`bn7ya/template` per the root `CLAUDE.md`. Every agent in `.claude/agents/`
-cites this document. Deviating requires an ADR in `.claude/docs/adr/`.
-
-This doc governs the **Django migration target** (`backend/apps/`) and the
-**existing Angular frontend** (`frontend/src/app/`) as it actually is today —
-it does not invent a frontend architecture the project doesn't have. Read
-`frontend/CLAUDE.md` and `backend/CLAUDE.md` alongside this before touching
-either side.
-
-## 0. Which backend you are touching
-
-Mesbah runs **two backends side by side** during the migration:
-
-- **`backend/app/`** (FastAPI + SQLModel + SQLite) — the **live** backend.
-  The Angular app talks to this one today, over `/api/*` via the dev proxy.
-  It is a working product, not legacy code — features still get added here.
-- **`backend/apps/` + `backend/config/`** (Django + DRF + PostgreSQL/pgvector
-  + Redis + Celery) — the **migration target**. Independently verified
-  (migrations, DRF schema, tests) but **nothing in it is wired to the
-  Angular app yet**. Sections 2 and 4 below describe this side.
-
-Before writing a line of backend code, know which one you're in. A request
-like "add a field to the project model" almost always means `backend/app/`
-(that's the one users hit); "port projects to Django" means `backend/apps/`.
-Don't assume — check `backend/CLAUDE.md`'s phase list, or ask.
+**Vertical Slice + Service/Repository.** This is the only pattern used in this project. Every agent cites this document. Deviating requires an ADR in `.claude/docs/adr/`.
 
 ---
 
 ## 1. The slice
 
-A feature is one vertical slice spanning Django and Angular. It is never
-"a backend task" or "a frontend task" in isolation — but the two sides are
-**not symmetric**, because the frontend already has its own established,
-simpler shape that the migration does not change.
+A feature is one vertical slice spanning the whole stack. It is never "a frontend task" or "a backend task".
 
 ```
 frontend/src/app/features/<feature>/     ⟷     backend/apps/<feature>/
 ```
 
-The names match — this is the one rule the two sides share, already in
-force per `backend/apps/common/CLAUDE.md`: **one Django app per Angular
-feature** (`apps/common` is the deliberate, documented exception).
+The names match. One Angular feature directory mirrors exactly one Django app, and both mirror one page (or one tightly-related group of pages) in the product.
 
-A slice touching the Django side is complete when all of these exist:
+A slice is complete when all of these exist:
 
-| # | Side | File |
+| # | Layer | File |
 |---|---|---|
-| 1 | Backend | `apps/<feature>/models/<name>.py` — inherits `BaseModel` |
-| 2 | Backend | `apps/<feature>/repositories/<name>_repository.py` |
-| 3 | Backend | `apps/<feature>/services/<name>_service.py` |
-| 4 | Backend | `apps/<feature>/views/<name>.py` |
-| 5 | Backend | `apps/<feature>/serializers/<name>.py` |
-| 6 | Backend | `apps/<feature>/permissions.py` (if not just `IsAuthenticated`) |
-| 7 | Backend | `apps/<feature>/urls.py` |
-| 8 | Backend | `apps/<feature>/migrations/` |
-| 9 | Backend | `apps/<feature>/CLAUDE.md` |
-| 10 | Frontend | `frontend/src/app/features/<feature>/<feature>-*.ts` — standalone, signals |
-| 11 | Frontend | a method per endpoint added to the **shared** `core/api.ts` |
-| 12 | Frontend | the response shape added to the **shared** `core/types.ts` |
-| 13 | Frontend | `frontend/src/app/features/<feature>/CLAUDE.md` |
+| 1 | Route | `<feature>.routes.ts` |
+| 2 | Guard | `guards/<feature>.guard.ts` |
+| 3 | Page component | `pages/<page>/<page>.{ts,html,scss}` |
+| 4 | State | `state/<feature>.store.ts` (signals) |
+| 5 | API client | `data/<feature>.api.ts` |
+| 6 | Types | `data/<feature>.types.ts` |
+| 7 | i18n keys | `i18n/{en,ar}.json` entries |
+| 8 | Frontend memory | `features/<feature>/CLAUDE.md` |
+| 9 | URL conf | `apps/<feature>/urls.py` |
+| 10 | View | `apps/<feature>/views/<name>.py` |
+| 11 | Serializer | `apps/<feature>/serializers/<name>.py` |
+| 12 | Permission | `apps/<feature>/permissions.py` |
+| 13 | Service | `apps/<feature>/services/<name>_service.py` |
+| 14 | Repository | `apps/<feature>/repositories/<name>_repository.py` |
+| 15 | Model | `apps/<feature>/models/<name>.py` |
+| 16 | Migration | `apps/<feature>/migrations/` |
+| 17 | Backend memory | `apps/<feature>/CLAUDE.md` |
 
-Rows 10–13 are deliberately few — see §3. If a change touches only one
-side, it is not a slice; say so and finish the other side, unless it is
-genuinely one-sided (a pure Django-internal refactor, a pure copy change) —
-in which case say that explicitly rather than leaving it unsaid.
+If a change touches only one side, it is not a slice — it is an incomplete change. Say so and finish the other side.
 
 ---
 
-## 2. Backend layering (Django side, `backend/apps/`)
+## 2. Backend layering
 
-Four layers, strictly one-directional. **A layer may only call the layer
-directly below it.**
+Four layers, strictly one-directional. **A layer may only call the layer directly below it.**
 
 ```
 View  ──►  Service  ──►  Repository  ──►  Model / ORM
@@ -81,9 +51,7 @@ View  ──►  Service  ──►  Repository  ──►  Model / ORM
 ```
 
 ### View — thin
-Parses the request, delegates to exactly one service call, returns a
-serialized response. No business rules, no ORM access, no `if` chains over
-domain state.
+Parses the request, delegates to exactly one service call, returns a serialized response. No business rules, no ORM access, no `if` chains over domain state.
 
 ```python
 class OrderListView(ListAPIView):
@@ -95,13 +63,10 @@ class OrderListView(ListAPIView):
 ```
 
 ### Serializer — shape only
-Field mapping and field-level validation. No DB queries, no cross-object
-rules, no side effects. Object-level rules belong in the service.
+Field mapping and field-level validation. No DB queries, no cross-object rules, no side effects. Object-level rules belong in the service.
 
 ### Service — business logic
-Owns rules, orchestration, transactions and permission decisions beyond the
-route level. Takes the acting user in its constructor. Returns domain
-objects or querysets. Never touches `Model.objects` — it calls repositories.
+Owns rules, orchestration, transactions and permission decisions beyond the route level. Takes the acting user in its constructor. Returns domain objects or querysets. Never touches `Model.objects` — it calls repositories.
 
 ```python
 class OrderService:
@@ -118,9 +83,7 @@ class OrderService:
 ```
 
 ### Repository — the only place the ORM is touched
-Every `.objects.` call in `apps/*` lives in a `repositories/` module —
-enforced by `.claude/hooks/guard-checks.py`. Repositories return querysets
-or model instances and contain no business rules.
+Every `.objects.` call in the codebase lives in a `repositories/` module. This is enforced by `.claude/hooks/guard-checks.py`. Repositories return querysets or model instances and contain no business rules.
 
 ```python
 class OrderRepository(BaseRepository):
@@ -130,61 +93,53 @@ class OrderRepository(BaseRepository):
         return self.active().filter(owner=user).get(pk=order_id)
 ```
 
-`BaseRepository` (`apps/common/repositories/base.py`) supplies `active()`,
-`all_including_deleted()`, `get`/`find`/`exists`, `create`/`update`,
-`soft_delete`/`restore`/`bulk_soft_delete`.
+`BaseRepository` (in `apps/common/repositories/base.py`) supplies `active()`, `all_including_deleted()`, `get()`, `create()`, `update()`, `soft_delete()`.
 
-**No raw SQL in application code.** If the ORM genuinely cannot express it,
-put the SQL in a repository method with a comment explaining why, and have
-`db_engineer` sign off with benchmark numbers.
+**No raw SQL in application code.** If the ORM genuinely cannot express it, put the SQL in a repository method with a comment explaining why, and have `db_engineer` sign off with benchmark numbers.
 
 ---
 
-## 3. Frontend layering (`frontend/src/app/`) — as it actually is
+## 3. Frontend layering
 
-Mesbah's Angular app is intentionally **flatter** than a per-feature
-store/api/types split. This is not a gap to fill in — it is the documented
-convention (`frontend/CLAUDE.md`), and it does not change when the backend
-moves to Django.
+Mirror image, same one-directional rule.
 
 ```
-Component (signals)  ──►  the ONE shared core/api.ts  ──►  HttpClient
+Component  ──►  Store (signals)  ──►  Api client  ──►  HttpClient
 ```
 
-- **One API gateway.** `core/api.ts` is the single typed gateway to the
-  backend for every feature — inject it, never sprinkle `HttpClient` in a
-  component. Adding an endpoint means adding one method here, not a new
-  per-feature `data/<feature>.api.ts`.
-- **One types file.** `core/types.ts` mirrors the backend schemas for every
-  feature. Add the new shape here, not a per-feature `data/<feature>.types.ts`.
-- **Component — presentation and state.** Standalone, always. Signals
-  (`signal`, `computed`) for state, `inject()` for deps — no `NgModule`,
-  no constructor injection, no `BehaviorSubject` for view state. A
-  component's `template:`/`styles:` are inline (Tailwind utility classes,
-  no `.scss` file) — see `frontend/CLAUDE.md`, this is deliberate, not a
-  shortcut to fix.
-  - No `setTimeout`. Model timing in state.
-  - No native browser UI: never `confirm()`, `alert()`, `prompt()`,
-    `<dialog>`, or a bare `<input type="radio">`. PrimeNG has all of these
-    (`p-confirmdialog`, `p-toast`/`p-message`, `p-dialog` + `p-inputtext`,
-    `p-radiobutton`).
-- **Routing.** `app.routes.ts` is one flat list (no per-feature
-  `<feature>.routes.ts`, no guards — mesbah is single-user with no
-  role-based UI gating; the Django migration adds auth at the API layer,
-  not per-route frontend guards).
-- **Language.** Mesbah's UI is Arabic, RTL, single-language — there is no
-  `en.json`/`ar.json` parity to maintain. Technical terms (`QLoRA`, `LoRA`,
-  `adapter`, `base model`, `loss`, `VRAM`, …) stay in **English**, wrapped in
-  `code.ltr`; everything else is Arabic. Use logical utilities (`ps-*`,
-  `pe-*`, `ms-*`, `me-*`, `text-start`) — never assume LTR.
+### Component — presentation
+Reads signals, renders, emits user intent to the store. No `HttpClient`, no business rules, no data transformation beyond formatting.
+
+- Standalone. Always.
+- `.ts`, `.html` and `.scss` are always three separate files. Never inline `template:` or `styles:`.
+- State is signals — `signal`, `computed`, `linkedSignal`, `resource`. Do not use `BehaviorSubject` for view state.
+- No `setTimeout`. If you need to defer, model it in state.
+- Angular Material for every control — `matButton` and `matIconButton` on a native `<button>` or `<a>`, `mat-form-field` with `matInput`, `mat-card`, `mat-button-toggle-group`, `MatDialog`, `mat-select`, `mat-table` — each imported into the standalone component that uses it. A control Material lacks, needed by two features, becomes a component in `shared/` on the CDK. Never `confirm()`, `alert()` or `prompt()`: `MatDialog` asks, `MatSnackBar` or a message in the page reports, a form field collects.
+
+### Store — feature state
+Holds signals, exposes `computed` derivations, calls the api client, owns loading/error state. One store per feature.
+
+```ts
+@Injectable()
+export class OrdersStore {
+  private readonly api = inject(OrdersApi);
+
+  readonly orders = signal<Order[]>([]);
+  readonly loading = signal(false);
+  readonly error = signal<string | null>(null);
+
+  readonly submittable = computed(() => this.orders().filter(o => o.canSubmit));
+}
+```
+
+### Api client — transport
+One method per endpoint. Maps wire types to domain types. No caching, no state, no error UI decisions.
 
 ---
 
-## 4. Shared foundations (Django side)
+## 4. Shared foundations
 
 ### `BaseModel` — every model inherits it
-
-Already implemented in `apps/common/models/base.py`:
 
 ```python
 class BaseModel(models.Model):
@@ -196,7 +151,7 @@ class BaseModel(models.Model):
                                    on_delete=models.SET_NULL, related_name="+")
 
     objects = SoftDeleteManager()        # excludes soft-deleted rows
-    all_objects = AllObjectsManager()    # includes them
+    all_objects = models.Manager()       # includes them
 
     class Meta:
         abstract = True
@@ -204,67 +159,91 @@ class BaseModel(models.Model):
 
 ### Soft delete only
 
-`delete()` on a `BaseModel` sets `deleted_at` (`.purge()` is the one real
-delete, reserved for data migrations — see `apps/common/models/base.py`).
+`delete()` on a `BaseModel` sets `deleted_at`. It never issues `DELETE`. Hard deletion is a data-migration decision, never an application one.
 
 ### Pagination on every list endpoint
 
-`DEFAULT_PAGINATION_CLASS` (`apps/common/pagination.py::DefaultPagination`)
-is set globally. A list endpoint that opts out needs a comment saying why.
-`LargeTablePagination` (cursor-based) exists for deep-offset tables — not
-needed yet at Mesbah's single-user scale.
+`DEFAULT_PAGINATION_CLASS` is set globally in `config/settings/base.py`. A list endpoint that opts out needs a comment saying why.
 
 ### Auth by default
 
-`DEFAULT_PERMISSION_CLASSES = ["rest_framework.permissions.IsAuthenticated"]`.
-A public endpoint declares `permission_classes = [AllowAny]` explicitly.
+`DEFAULT_PERMISSION_CLASSES = ["rest_framework.permissions.IsAuthenticated"]`. A public endpoint declares `permission_classes = [AllowAny]` explicitly — it is opt-out, never opt-in.
 
-Authorization is **Django Groups and Permissions** — no parallel role
-system. Mesbah stays single-user (one seeded operator account per the root
-`CLAUDE.md`), so this is a security boundary, not a UI-gating mechanism: the
-frontend does not currently branch on group membership.
+Authorization is **Django Groups and Permissions**. There is no parallel role system. The frontend reads the same group names from `/api/auth/me/` and uses them in route guards and to show or hide affordances. A permission check that exists on the frontend must also exist on the backend; the frontend check is a convenience, the backend check is the security boundary.
 
 ### File splitting
 
-`models.py`, `views.py`, `serializers.py` become packages once they hold
-more than about three items, re-exporting from `__init__.py`. Importers use
-`from apps.<feature>.models import Thing`, never the submodule path.
+`models.py`, `views.py`, `serializers.py` become packages once they hold more than about three items:
+
+```
+models/
+  __init__.py      # from .order import Order   — re-export everything
+  order.py
+  order_line.py
+```
+
+Importers always use `from apps.orders.models import Order`, never the submodule path.
 
 ---
 
-## 5. Styling (frontend)
+## 5. Styling
 
-One source of truth: **Tailwind v4 utility classes**, inline in each
-component's `template:` — there is no `_golden.scss` token file and no
-custom design system (`frontend/CLAUDE.md`).
+One source of truth: **the Angular Material theme**, in `src/styles/`. ADR-002 records the
+decision.
 
-Shared vocabulary, kept consistent across features:
+| File | Holds |
+|---|---|
+| `_theme.scss` | `mat.theme()` — colour from the brand palettes, Tajawal, density — so every `--mat-sys-*` token; the strong focus indicators; every `mat.<component>-overrides()` |
+| `_theme-colors.scss` | The M3 palettes, generated from the brand gold by `ng generate @angular/material:theme-color` — regenerated, never edited |
+| `_tokens.scss` | Only what Material has no system token for, as `--app-*`: the space scale, the focus width, the icon box, a duration, an easing, a layer |
+| `_reset.scss` | Box sizing, margins, reduced motion |
+| `_base.scss` | Element defaults: body type, headings, links, the focus ring for what is not Material, `.text-secondary`, the skip link |
+| `_layout.scss` | The page's maximum widths and the shell's breakpoints |
 
-- Cards: `rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900`
-- Muted text: `text-neutral-500 dark:text-neutral-400`
-- Accent: blue (`text-blue-600 dark:text-blue-400`, `bg-blue-600` buttons)
-- Thin borders, no heavy shadows; selected/active state is a blue ring
-  (`ring-1 ring-blue-400/40`)
-- Dark mode is class-based (`.dark` on `<html>`)
+`src/styles.scss` uses them in that order (layout is pulled in by the components that need
+it). Colour, type, shape and elevation are read as `var(--mat-sys-*)`; spacing as
+`var(--app-space-*)`. **No raw px in feature styles** — enforced by the guard hook. A
+component that needs a value writes a token, never a number. A value the system does not
+have is a theme override or an `--app-*` token, which is a decision for the whole app, not a
+feature.
 
-Visual hierarchy is still a rule, not a preference: the most important
-information on a screen renders largest. There is no φ ladder to consult —
-use Tailwind's own type/spacing scale deliberately and consistently.
+A feature stylesheet places Material components — their size, gap and padding in the page —
+and never restyles one. How every button, field or card looks changes in `_theme.scss`,
+through `mat.<component>-overrides()`.
+
+`mat.strong-focus-indicators()` draws the ring on every Material control and `_base.scss`
+draws the same ring on everything else, both in `--mat-sys-primary`. A component that writes
+its own `outline` on `:focus-visible` replaces that ring rather than adding to it, which is
+why none of them do.
+
+Three files are exempt from the px rule, and only three: `_tokens.scss`, where the `--app-*`
+values are defined; `_layout.scss`, because a media query cannot read a custom property; and
+`_reset.scss`. Breakpoints are viewport media queries through the `from($screen-md)` mixin;
+a component that has to answer to its own width may use a container query inside itself.
+
+Visual hierarchy is a rule, not a preference: the most important information on a screen
+renders largest. `.claude/docs/interface.md` is the standard for that and everything beside
+it — states, type, the two schemes, depth, icons. `interface_designer` owns it and
+`unifier` audits against it.
+
+Nothing else. No second component library and no utility-class framework, Tailwind
+included, is ever added alongside this. Either bypasses the theme and becomes a second,
+competing source of truth for exactly the values `mat.theme()` already owns. If the visual
+language needs to change, the theme changes — not the toolkit.
 
 ---
 
 ## 6. Definition of done
 
-A slice touching the Django side is done when:
+A slice is done when:
 
-- [ ] The rows in §1 that apply exist (or their absence is justified in the
-      feature's `CLAUDE.md`)
-- [ ] Both `CLAUDE.md` files (backend app + frontend feature) are written
-      or updated
+- [ ] All 17 files from §1 exist (or their absence is justified in the feature's `CLAUDE.md`)
+- [ ] Both `CLAUDE.md` files are written or updated
+- [ ] Every string is in `en.json` and `ar.json`, and the UI works in RTL
 - [ ] The endpoint appears correctly in `/api/schema/swagger-ui/`
-- [ ] Auth is enforced server-side (`permission_classes`)
+- [ ] Auth is enforced server-side and reflected in the route guard
 - [ ] List endpoints paginate
+- [ ] No hardcoded px, no `setTimeout`, no native browser dialogs, no hand-rolled focus ring
+- [ ] Every control is Angular Material, and none is restyled outside `_theme.scss`
 - [ ] No `.objects.` outside a repository, no raw SQL, no hard delete
-- [ ] No `setTimeout`, no native browser dialogs, in any touched component
-- [ ] The UI still works in RTL and technical terms stayed in English
 - [ ] Nothing deprecated; nothing unused left behind

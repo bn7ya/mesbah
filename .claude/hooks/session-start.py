@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """SessionStart hook: tell a new session who else is live.
 
-Session awareness. The harness knows which sessions are running; it does not know which
+Rule 28. The harness knows which sessions are running; it does not know which
 worktree or branch each one sits on, and it never volunteers any of it. This
 writes that half down and prints the other sessions once, at the top of the
 session, where it costs one paragraph and saves a collision.

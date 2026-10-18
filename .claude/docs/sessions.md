@@ -1,7 +1,7 @@
 # Working alongside other sessions
 
 More than one Claude session runs on this machine at once, and a project of any
-size is soon checked out as several worktrees. Before the session hooks nothing told one
+size is soon checked out as several worktrees. Before rule 28 nothing told one
 session that another existed, and it costs real work: two Docker gates running together time each
 other out, a backgrounded `pytest` holds the test database the other session
 needs, and two sessions in one file overwrite each other.
@@ -83,7 +83,7 @@ lines whenever the prompt looks like work.
   entered our worktree — at most one notice per kind per ten minutes, hard cap
   six lines.
 - **The file warning** compares **absolute** paths. Two sessions editing
-  `backend/app/features/inference/engine.py` in two worktrees are editing two different
+  `frontend/src/styles/_layout.scss` in two worktrees are editing two different
   files and are not in conflict; comparing repository-relative paths would
   invent that conflict, and a warning that is usually wrong gets switched off.
   Anything under a `.claude` directory and `prompt.txt` are exempt, as is a
@@ -106,7 +106,7 @@ every session hook. To quieten one session for a while, `/sessions mute`.
 
 ## Known, and not fixed here
 
-Every worktree's `docker-compose.django.yml` declares the same project name, so a second
+Every worktree's `compose.yaml` declares the same project name, so a second
 `docker compose up` from another worktree does not start a second stack: it
 reuses and mutates the first one. That is the real mechanism behind the
 deadlocked test database. `resource-claim.py` makes the collision **visible** at

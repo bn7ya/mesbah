@@ -1,9 +1,92 @@
-# Test config for the Django/DRF side only (backend/apps/, backend/config/).
-# The FastAPI side (backend/app/) has no pytest suite of its own yet — see
-# backend/CLAUDE.md's "Verify" section for its smoke-flow check instead.
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Django backend — vertical slice + service/repository"
+requires-python = ">=3.13"
+
+dependencies = [
+    "Django==5.2.*",
+    "djangorestframework==3.16.*",
+    "drf-spectacular==0.28.*",
+    "django-filter==25.*",
+    "django-stubs-ext==6.*",
+    "psycopg[binary]==3.2.*",
+    "pgvector==0.4.*",
+    "redis==6.*",
+    "django-redis==6.*",
+    "celery==5.6.*",
+    "django-celery-beat==2.8.*",
+    "django-dbs==0.5.*",
+    "gunicorn==23.*",
+    "whitenoise==6.*",
+    "python-dotenv==1.*",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.*",
+    "pytest-django==4.*",
+    "pytest-cov==6.*",
+    "model-bakery==1.*",
+    "ruff==0.12.*",
+    "mypy==1.*",
+    "django-stubs[compatible-mypy]==5.2.*",
+    "djangorestframework-stubs[compatible-mypy]==3.16.*",
+    "django-debug-toolbar==5.*",
+]
+
+[tool.setuptools]
+# The project is a Django application tree, not an installable package. Only the
+# dependency list matters here.
+packages = []
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.dev"
 python_files = ["test_*.py", "*_test.py"]
 addopts = "--reuse-db --strict-markers"
 testpaths = ["apps"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes — unused imports and names (rule 5)
+    "I",        # isort
+    "UP",       # pyupgrade — deprecated syntax (rule 4)
+    "B",        # bugbear
+    "DJ",       # flake8-django
+    "S",        # bandit
+    "C4",       # comprehensions
+    "SIM",      # simplify
+    "ANN",      # every signature typed (rule 30)
+]
+ignore = [
+    "S101",     # assert is how pytest works
+]
+
+[tool.ruff.lint.per-file-ignores]
+"*/tests/*" = ["S105", "S106"]
+"config/settings/*" = ["F403", "F405"]
+
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = true
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+exclude = ["/migrations/"]
+
+[[tool.mypy.overrides]]
+module = ["celery.*", "django_celery_beat.*", "dbs.*", "debug_toolbar.*", "pgvector.*", "whitenoise.*"]
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "config.settings.dev"

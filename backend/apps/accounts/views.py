@@ -1,6 +1,8 @@
-"""Thin views. Parse, delegate to one service call, serialize the result."""
 from __future__ import annotations
 
+from typing import Any
+
+from django.contrib.auth.models import User
 from django.middleware.csrf import get_token
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -14,12 +16,6 @@ from apps.accounts.services import AccountService
 
 
 class CsrfView(APIView):
-    """Issues the CSRF cookie the SPA needs before its first unsafe request.
-
-    Public by necessity: a client that is not signed in yet still has to be
-    able to POST to `/api/auth/login/`.
-    """
-
     permission_classes = [AllowAny]
 
     @extend_schema(
@@ -34,8 +30,6 @@ class CsrfView(APIView):
 
 
 class SignInView(APIView):
-    """`POST /api/auth/login/` — start a session."""
-
     permission_classes = [AllowAny]
 
     @extend_schema(
@@ -43,27 +37,25 @@ class SignInView(APIView):
         description=(
             "Starts a session. Refused credentials answer 403, not 401: DRF "
             "downgrades AuthenticationFailed when no authenticator can offer a "
-            "WWW-Authenticate challenge, and cookie auth has none. The reason "
-            "is in the body."
+            "WWW-Authenticate challenge, and cookie auth has none. The reason is "
+            "in the body."
         ),
         request=SignInSerializer,
         responses={200: IdentitySerializer, 403: None},
         auth=[],
     )
     def post(self, request: Request) -> Response:
-        payload = SignInSerializer(data=request.data)
+        payload: SignInSerializer = SignInSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
 
-        service = AccountService()
-        user = service.sign_in(request, **payload.validated_data)
+        service: AccountService = AccountService()
+        user: User = service.sign_in(request, **payload.validated_data)
 
-        identity = AccountService(user).identity()
+        identity: dict[str, Any] = AccountService(user).identity()
         return Response(IdentitySerializer(identity).data)
 
 
 class SignOutView(APIView):
-    """`POST /api/auth/logout/` — end the session."""
-
     permission_classes = [IsAuthenticated]
 
     @extend_schema(summary="Sign out", request=None, responses={204: None})
@@ -73,16 +65,9 @@ class SignOutView(APIView):
 
 
 class MeView(APIView):
-    """`GET /api/auth/me/` — who the caller is, and which groups they are in.
-
-    The frontend reads `groups` from here for its route guards and
-    affordances — a convenience only. The security boundary is
-    `permission_classes` on each endpoint.
-    """
-
     permission_classes = [IsAuthenticated]
 
     @extend_schema(summary="Current user", responses={200: IdentitySerializer})
     def get(self, request: Request) -> Response:
-        identity = AccountService(request.user).identity()
+        identity: dict[str, Any] = AccountService(request.user).identity()
         return Response(IdentitySerializer(identity).data)

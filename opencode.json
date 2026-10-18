@@ -1,0 +1,68 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "plan",
+  "instructions": [
+    "frontend/CLAUDE.md",
+    "backend/CLAUDE.md",
+    "frontend/src/app/**/CLAUDE.md",
+    "backend/apps/**/CLAUDE.md"
+  ],
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "docker compose *": "allow",
+      "docker exec *": "allow",
+      "git status *": "allow",
+      "git diff *": "allow",
+      "git log *": "allow",
+      "git add *": "allow",
+      "git commit *": "allow",
+      "git switch *": "allow",
+      "git checkout *": "allow",
+      "git branch *": "allow",
+      "git push *": "allow",
+      "gh issue *": "allow",
+      "gh label *": "allow",
+      "gh pr *": "allow",
+      "gh repo view *": "allow",
+      "npm run *": "allow",
+      "npx ng *": "allow",
+      "python manage.py *": "allow",
+      "ruff *": "allow",
+      "pytest *": "allow",
+      "git push --force *": "deny",
+      "rm -rf *": "deny"
+    },
+    "read": {
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.env.example": "allow",
+      "*.pem": "deny",
+      "*id_rsa*": "deny"
+    }
+  },
+  "agent": {
+    "plan": {
+      "permission": {
+        "read": {
+          "*.env": "deny",
+          "*.env.*": "deny",
+          "*.env.example": "allow",
+          "*.pem": "deny",
+          "*id_rsa*": "deny"
+        }
+      }
+    },
+    "build": {
+      "permission": {
+        "read": {
+          "*.env": "deny",
+          "*.env.*": "deny",
+          "*.env.example": "allow",
+          "*.pem": "deny",
+          "*id_rsa*": "deny"
+        }
+      }
+    }
+  }
+}

@@ -1,94 +1,40 @@
-# ─────────────────────────────────────────────────────────────
-# Misbah — LLM fine-tuning studio :: .gitignore
-# ─────────────────────────────────────────────────────────────
-
-# ===== Secrets / local config =====
+# Secrets
 .env
 .env.*
 !.env.example
-!.env.django.example
-*.local
-backend/.env
-frontend/src/environments/environment.local.ts
 
-# ===== Python =====
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
 .venv/
 venv/
-env/
 .pytest_cache/
-.mypy_cache/
 .ruff_cache/
-.ipynb_checkpoints/
-*.egg-info/
-dist/
-build/
-pip-wheel-metadata/
+.coverage
+htmlcov/
+backend/staticfiles/
+backend/media/
 
-# ===== ML artifacts (NEVER commit weights / datasets / runs) =====
-# Base models & HuggingFace cache
-backend/data/models/
-backend/data/hf_cache/
-backend/data/.cache/
-**/.cache/huggingface/
-# LoRA adapters & merged checkpoints produced by training runs
-backend/data/adapters/
-backend/data/checkpoints/
-backend/data/merged/
-# Generated training datasets
-backend/data/datasets/
-# Training run logs / tensorboard / metrics
-backend/data/runs/
-backend/data/logs/
-runs/
-wandb/
-*.gguf
-*.safetensors
-*.bin
-*.pt
-*.pth
-*.ckpt
-# SQLite app database (local state) — incl. WAL/SHM sidecars
-backend/data/*.db
-backend/data/*.db-journal
-backend/data/*.db-wal
-backend/data/*.db-shm
-backend/data/*.sqlite3
-
-# ===== Node / Angular =====
+# Node / Angular
 node_modules/
-frontend/node_modules/
 frontend/dist/
 frontend/.angular/
+frontend/out-tsc/
 frontend/coverage/
-*.tsbuildinfo
-npm-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+frontend/test-results/
+frontend/playwright-report/
 
-# ===== Claude Code local-only files =====
+# Editors
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Claude Code local overrides — settings.json IS committed; this one is not.
 .claude/settings.local.json
+
+# Prompt file
 prompt.txt
 
-# ===== Tooling scratch =====
+# Playwright MCP snapshots and screenshots from naive_user runs
 .playwright-mcp/
-**/.playwright-mcp/
-# Unsloth compiles patched trainers into this dir at runtime
-unsloth_compiled_cache/
-**/unsloth_compiled_cache/
-_unsloth_temporary_saved_buffers/
-
-# ===== OS / editor =====
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.shared.json
-*.swp
-*~
-backend/data/hf_token

@@ -1,0 +1,21 @@
+@use "layout" as *;
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 100dvh;
+}
+
+.app__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  inline-size: 100%;
+  max-inline-size: $content-max;
+  padding-inline: var(--app-space-4);
+  margin-inline: auto;
+
+  @include from($screen-md) {
+    padding-inline: var(--app-space-6);
+  }
+}

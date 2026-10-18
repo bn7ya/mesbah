@@ -1,124 +1,184 @@
-# backend/ — FastAPI + QLoRA engine
+# Backend memory
 
-Python 3.13, FastAPI, SQLModel/SQLite. Runs in the conda env that already has
-`torch 2.11.0+cu130`.
+Narrows the root `CLAUDE.md` to the Django side. Read `.claude/docs/design-pattern.md` §2 for the layering contract; this file is the map.
 
-## Run / verify
-
-```bash
-pip install -r requirements.txt        # API layer (lets the app boot)
-pip install -r requirements-ml.txt     # ML stack (chat + training)
-uvicorn app.main:app --port 8077       # 8000 is usually taken by Django
-```
-
-The app **boots without the ML stack** — `torch`/`transformers`/`unsloth` are
-imported lazily. Endpoints that need the GPU return **503** with guidance until
-`requirements-ml.txt` is installed.
-
-## Shape
+## Layout
 
 ```
-app/
-  main.py            FastAPI wiring (includes every feature router) + /api/health, /api/system;
-                     also serves the built Angular SPA (frontend/dist) when present, with an
-                     index.html SPA fallback — desktop/prod runs same-origin (dev uses the proxy).
-  core/
-    config.py        Settings (env prefix MISBAH_) + data-dir layout. Hardware fields
-                     (gpu_vram_gb/host_ram_gb/max_train_seq_len) are env OVERRIDES only
-                     (default None) — use resolved_vram_gb()/resolved_ram_gb().
-    hardware.py      Detect GPUs (pynvml→torch→nvidia-smi) + RAM; pick the effective GPU(s)
-                     (multi-select via features/settings; effective_gpus() / aggregate
-                     effective_vram_gb()); compute_train_defaults(vram,ram) derives
-                     seq-len/batch/grad-accum/lora_r/offload from real hardware.
-    db.py            SQLite engine (WAL), init_db(), get_session() dependency
-    models.py        ALL SQLModel tables (one place — see "Data rules")
-    events.py        async pub/sub for live progress (currently the WS tails files)
-  features/<name>/   router.py + service.py (+ schemas.py); each has a CLAUDE.md.
-                     settings/ holds the GUI-set app settings (onboarding, GPU choice,
-                     theme, generic API tokens) in data/app_settings.json.
-  scripts/
-    train_qlora.py   standalone QLoRA fine-tuning subprocess (kind="finetune")
-    train_scratch.py standalone from-scratch full-training subprocess (kind="scratch")
-    download_model.py
-  data/              models/ adapters/ datasets/ runs/ hf_cache/ projects/ misbah.db  (git-ignored)
+backend/
+  manage.py
+  pyproject.toml            deps, ruff, mypy, pytest
+  entrypoint.sh             wait for Postgres → migrate → exec the command
+  config/
+    settings/{base,dev,prod}.py
+    urls.py                 every slice mounted under /api/
+    celery.py               broker config comes from Django settings
+  apps/
+    common/                 BaseModel, BaseRepository, pagination, errors, health
+    accounts/               identity and sessions — /api/auth/
+    <feature>/              one app per frontend page (rule 13)
 ```
 
-## Per-project storage (`data/projects/<id>/`)
-
-A project of either kind owns a self-contained folder created on `create_project`
-and removed on `delete_project`:
+A feature app:
 
 ```
-projects/<id>/
-  versions/<run_id>/   trained checkpoint for each run (→ ModelVersion.adapter_path)
-  data/<run_id>.jsonl  the training corpus/dataset used
-  offload/<run_id>/    paging spillover for that run
-  metadata.json        model metadata (kind, base/arch spec, train config)
+apps/<feature>/
+  models/                   or models.py under ~3 items
+  repositories/             the only place .objects. appears
+  services/                 business rules, transactions, permission decisions
+  views/                    or views.py
+  serializers/              or serializers.py
+  permissions.py
+  urls.py
+  migrations/
+  tests/
+  CLAUDE.md                 required (rule 3)
 ```
 
-Big base-model weights stay in the **shared** `models_dir`/`hf_home` cache (not
-copied per project). Transient run logs (`config.json`, `metrics.jsonl`,
-`status.json`, `train.log`) stay under `runs/<run_id>/` because the WebSocket and
-crash-recovery look runs up by `run_id` alone — keep that contract. See
-`core/config.py` (`project_*` helpers) and `features/projects/service.py`.
+## The flow
 
-## Project kinds
-
-`Project.kind` is `"finetune"` (QLoRA on a pretrained base) or `"scratch"` (a
-custom architecture, random-initialised, fully trained). The training manager
-picks the subprocess by kind; the architecture spec lives in
-`default_train_config["architecture"]` and `metadata.json`. The `architect`
-feature estimates params/memory before creation (pure-Python, no torch).
-
-## Data rules (important)
-
-- **All tables live in `core/models.py`.** Foreign keys are circular
-  (project↔active_version, version self-parent, run↔version), and with
-  `from __future__ import annotations` SQLModel `Relationship` breaks the mapper —
-  so we **do not** declare ORM relationships. Access via explicit `select(...)`.
-- **Cascade deletes are manual**, in the services, using
-  `db.connection().exec_driver_sql("PRAGMA defer_foreign_keys=ON")` plus
-  nulling incoming references and `db.flush()` before the delete. See
-  `features/projects/service.py::delete_project` and
-  `features/versioning/service.py::delete_version` for the pattern — copy it.
-
-## Django/DRF side (`apps/`, `config/`) — in progress, not yet live
-
-A separate, independent Django project lives alongside this one at
-`backend/apps/` + `backend/config/` (own `manage.py`, own
-`requirements-django.txt`/`requirements-django-dev.txt`) — the start of a
-planned migration to Django+DRF+PostgreSQL+Celery, ported from the
-`bn7ya/template` architecture. It does **not** replace anything here yet:
-the Angular frontend still talks only to this FastAPI app, and nothing
-below this line is affected by it. See `apps/common/CLAUDE.md` for what's
-built, verified, and deliberately deferred.
-
-```bash
-# Django side only — separate from the `pip install -r requirements.txt` above
-cd backend
-python3 -m venv .venv-django && .venv-django/bin/pip install -r requirements-django-dev.txt
-# needs a real Postgres + Redis reachable at POSTGRES_HOST/REDIS_URL (env, or docker):
-docker compose -f ../docker-compose.django.yml up -d db redis
-DJANGO_SETTINGS_MODULE=config.settings.dev POSTGRES_HOST=localhost REDIS_URL=redis://localhost:6379/0 \
-  DJANGO_SECRET_KEY=dev-only-not-a-secret .venv-django/bin/python manage.py migrate
-DJANGO_SETTINGS_MODULE=config.settings.dev POSTGRES_HOST=localhost REDIS_URL=redis://localhost:6379/0 \
-  DJANGO_SECRET_KEY=dev-only-not-a-secret .venv-django/bin/python manage.py seed_default_operator
-DJANGO_SETTINGS_MODULE=config.settings.dev POSTGRES_HOST=localhost REDIS_URL=redis://localhost:6379/0 \
-  DJANGO_SECRET_KEY=dev-only-not-a-secret .venv-django/bin/python -m pytest apps
+```
+View  →  Service  →  Repository  →  Model
+ │
+ └── Serializer (shape only)
 ```
 
-Or the whole thing via Docker: `cp ../.env.django.example ../.env.django && docker compose -f ../docker-compose.django.yml up --build`.
+Each layer calls only the one below it. A view that touches a repository, or a
+service that touches `.objects.`, is the pattern broken — not a shortcut.
 
-## Feature pattern
+## What the hook enforces
 
-Each feature is `router.py` (HTTP/WS) + `service.py` (logic) [+ `schemas.py`].
-Routers depend on `get_session`; services take a `Session` and the domain objects.
-Keep ML imports lazy and inside the feature that needs them
-(`inference/engine.py`, `training/manager.py` → subprocess).
+`.claude/hooks/guard-checks.py` runs after every edit and blocks:
+
+- `.objects.` anywhere under `apps/` outside `repositories/` and `migrations/`
+- `.raw(`, `.extra(`, `cursor.execute(`
+- `.hard_delete(` and `queryset.delete()`
+
+Tests are not exempt. Setup that needs to create a row goes through the
+repository, which is also how the application would do it.
 
 ## Conventions
 
-- Pydantic/SQLModel everywhere; return models or typed schemas, never raw dicts.
-- Keep technical terms English; user-facing strings live in the frontend.
-- New feature → new folder under `features/`, add its router to `main.py`, write
-  its `CLAUDE.md`.
+**Services take the acting user** in `__init__`. Permission decisions beyond the
+route level are theirs. `AccountService` is the one service allowed a `None`
+user, because on the sign-in path there is not one yet.
+
+**Repositories return querysets or instances.** They contain no rules. If a
+method name contains a business concept — `submittable_for_review()` — the rule
+belongs in the service and the repository should be given the filter instead.
+
+**Every endpoint carries `@extend_schema`.** The Swagger page at
+`/api/schema/swagger-ui/` is the contract `angular_engineer` builds against, so
+an undocumented endpoint is an unfinished one.
+
+**Errors have one shape** — `{"error": {"code", "message", "fields?"}}`, from
+`apps/common/exceptions.py`. `message` is user-facing copy; write it as copy.
+
+**Groups are data.** Provision them in data migrations via
+`UserRepository.ensure_group()`, never by hand in an environment.
+
+## Backups
+
+`django-dbs` is the backup solution. One encrypted file per backup, holding two
+copies of the data plus Reed-Solomon parity, so bit-rot is repaired on restore
+instead of silently restored.
+
+It reads the models directly, so **a backup covers every slice automatically** —
+a new feature needs no registration. Register a model in `apps/<feature>/dbs.py`
+only to override a default: embed a file a `CharField` points at, or exclude a
+cache column.
+
+```python
+# apps/orders/dbs.py
+from dbs import FieldType, ModelBackup, backup_registry
+from apps.orders.models import Invoice
+
+@backup_registry.register(Invoice)
+class InvoiceBackup(ModelBackup):
+    overrides = {
+        "scanned_pdf_path": FieldType.FILE_PATH,   # embed the file at that path
+        "render_cache": FieldType.EXCLUDE,         # regenerable, don't store it
+    }
+```
+
+The `backup` service runs `dbs schedule` on a loop; backups land in the
+`backups` volume, which `backend` mounts too so the panel can read them. By hand:
+
+```bash
+docker compose exec backend python manage.py dbs backup   backup.dbs
+docker compose exec backend python manage.py dbs validate backup.dbs                # structure only
+docker compose exec backend python manage.py dbs validate backup.dbs --passphrase   # + decryption
+docker compose exec backend python manage.py dbs restore  backup.dbs --dry-run      # changes nothing
+docker compose exec backend python manage.py dbs restore  backup.dbs
+docker compose exec backend python manage.py dbs health
+docker compose exec backend python manage.py dbs upgrade --check                    # after a bump
+```
+
+**The panel is `/admin/dbs/`**, superusers only, mounted by the library inside the
+admin with no URLconf entry. It sets the schedule, grades backup health, keeps an
+audit trail, takes a backup to download or push, and restores one, dry run first.
+It lives under `/admin/` because nginx already proxies that prefix.
+
+**The session guard** (`DBSSecurityMiddleware`) scores every superuser request to
+the admin and ends a session that looks hijacked. The first superuser to open the
+admin is sent once to its setup wizard. If it locks you out:
+`python manage.py dbs security unlock <username>`. In production it reads the
+client from `X-Forwarded-For`; set `DBS_TRUSTED_PROXIES` to the number of
+proxies in front of gunicorn, nginx included.
+
+**The schedule.** `DBS_SCHEDULER = "command"`, so only the `backup` service takes
+scheduled backups. Until the schedule is turned on at
+`/admin/dbs/backupschedule/`, it runs the plan in settings: every
+`DBS_SCHEDULE_INTERVAL`, keeping `DBS_SCHEDULE_KEEP`. The service reads which one
+to follow when it starts, so after turning the schedule on run
+`docker compose restart backup`; from then on the panel decides.
+
+**`DBS_PASSPHRASE` is the whole thing.** The key is derived from it with Argon2id
+and never stored. Lose it and every backup is unreadable — that is the design.
+Keep it somewhere that is not the machine being backed up.
+
+**Run one scheduler per output directory.** Two loops sharing a directory race on
+retention and delete each other's backups.
+
+**A backup on the same machine is not a backup.** Set `DBS_SSH_HOST` before this
+counts as one; every scheduled backup is then pushed offsite, keeping
+`DBS_SCHEDULE_KEEP_REMOTE`.
+
+## Classes and methods in `config/`
+
+**`settings/base.py`** — everything every environment shares. `env()`, `env_bool()` and
+`env_list()` read the environment with a default. **`settings/dev.py`** adds the debug
+toolbar (`show_debug_toolbar()` reads `DEBUG` at request time) and console email;
+**`settings/prod.py`** adds the TLS, cookie and SMTP settings behind nginx.
+
+**`urls.py`** — every API path under `/api/`, one prefix per app, plus the schema views
+and the admin, which carries the backup panel at `/admin/dbs/`.
+
+**`celery.py`** — the Celery app, configured from Django settings under `CELERY_`.
+**`wsgi.py`** / **`asgi.py`** — the entry points; gunicorn serves `wsgi.py`.
+
+## Commands
+
+```bash
+docker compose exec backend python manage.py makemigrations
+docker compose exec backend python manage.py migrate
+docker compose exec backend python manage.py createsuperuser
+docker compose exec backend pytest
+docker compose exec backend ruff check . --fix
+docker compose exec backend mypy .                       # strict, rule 30
+docker compose exec backend python manage.py spectacular --fail-on-warn --file /dev/null
+```
+
+Before handing a slice to the frontend:
+
+```bash
+docker compose exec backend python manage.py makemigrations --check --dry-run   # no pending changes
+docker compose exec backend pytest
+```
+
+## Adding a slice
+
+1. `apps/<feature>/` with the layout above — the name matches the Angular feature directory.
+2. Add `"apps.<feature>"` to `LOCAL_APPS` in `config/settings/base.py`.
+3. Add `path("<feature>/", include("apps.<feature>.urls"))` to `api_patterns` in `config/urls.py`.
+4. Write `apps/<feature>/CLAUDE.md`. The `Stop` hook blocks finishing without it.

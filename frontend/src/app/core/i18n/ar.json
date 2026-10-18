@@ -1,0 +1,49 @@
+{
+  "app": {
+    "name": "القالب",
+    "skipToContent": "انتقل إلى المحتوى"
+  },
+  "language": {
+    "label": "اللغة",
+    "english": "English",
+    "arabic": "العربية"
+  },
+  "auth": {
+    "signIn": {
+      "title": "تسجيل الدخول",
+      "subtitle": "أدخل بياناتك للمتابعة.",
+      "username": "اسم المستخدم",
+      "usernamePlaceholder": "اسم المستخدم الخاص بك",
+      "password": "كلمة المرور",
+      "passwordPlaceholder": "كلمة المرور الخاصة بك",
+      "submit": "تسجيل الدخول",
+      "working": "جار تسجيل الدخول…",
+      "showPassword": "إظهار كلمة المرور",
+      "hidePassword": "إخفاء كلمة المرور"
+    },
+    "signOut": "تسجيل الخروج",
+    "signedInAs": "دخلت باسم {name}",
+    "errors": {
+      "usernameRequired": "أدخل اسم المستخدم.",
+      "passwordRequired": "أدخل كلمة المرور.",
+      "unavailable": "لا يمكن الوصول إلى الخادم. راجع اتصالك وحاول مرة أخرى."
+    }
+  },
+  "errors": {
+    "generic": "حدث خطأ ما. حاول مرة أخرى.",
+    "notFound": "لم نعثر على هذه الصفحة.",
+    "notFoundBody": "قد يكون الرابط قديما، أو تغير مكان الصفحة.",
+    "forbidden": "ليس لديك صلاحية الوصول إلى هذا.",
+    "forbiddenBody": "راجع أحد المسؤولين إن كنت تعتقد أنه ينبغي أن تكون لديك الصلاحية.",
+    "goHome": "الذهاب إلى البداية"
+  },
+  "actions": {
+    "cancel": "إلغاء",
+    "retry": "إعادة المحاولة",
+    "save": "حفظ التغييرات",
+    "delete": "حذف"
+  },
+  "money": {
+    "currency": "ريال عماني"
+  }
+}

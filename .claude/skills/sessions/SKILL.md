@@ -33,7 +33,7 @@ Sessions can message each other by name. `ListAgents` lists what is reachable;
 
 ```
 SendMessage(to: "the-other-session", message: "I'm about to rewrite
-  engine.py on chore/x. Your plan touches it — are you mid-edit?")
+  _layout.scss on chore/x. Your plan touches it — are you mid-edit?")
 ```
 
 Do not build anything else for this. There is one messaging channel and it is

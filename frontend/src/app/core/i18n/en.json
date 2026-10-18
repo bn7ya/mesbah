@@ -1,0 +1,49 @@
+{
+  "app": {
+    "name": "Template",
+    "skipToContent": "Skip to content"
+  },
+  "language": {
+    "label": "Language",
+    "english": "English",
+    "arabic": "العربية"
+  },
+  "auth": {
+    "signIn": {
+      "title": "Sign in",
+      "subtitle": "Enter your details to continue.",
+      "username": "Username",
+      "usernamePlaceholder": "Your username",
+      "password": "Password",
+      "passwordPlaceholder": "Your password",
+      "submit": "Sign in",
+      "working": "Signing in…",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password"
+    },
+    "signOut": "Sign out",
+    "signedInAs": "Signed in as {name}",
+    "errors": {
+      "usernameRequired": "Enter your username.",
+      "passwordRequired": "Enter your password.",
+      "unavailable": "Can't reach the server. Check your connection and try again."
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Try again.",
+    "notFound": "We couldn't find that page.",
+    "notFoundBody": "The link may be out of date, or the page may have moved.",
+    "forbidden": "You don't have access to this.",
+    "forbiddenBody": "Ask an administrator if you think you should.",
+    "goHome": "Go to the start"
+  },
+  "actions": {
+    "cancel": "Cancel",
+    "retry": "Try again",
+    "save": "Save changes",
+    "delete": "Delete"
+  },
+  "money": {
+    "currency": "Omani rials"
+  }
+}

@@ -1,14 +1,14 @@
-"""Settings shared by every environment.
-
-`dev.py` and `prod.py` import everything from here and change only what
-differs. Anything that is the same in both belongs in this file.
-"""
 from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Any
 
-BASE_DIR = Path(__file__).resolve().parents[2]
+import django_stubs_ext
+
+django_stubs_ext.monkeypatch()
+
+BASE_DIR: Path = Path(__file__).resolve().parents[2]
 
 
 def env(name: str, default: str = "") -> str:
@@ -16,32 +16,29 @@ def env(name: str, default: str = "") -> str:
 
 
 def env_bool(name: str, default: bool = False) -> bool:
-    raw = os.environ.get(name)
+    raw: str | None = os.environ.get(name)
     if raw is None:
         return default
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def env_list(name: str, default: str = "") -> list[str]:
-    raw = os.environ.get(name, default)
+    raw: str = os.environ.get(name, default)
     return [item.strip() for item in raw.split(",") if item.strip()]
 
 
-# ------------------------------------------------------------------- core
+SECRET_KEY: str = env("DJANGO_SECRET_KEY")
+DEBUG: bool = env_bool("DJANGO_DEBUG", False)
+ALLOWED_HOSTS: list[str] = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+CSRF_TRUSTED_ORIGINS: list[str] = env_list("DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:4200")
 
-SECRET_KEY = env("DJANGO_SECRET_KEY")
-DEBUG = env_bool("DJANGO_DEBUG", False)
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
-CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:4200")
+ROOT_URLCONF: str = "config.urls"
+WSGI_APPLICATION: str = "config.wsgi.application"
+ASGI_APPLICATION: str = "config.asgi.application"
+DEFAULT_AUTO_FIELD: str = "django.db.models.BigAutoField"
 
-ROOT_URLCONF = "config.urls"
-WSGI_APPLICATION = "config.wsgi.application"
-ASGI_APPLICATION = "config.asgi.application"
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ---------------------------------------------------------------- apps
-
-DJANGO_APPS = [
+DJANGO_APPS: list[str] = [
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -51,35 +48,35 @@ DJANGO_APPS = [
     "django.contrib.postgres",
 ]
 
-THIRD_PARTY_APPS = [
+THIRD_PARTY_APPS: list[str] = [
     "rest_framework",
     "django_filters",
     "drf_spectacular",
     "django_celery_beat",
+    "dbs",
 ]
 
-# One app per Angular feature (see the root migration plan). `common` is the
-# exception: it is the shared foundation every slice inherits from, not a
-# page. New slices are appended here as they're ported off the FastAPI side.
-LOCAL_APPS = [
+LOCAL_APPS: list[str] = [
     "apps.common",
     "apps.accounts",
 ]
 
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+INSTALLED_APPS: list[str] = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
-MIDDLEWARE = [
+MIDDLEWARE: list[str] = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "dbs.security.middleware.DBSSecurityMiddleware",
 ]
 
-TEMPLATES = [
+TEMPLATES: list[dict[str, Any]] = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [BASE_DIR / "templates"],
@@ -94,62 +91,51 @@ TEMPLATES = [
     },
 ]
 
-# --------------------------------------------------------------- database
 
-DATABASES = {
+DATABASES: dict[str, Any] = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("POSTGRES_DB", "misbah"),
-        "USER": env("POSTGRES_USER", "misbah"),
-        "PASSWORD": env("POSTGRES_PASSWORD", "misbah"),
-        "HOST": env("POSTGRES_HOST", "localhost"),
+        "NAME": env("POSTGRES_DB", "app"),
+        "USER": env("POSTGRES_USER", "app"),
+        "PASSWORD": env("POSTGRES_PASSWORD", "app"),
+        "HOST": env("POSTGRES_HOST", "db"),
         "PORT": env("POSTGRES_PORT", "5432"),
         "CONN_MAX_AGE": 60,
         "CONN_HEALTH_CHECKS": True,
     }
 }
 
-# ------------------------------------------------------------------ cache
 
-REDIS_URL = env("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL: str = env("REDIS_URL", "redis://redis:6379/0")
 
-CACHES = {
+CACHES: dict[str, Any] = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": REDIS_URL,
     }
 }
 
-SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+SESSION_ENGINE: str = "django.contrib.sessions.backends.cached_db"
 
-# ----------------------------------------------------------------- celery
-#
-# The QLoRA training subprocess itself is deliberately NOT a Celery task —
-# see apps/training/CLAUDE.md once that app is ported. Celery here is for
-# lighter background jobs (HF downloads, the auto-enhance loop).
 
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", "redis://localhost:6379/1")
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", "redis://localhost:6379/2")
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TIMEZONE = "UTC"
-CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_TIME_LIMIT = 30 * 60
-CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_URL: str = env("CELERY_BROKER_URL", "redis://redis:6379/1")
+CELERY_RESULT_BACKEND: str = env("CELERY_RESULT_BACKEND", "redis://redis:6379/2")
+CELERY_TASK_SERIALIZER: str = "json"
+CELERY_RESULT_SERIALIZER: str = "json"
+CELERY_ACCEPT_CONTENT: list[str] = ["json"]
+CELERY_TIMEZONE: str = "UTC"
+CELERY_TASK_TRACK_STARTED: bool = True
+CELERY_TASK_TIME_LIMIT: int = 30 * 60
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP: bool = True
 
-# -------------------------------------------------------------------- drf
 
-REST_FRAMEWORK = {
-    # Auth is required by default. A public endpoint opts out explicitly
-    # with permission_classes = [AllowAny] (see apps/common/views.py).
+REST_FRAMEWORK: dict[str, Any] = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
     ],
-    # Every list endpoint paginates. Opting out needs a comment.
     "DEFAULT_PAGINATION_CLASS": "apps.common.pagination.DefaultPagination",
     "PAGE_SIZE": 25,
     "DEFAULT_FILTER_BACKENDS": [
@@ -162,8 +148,8 @@ REST_FRAMEWORK = {
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
 }
 
-SPECTACULAR_SETTINGS = {
-    "TITLE": "Misbah API",
+SPECTACULAR_SETTINGS: dict[str, Any] = {
+    "TITLE": "Template API",
     "DESCRIPTION": "Vertical slice + service/repository.",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
@@ -172,29 +158,46 @@ SPECTACULAR_SETTINGS = {
     "SORT_OPERATIONS": False,
 }
 
-# ------------------------------------------------------------ i18n / l10n
 
-LANGUAGE_CODE = "ar"
-TIME_ZONE = "UTC"
-USE_I18N = True
-USE_TZ = True
+DBS_BACKUP_DIR: str = env("DBS_BACKUP_DIR", "/var/backups/app")
+# The `backup` service is the one scheduler. A web worker never takes a backup.
+DBS_SCHEDULER: str = "command"
+DBS_SCHEDULE_INTERVAL: str = env("DBS_SCHEDULE_INTERVAL", "6h")
+DBS_SCHEDULE_KEEP: int = int(env("DBS_SCHEDULE_KEEP", "14"))
+DBS_SCHEDULE_KEEP_REMOTE: int = int(env("DBS_SCHEDULE_KEEP_REMOTE", "30"))
 
-# Mesbah's UI is Arabic-first, RTL; English stays available for technical
-# terms and any future non-Arabic user. See root CLAUDE.md.
-LANGUAGES = [
-    ("ar", "العربية"),
+DBS_SSH_TARGETS: dict[str, dict[str, str]] = {}
+
+if env("DBS_SSH_HOST"):
+    DBS_SSH_TARGETS["offsite"] = {
+        "host": env("DBS_SSH_HOST"),
+        "username": env("DBS_SSH_USERNAME"),
+        "key_filename": env("DBS_SSH_KEY_FILENAME"),
+        "remote_dir": env("DBS_SSH_REMOTE_DIR", "/var/backups/app"),
+        "known_hosts": env("DBS_SSH_KNOWN_HOSTS", "/root/.ssh/known_hosts"),
+    }
+
+DBS_SCHEDULE_PUSH_TARGET: str | None = "offsite" if DBS_SSH_TARGETS else None
+
+
+LANGUAGE_CODE: str = "en"
+TIME_ZONE: str = "UTC"
+USE_I18N: bool = True
+USE_TZ: bool = True
+
+LANGUAGES: list[tuple[str, str]] = [
     ("en", "English"),
+    ("ar", "العربية"),
 ]
-LOCALE_PATHS = [BASE_DIR / "locale"]
+LOCALE_PATHS: list[Path] = [BASE_DIR / "locale"]
 
-# ----------------------------------------------------------------- static
 
-STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+STATIC_URL: str = "/static/"
+STATIC_ROOT: Path = BASE_DIR / "staticfiles"
+MEDIA_URL: str = "/media/"
+MEDIA_ROOT: Path = BASE_DIR / "media"
 
-STORAGES = {
+STORAGES: dict[str, Any] = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
@@ -203,24 +206,18 @@ STORAGES = {
     },
 }
 
-# -------------------------------------------------------------------- auth
-#
-# Django auth plus Groups and Permissions is the only authorization system
-# here. There is no parallel roles table. Mesbah stays conceptually
-# single-user though: see apps/accounts/management/commands/
-# seed_default_operator.py instead of a signup flow.
-AUTH_PASSWORD_VALIDATORS = [
+
+AUTH_PASSWORD_VALIDATORS: list[dict[str, Any]] = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-LOGIN_URL = "/admin/login/"
+LOGIN_URL: str = "/admin/login/"
 
-# ---------------------------------------------------------------- logging
 
-LOGGING = {
+LOGGING: dict[str, Any] = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {

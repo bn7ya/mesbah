@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Shared by the session hooks: who else is live, and what are they holding.
 
-Session awareness: a session declares itself and reads the others. Almost none of that
+Rule 28 says a session declares itself and reads the others. Almost none of that
 needs storing, because the harness already keeps most of it:
 
   ~/.claude/sessions/<pid>.json          one document per live session
@@ -135,6 +135,34 @@ def pid_domain() -> str:
     except OSError:
         namespace = "pid:[0]"
     return f"linux:{machine}:{namespace}"
+
+
+def register_harness(pid: int, session_id: str, cwd: str, name: str) -> None:
+    """Write my own harness document so liveness can anchor on a real process.
+
+    Claude Code's harness writes one document per live session; opencode has no
+    such harness, so the plugin calls this on its behalf. The document carries
+    the same fields `is_live` checks -- `pid`, `procStart`, `pidDomain` -- taken
+    from the given pid (the opencode process, not this subprocess), so a dead or
+    reused pid is caught exactly as it is for a Claude session.
+    """
+    started = proc_start(pid)
+    if started is None:
+        return
+    HARNESS_SESSIONS.mkdir(parents=True, exist_ok=True)
+    write_atomic(
+        HARNESS_SESSIONS / f"{pid}.json",
+        {
+            "pid": pid,
+            "sessionId": session_id,
+            "cwd": cwd,
+            "procStart": started,
+            "pidDomain": pid_domain(),
+            "name": name,
+            "status": "busy",
+            "updatedAt": int(time.time() * 1000),
+        },
+    )
 
 
 def is_live(doc: dict) -> bool:
@@ -290,6 +318,55 @@ def editors_of(path: str | Path) -> dict[str, float]:
         if when > editors.get(session_id, 0.0):
             editors[session_id] = when
     return editors
+
+
+def sidecar_editors(path: str | Path, self_session: str) -> dict[str, float]:
+    """`editors_of`, but read from the sidecars opencode writes, not the harness.
+
+    opencode records its edits in each session's sidecar (`files` map) because it
+    has no `~/.claude/file-history`. Same contract as `editors_of` -- absolute
+    path, both the given and resolved form, live sessions only, my own edits
+    excluded -- so the two sources can be unioned into one view of who is
+    holding a file.
+    """
+    given = Path(path)
+    keys = {str(given)}
+    try:
+        keys.add(str(given.resolve()))
+    except OSError:
+        pass
+    now = time.time()
+    editors: dict[str, float] = {}
+    for doc in harness_docs():
+        if not is_live(doc):
+            continue
+        session_id = str(doc.get("sessionId") or "")
+        if not session_id or session_id == self_session:
+            continue
+        files = read_sidecar(session_id).get("files")
+        if not isinstance(files, dict):
+            continue
+        for key in keys:
+            when = files.get(key)
+            if isinstance(when, (int, float)) and now - when <= CONFLICT_WINDOW and when > editors.get(session_id, 0.0):
+                editors[session_id] = when
+    return editors
+
+
+def touch_file(session_id: str, path: str) -> None:
+    """Record that I edited this absolute path, for file-conflict-warn.
+
+    Merges into my own sidecar's `files` map, so there is still exactly one
+    writer per file. Entries older than the conflict window are dropped on the
+    way through: a file edited a half hour ago is history, not a conflict.
+    """
+    now = time.time()
+    files = read_sidecar(session_id).get("files")
+    if not isinstance(files, dict):
+        files = {}
+    files = {k: v for k, v in files.items() if isinstance(v, (int, float)) and now - v <= CONFLICT_WINDOW}
+    files[path] = now
+    write_sidecar(session_id, files=files)
 
 
 # ---------------------------------------------------------------------- peers

@@ -1,4 +1,3 @@
-"""`BaseModel` — every model on the Django side inherits it."""
 from __future__ import annotations
 
 from uuid import uuid4
@@ -11,12 +10,6 @@ from apps.common.managers import AllObjectsManager, SoftDeleteManager
 
 
 class BaseModel(models.Model):
-    """UUID primary key, audit timestamps, soft delete, and who created it.
-
-    `objects` excludes soft-deleted rows; `all_objects` includes them.
-    Repositories are the only place either is touched.
-    """
-
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -40,16 +33,18 @@ class BaseModel(models.Model):
     def is_deleted(self) -> bool:
         return self.deleted_at is not None
 
-    def delete(self, using=None, keep_parents=False):
-        """Soft delete: mark the row, never remove it."""
+    def delete(
+        self, using: str | None = None, keep_parents: bool = False
+    ) -> tuple[int, dict[str, int]]:
         self.deleted_at = timezone.now()
         self.save(using=using, update_fields=["deleted_at", "updated_at"])
         return (1, {self._meta.label: 1})
 
-    def restore(self, using=None) -> None:
+    def restore(self, using: str | None = None) -> None:
         self.deleted_at = None
         self.save(using=using, update_fields=["deleted_at", "updated_at"])
 
-    def purge(self, using=None, keep_parents=False):
-        """Really remove the row. Reserved for data migrations."""
+    def purge(
+        self, using: str | None = None, keep_parents: bool = False
+    ) -> tuple[int, dict[str, int]]:
         return super().delete(using=using, keep_parents=keep_parents)

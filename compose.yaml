@@ -1,0 +1,179 @@
+# Development stack. Both sides hot-reload.
+#
+#   docker compose up --watch --build
+#
+# Angular  http://localhost:4200
+# API      http://localhost:4200/api/
+# Swagger  http://localhost:4200/api/schema/swagger-ui/
+# Admin    http://localhost:4200/admin/
+#
+# The Angular dev server proxies /api, /admin and /static to Django
+# (frontend/proxy.conf.json), so development is same-origin and needs no CORS
+# configuration — which is how production behaves behind nginx.
+
+name: template
+
+services:
+  db:
+    image: pgvector/pgvector:0.8.6-pg18
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql
+      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      target: dev
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    env_file: [.env]
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+    volumes:
+      - static-files:/app/staticfiles
+      - media-files:/app/media
+      # Read by the backup panel at /admin/dbs/: health, and restoring a kept backup.
+      - backups:/var/backups/app
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    develop:
+      watch:
+        - action: sync
+          path: ./backend
+          target: /app
+          ignore: [.venv/, __pycache__/, staticfiles/, media/]
+        - action: rebuild
+          path: ./backend/pyproject.toml
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./backend
+      target: dev
+    command: ["celery", "-A", "config", "worker", "-l", "info"]
+    env_file: [.env]
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./backend
+          target: /app
+          ignore: [.venv/, __pycache__/, staticfiles/, media/]
+    restart: unless-stopped
+
+  beat:
+    build:
+      context: ./backend
+      target: dev
+    command:
+      - celery
+      - -A
+      - config
+      - beat
+      - -l
+      - info
+      - --scheduler
+      - django_celery_beat.schedulers:DatabaseScheduler
+    env_file: [.env]
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      backend: {condition: service_healthy}
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./backend
+          target: /app
+          ignore: [.venv/, __pycache__/, staticfiles/, media/]
+    restart: unless-stopped
+
+  # Scheduled encrypted backups (django-dbs). Its own service rather than a
+  # Celery beat task: a backup has to keep working when the app is broken, and
+  # anything sharing the worker's process shares the worker's failures.
+  #
+  # One scheduler per output directory — two loops racing on retention will
+  # delete each other's backups. DBS_SCHEDULER is "command", so the web workers
+  # never start one of their own.
+  #
+  # With no flags it runs the plan in settings (DBS_SCHEDULE_*) until the
+  # schedule is turned on at /admin/dbs/backupschedule/. It decides which to
+  # follow when it starts, so restart it after turning the schedule on.
+  backup:
+    build:
+      context: ./backend
+      target: dev
+    command: ["python", "manage.py", "dbs", "schedule"]
+    env_file: [.env]
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+    volumes:
+      - backups:/var/backups/app
+      - media-files:/app/media
+    depends_on:
+      db: {condition: service_healthy}
+      backend: {condition: service_healthy}
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    command: ["npm", "start"]
+    ports:
+      - "${FRONTEND_PORT:-4200}:4200"
+    depends_on:
+      backend: {condition: service_started}
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend/src
+          target: /app/src
+        - action: sync
+          path: ./frontend/public
+          target: /app/public
+        - action: rebuild
+          path: ./frontend/package-lock.json
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  redis-data:
+  static-files:
+  media-files:
+  backups:

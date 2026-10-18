@@ -1,9 +1,10 @@
 name: CI
 
+# Only a merge into main runs CI. Before that, the local gate is the check
+# (rule 25) — a pull request runs nothing here.
 on:
   push:
     branches: [main]
-  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -32,6 +33,10 @@ jobs:
         run: |
           python3 .claude/hooks/test_session_hooks.py
 
+      - name: Check the Template sync
+        run: |
+          python3 .claude/hooks/test_template_sync.py
+
       - name: Run guard-checks over the tree
         run: |
           fail=0
@@ -39,7 +44,8 @@ jobs:
             printf '{"tool_input":{"file_path":"%s"}}' "$file" \
               | python3 .claude/hooks/guard-checks.py || fail=1
           done < <(git ls-files 'backend/**/*.py' 'frontend/src/**/*.ts' \
-                                'frontend/src/**/*.html')
+                                'frontend/src/**/*.html' 'frontend/src/**/*.scss' \
+                                'frontend/src/**/*.json')
           exit $fail
         shell: bash
 
@@ -51,12 +57,12 @@ jobs:
       db:
         image: pgvector/pgvector:0.8.6-pg18
         env:
-          POSTGRES_DB: misbah
-          POSTGRES_USER: misbah
-          POSTGRES_PASSWORD: misbah
+          POSTGRES_DB: app
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U misbah -d misbah"
+          --health-cmd "pg_isready -U app -d app"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
@@ -73,9 +79,9 @@ jobs:
       DJANGO_SETTINGS_MODULE: config.settings.dev
       DJANGO_SECRET_KEY: ci-only-not-a-secret
       DJANGO_DEBUG: "1"
-      POSTGRES_DB: misbah
-      POSTGRES_USER: misbah
-      POSTGRES_PASSWORD: misbah
+      POSTGRES_DB: app
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
       POSTGRES_HOST: localhost
       POSTGRES_PORT: "5432"
       REDIS_URL: redis://localhost:6379/0
@@ -94,10 +100,17 @@ jobs:
           cache: pip
 
       - name: Install
-        run: pip install -r requirements-django-dev.txt
+        run: pip install ".[dev]"
 
       - name: Lint
         run: ruff check .
+
+      - name: Format check
+        run: ruff format --check .
+
+      # Rule 30: every signature and variable typed, and the types true.
+      - name: Type check
+        run: mypy .
 
       # A model changed without a migration is a broken deploy, not a review note.
       - name: No missing migrations
@@ -124,18 +137,25 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      # Angular 22 requires >= 22.22.3 / >= 24.15.0.
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install
         run: npm ci
 
-      # Must be warning-clean, per frontend/CLAUDE.md.
+      - name: Lint
+        run: npx ng lint
+
       - name: Build
-        run: npm run build
+        run: npx ng build --configuration production
+
+      # Vitest in jsdom — no browser to launch.
+      - name: Tests
+        run: npx ng test --watch=false
 
   i18n:
     name: Translation parity
@@ -146,16 +166,15 @@ jobs:
         with:
           python-version: "3.13"
 
-      # The i18n standard (.claude/docs/language.md): every key exists in both
-      # languages, and no Arabic value carries tashkeel. Mechanical, so it is
-      # a check rather than a review comment. Until the Angular-22 cutover
-      # lands the bundles, there is nothing to check yet.
+      # Rule 22: every key exists in both languages, and no Arabic value
+      # carries tashkeel (22e). Mechanical, so it is a check rather than a
+      # review comment.
       - name: en and ar have the same keys
         shell: python
         run: |
           import json, pathlib, re, sys
 
-          # A word that needs a vowel mark to be read is the wrong
+          # Rule 22e: a word that needs a vowel mark to be read is the wrong
           # word (.claude/docs/language.md).
           TASHKEEL = re.compile("[\u064b-\u0652\u0670]")
 
@@ -191,7 +210,7 @@ jobs:
                   failed = True
               for key, value in leaves(json.loads(ar_path.read_text(encoding="utf-8"))):
                   if isinstance(value, str) and TASHKEEL.search(value):
-                      print(f"::error file={ar_path}::{key} carries tashkeel - replace the word")
+                      print(f"::error file={ar_path}::{key} carries tashkeel - rule 22e, replace the word")
                       failed = True
 
           sys.exit(1 if failed else 0)
@@ -202,14 +221,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Root CLAUDE.md: every feature directory carries a CLAUDE.md — on all
-      # three sides: the Angular frontend, the live FastAPI backend and the
-      # Django migration target.
+      # Rule 3: a CLAUDE.md per feature, on both sides.
       - name: Every feature has a CLAUDE.md
         shell: bash
         run: |
           fail=0
-          for dir in frontend/src/app/features/*/ backend/app/features/*/ backend/apps/*/; do
+          for dir in frontend/src/app/features/*/ backend/apps/*/; do
             [ -d "$dir" ] || continue
             case "$(basename "$dir")" in __pycache__|.*) continue ;; esac
             [ -f "$dir/CLAUDE.md" ] || { echo "::error::$dir has no CLAUDE.md"; fail=1; }

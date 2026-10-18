@@ -1,30 +1,32 @@
-import { Routes } from '@angular/router';
+import type { Routes } from '@angular/router';
+
+import { authGuard, guestGuard } from '@core/auth/guards/auth.guard';
 
 export const routes: Routes = [
   {
+    path: 'sign-in',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('@core/auth/pages/sign-in/sign-in').then((m) => m.SignInPage),
+  },
+  {
+    path: 'forbidden',
+    canActivate: [authGuard],
+    data: { titleKey: 'errors.forbidden', bodyKey: 'errors.forbiddenBody' },
+    loadComponent: () =>
+      import('@shared/status-page/status-page').then((m) => m.StatusPage),
+  },
+  {
     path: '',
-    loadComponent: () => import('./features/projects/projects-page').then((m) => m.ProjectsPage),
-    title: 'المشاريع · مِصباح',
+    pathMatch: 'full',
+    // No guard: the router rejects canActivate beside redirectTo (NG04014).
+    redirectTo: 'sign-in',
   },
   {
-    path: 'models',
-    loadComponent: () => import('./features/models/models-page').then((m) => m.ModelsPage),
-    title: 'النماذج · مِصباح',
+    path: '**',
+    canActivate: [authGuard],
+    data: { titleKey: 'errors.notFound', bodyKey: 'errors.notFoundBody' },
+    loadComponent: () =>
+      import('@shared/status-page/status-page').then((m) => m.StatusPage),
   },
-  {
-    path: 'settings',
-    loadComponent: () => import('./features/settings/settings-page').then((m) => m.SettingsPage),
-    title: 'الإعدادات · مِصباح',
-  },
-  {
-    path: 'debug',
-    loadComponent: () => import('./features/debug/debug-page').then((m) => m.DebugPage),
-    title: 'الحالة والتشخيص · مِصباح',
-  },
-  {
-    path: 'projects/:id',
-    loadComponent: () => import('./features/workspace/workspace-page').then((m) => m.WorkspacePage),
-    title: 'مساحة العمل · مِصباح',
-  },
-  { path: '**', redirectTo: '' },
 ];

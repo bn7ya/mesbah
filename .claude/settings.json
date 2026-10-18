@@ -17,16 +17,12 @@
       "Bash(gh label:*)",
       "Bash(gh pr:*)",
       "Bash(gh repo view:*)",
-      "Bash(npm install:*)",
-      "Bash(npm start:*)",
+      "Bash(python3 .claude/hooks/template-sync.py:*)",
       "Bash(npm run:*)",
       "Bash(npx ng:*)",
-      "Bash(pip install:*)",
-      "Bash(uvicorn:*)",
       "Bash(python manage.py:*)",
-      "Bash(python -m pytest:*)",
-      "Bash(pytest:*)",
       "Bash(ruff:*)",
+      "Bash(pytest:*)",
       "Read(./**)",
       "Edit(./**)",
       "Write(./**)"
@@ -36,7 +32,6 @@
       "Read(./**/.env.local)",
       "Read(./**/*.pem)",
       "Read(./**/id_rsa*)",
-      "Read(./backend/data/hf_token)",
       "Bash(git push --force:*)",
       "Bash(rm -rf:*)"
     ],
@@ -50,6 +45,11 @@
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.py\"",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/template-sync.py\"",
+            "timeout": 20
           }
         ]
       }
@@ -130,5 +130,11 @@
         ]
       }
     ]
-  }
+  },
+  "enabledPlugins": {
+    "ecc@ecc": true
+  },
+  "enabledMcpjsonServers": [
+    "playwright"
+  ]
 }

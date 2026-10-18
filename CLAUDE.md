@@ -1,132 +1,296 @@
-# مِصباح · Misbah — LLM Fine-tuning Studio
+# Project Memory
 
-A local, single-user studio for fine-tuning an 8–16B LLM into a great **Arabic
-long-context assistant** via **QLoRA**, driven entirely from a glassy RTL GUI.
-You chat with the model, **correct** its answers, and those corrections become
-training data. Each fine-tune appends a node to a **version tree** you can
-branch, activate (rollback), and keep enhancing.
-
-> The UI is **Arabic, RTL**. Technical terms (QLoRA, LoRA, adapter, base model,
-> loss, VRAM, …) stay in **English** everywhere — UI labels and code alike.
-
-## The product in one diagram
-
-```
-Project (wraps one HuggingFace base model)
-├── Task            objective the model should learn
-├── Session (chat)  ── Message ── (user edits assistant reply = correction)
-└── TrainingRun ──▶ ModelVersion        ← node in the version tree
-                     (QLoRA adapter)        branch · activate(rollback) · enhance
-```
+This is the root memory file. Every session reads it. `frontend/CLAUDE.md` and `backend/CLAUDE.md` narrow these rules to their side; each feature directory carries its own `CLAUDE.md`.
 
 ## Stack
 
-| Layer    | Tech |
-|----------|------|
-| Frontend | Angular 20 (standalone, signals) + PrimeNG 20 + `@primeuix/themes` (Aura), **Tailwind v4**, RTL, minimal/Notion-like, chart.js |
-| Backend  | FastAPI + SQLModel/SQLite, WebSocket live metrics (+ live trainer logs); serves the built SPA in prod/desktop |
-| Training | QLoRA via **Unsloth** (preferred) or transformers + peft + trl + bitsandbytes; runs as an isolated subprocess |
-| Model    | Picked **live from the HuggingFace API** (featured/search — no hardcoded list). Env fallback default: **Qwen/Qwen3-14B**; guidance in `docs/MODEL_SELECTION.md` |
-| Hardware | **Auto-detected** GPU/VRAM/RAM (pynvml → torch → nvidia-smi); training params derive from the real card(s), GPU(s) chosen on first run. **Multi-GPU**: select several GPUs — VRAM aggregates, training/inference shard via `device_map` (multi-GPU uses transformers+peft; OSS Unsloth is single-GPU). Dev box: RTX 5080 16 GB, sm_120, CUDA 13.2, torch 2.11+cu130 — see `docs/HARDWARE.md` |
-| Desktop  | Optional **Tauri** shell (`frontend/src-tauri`) — launches the local backend, opens the studio; `.deb`/`.AppImage` (Linux), `.msi`/`.exe` (Windows) |
+| Layer | Technology |
+|---|---|
+| Frontend | Angular 22 (standalone, signals, zoneless, TypeScript 6) + Angular Material 22 (Material 3) + Font Awesome 7 Pro (kit) |
+| Backend | Django 5.2 LTS + Django REST Framework + drf-spectacular (OpenAPI 3 / Swagger) |
+| Database | PostgreSQL 18 + pgvector 0.8.6 |
+| Cache / broker | Redis 8 |
+| Background jobs | Celery 5.6 + django-celery-beat |
+| Backups | django-dbs — encrypted, redundant, self-healing |
+| Serving | gunicorn (WSGI) behind nginx; Angular built statically |
 
-## Layout
+## The design pattern
+
+**Vertical Slice + Service/Repository.** Read `.claude/docs/design-pattern.md` before writing any code. It is the single source of truth for structure, layering and the definition of done. Deviating requires a new ADR in `.claude/docs/adr/`.
+
+The short version: one Angular feature directory mirrors one Django app mirrors one page. Backend flows `View → Service → Repository → Model`. Frontend flows `Component → Store → Api → HttpClient`. Each layer may only call the one below it.
+
+## Hard rules
+
+These are not preferences. The `PostToolUse` hook blocks edits that violate the mechanical ones.
+
+1. **One design pattern.** Vertical Slice + Service/Repository, everywhere, always.
+2. **Slice vertically.** No change ships frontend-only or backend-only. If you were asked for one side, build the other side too or say explicitly why it is not needed.
+3. **A `CLAUDE.md` per feature**, on both sides. A feature directory without one is unfinished work.
+4. **Nothing deprecated.** No deprecated Angular, Django or DRF APIs. If you find one, replace it.
+5. **Nothing unused.** A function, import, style, translation key or endpoint with no caller gets deleted — not commented out, not left "just in case".
+
+### Angular
+
+6. Standalone components only.
+7. `.ts`, `.html` and `.scss` are always three separate files. Never inline `template:` or `styles:`.
+8. State is signals (`signal`, `computed`, `linkedSignal`, `resource`). Do not use `BehaviorSubject` for view state.
+9. **Angular Material for every control.** A button is `matButton` or `matIconButton` on a
+   native `<button>` or `<a>`; a field is `mat-form-field` with `matInput`; a card, a
+   choice, a dialog, a menu, a select, a table is its Material component. A control Material
+   lacks becomes a component in `shared/` built on the CDK, never a second copy in a
+   feature. Never `confirm()`, `alert()` or `prompt()` — `MatDialog` asks, `MatSnackBar` or
+   a message in the page reports, a form field collects. The guard blocks a native
+   `<dialog>`, `<select>`, radio or checkbox.
+10. No `setTimeout`. Model timing in state.
+11. Every route has a guard. Every one.
+12. **No raw px in feature styles.** Colour, type, shape and elevation are Material's system
+    tokens, read as `var(--mat-sys-*)` and set once by the theme in `src/styles/_theme.scss`.
+    Spacing and the few values Material has no token for are `var(--app-*)` from
+    `src/styles/_tokens.scss`. `src/styles/_layout.scss` holds the page's maximum width and
+    the shell's breakpoints (a media query cannot read a custom property). Those two files
+    and `_reset.scss` are the only ones exempt. A feature places Material components; how one
+    looks changes in `_theme.scss`, through `mat.<component>-overrides()`, for the whole app.
+
+    `.claude/docs/interface.md` is how a screen is composed out of those tokens: hierarchy,
+    states, type, space, colour, depth, icons. `/ui-review` reviews a screen against it.
+
+### Django
+
+13. One app per frontend page, same name on both sides.
+14. **No `.objects.` outside a `repositories/` module.** No raw SQL in application code.
+15. Every model inherits `apps.common.models.BaseModel` (uuid pk, `created_at`, `updated_at`, `deleted_at`, `created_by`).
+16. **Soft delete only.** `delete()` sets `deleted_at`. Hard deletion is a data migration, never an application action.
+17. Every list endpoint paginates.
+18. Auth is required by default. A public endpoint declares `permission_classes = [AllowAny]` explicitly.
+19. Split `models.py` / `views.py` / `serializers.py` into packages past ~3 items, re-exporting from `__init__.py`.
+
+### Auth
+
+20. Django auth plus Django Groups and Permissions are the only authorization system. No parallel roles table.
+21. The frontend reads group names from `/api/auth/me/` and uses them in route guards and to show or hide affordances. Frontend checks are convenience; the backend check is the security boundary. Never one without the other.
+
+### Language
+
+22. **The UI is bilingual.** Every user-facing string exists in both `en.json` and `ar.json`
+    with identical key sets, and the UI works in RTL.
+
+    a. Every user-facing string goes through a bundle — never hardcoded in a template.
+    b. CSS logical properties only (`margin-inline-start`, `inset-inline-end`,
+       `text-align: start`). Never `left`/`right`.
+    c. Content renders in its own direction inside a UI of either language — `dir` on the
+       content element only, never on the row.
+    d. The backend sends keys, not prose. An error carries a stable `code` the frontend
+       resolves; prose that lives in the database carries an `_ar` column beside it.
+    e. **Both languages are written plainly, as a native product would write them.**
+       `.claude/docs/language.md` is the standard: no tashkeel, no verb that gives the
+       product intent, no aside for a sceptic, no count before a noun, a title that names
+       the page, one word per concept. The Arabic is written from the meaning, never from
+       the English word order, and is read without the English beside it. The guard hook
+       enforces the tashkeel rule; the rest is the copywriter's and translator's judgement.
+
+### Types
+
+30. **Everything is typed, and the checker agrees.**
+
+    a. TypeScript never uses `any` — name the type, or take `unknown` and narrow it.
+    b. Every `interface` and `type` alias lives in a sibling `<name>.types.ts` and is
+       imported with `import type`. A component, store or api file declares none.
+    c. Python annotates every function signature and every variable where it is first
+       bound — `name: Type = value`, module constants and settings included. A class body's
+       Django fields and `Meta` are declarations already, and a name rebound later keeps the
+       type it was given.
+    d. `mypy --strict`, with the Django and DRF plugins, is part of the gate. `Any` in a
+       signature needs a reason a reviewer would accept; `object` usually does the job.
+
+    ESLint, ruff `ANN`, mypy and the guard hook each enforce a part of it.
+
+### Comments
+
+31. **Code carries almost no comments; one file describes the module.**
+
+    a. No docstrings, no JSDoc, no `/* … */` blocks in application code (`backend/`,
+       `frontend/src/`, `frontend/e2e/`). Names and types say what the code does.
+    b. A comment is the exception: one or two lines saying *why*, where the reason cannot be
+       read from the code — a framework constraint, a deliberate empty block. Lint pragmas
+       (`noqa`, `eslint-disable`, `type: ignore`) are not comments.
+    c. Each module's `CLAUDE.md` has a `## Classes and methods` section describing every
+       class and public method in a line or two, abstractly. That is the one file a reader
+       opens, and it changes in the same commit as the code it describes.
+
+    The guard hook blocks a docstring, a JSDoc block, and any comment longer than two lines.
+
+### Money
+
+29. **Amounts are Omani rials, drawn with the Central Bank of Oman's sign (U+20C4).** The
+    backend stores and sends them as `apps.common.fields.MoneyField` — three decimal places,
+    a string in JSON, no currency code beside it. The frontend renders every amount with
+    `<app-money [amount]="…" />`, which sets the sign beside the amount in Latin digits, in
+    both languages. Never `OMR`, `O.R.`, `R.O.`, `ر.ع.` or `﷼` — the guard blocks them in
+    templates, bundles and the API. No system font draws the sign yet, so
+    `src/styles/_fonts.scss` serves it from a one-glyph webfont (`public/fonts/`, subset
+    from JuliaMono under the OFL) scoped to U+20C4 by `unicode-range`.
+
+### Assets
+
+32. **Never draw an SVG by hand** — no logo, illustration, picture or icon written as path
+    data — unless the developer asks for exactly that. A logo or picture is supplied by the
+    developer or comes from a licensed source and lands in `frontend/public/`; an icon is
+    Font Awesome; a glyph missing from a font comes from a published font, subset (the rial
+    sign is how). When none of those has it, ask — a guessed drawing ships as if it were
+    the real mark.
+
+## How work gets orchestrated
+
+Start in plan mode — it is the default (`permissions.defaultMode: "plan"`).
+
+`architect` plans first, always. It fixes the slice boundary and dispatches specialists in order. Typical order for a new feature:
 
 ```
-backend/   FastAPI app — see backend/CLAUDE.md
-  app/core/        config, db, models (all SQLModel tables), events (live pub/sub)
-  app/features/*/  one folder per feature, each with its own CLAUDE.md
-  scripts/         train_qlora.py (subprocess), download_model.py
-  apps/ config/    Django/DRF side of an in-progress migration — see below
-frontend/  Angular app — see frontend/CLAUDE.md
-  src/app/core/        api gateway + types
-  src/app/features/*/  one folder per feature, each with its own CLAUDE.md
-docs/      ARCHITECTURE.md · MODEL_SELECTION.md · HARDWARE.md
+architect
+  → django_engineer      (model → repository → service → view → serializer)
+  → angular_engineer     (api → store → component → route → guard)
+  → interface_designer   (tokens, spacing, hierarchy, states)
+  → copywriter           (all user-facing copy)
+  → translator           (the Arabic, written from the meaning; copywriter re-reads it)
+  → user_journey_engineer(black-box test the running app)
+  → naive_user           (a first-time visitor tries the tasks; reports how hard they were)
+  → cleaner              (dead code, pattern conformance)
 ```
 
-## In-progress migration: Django/DRF + Angular 22
+`naive_user` gets the URL and the tasks in a user's words, and nothing else — no code, no
+file names, no hint at which button to press. Its only tools are the `playwright` MCP server's
+browser actions (`.mcp.json`), so it cannot read the source even by accident. Where the
+browser Playwright downloads is not the one installed, set `PLAYWRIGHT_MCP_EXECUTABLE_PATH`
+(and `PLAYWRIGHT_MCP_SANDBOX=false` inside a container) in the environment.
 
-Mesbah is being migrated off FastAPI/SQLModel/SQLite onto Django + DRF +
-PostgreSQL/pgvector + Redis + Celery + Docker Compose, following the Vertical
-Slice + Service/Repository pattern from the `bn7ya/template` repo (one
-Django app per Angular feature, `BaseModel` UUID+soft-delete, Django
-auth/Groups with a single seeded operator account since Mesbah stays
-single-user). This is a **strangler migration**: the FastAPI backend above
-and the Angular frontend it serves are untouched and remain the actual
-product — nothing in `backend/apps/`/`backend/config/` is wired to the
-Angular app yet. Foundations (`apps/common`, `apps/accounts`, `config/`,
-`docker-compose.django.yml`) are in place and independently verified
-(migrations, DRF schema, tests all pass against a real Postgres+Redis); see
-`backend/apps/common/CLAUDE.md` for what exists, what's deliberately
-deferred (Channels, backups), and the phase-by-phase plan for porting the
-rest of the feature list (projects → sessions/chat → training → a new
-**Data Lab** curation feature → UX pass → cutover). Don't start new FastAPI
-features assuming this is finished, and don't build new Django features
-assuming the frontend can reach them yet.
+`logic_engineer` is pulled in for algorithmically heavy work. `db_engineer` reviews anything touching queries, indexes or vectors. `unifier` sweeps periodically, not per-feature. `mcp_engineer` handles tooling integrations.
 
-## Run it
+## The agents
+
+| Agent | Model | Use it for |
+|---|---|---|
+| `architect` | opus | Planning any feature as a vertical slice, then dispatching |
+| `interface_designer` | sonnet | Spacing, type scale, hierarchy, states, the Material theme and the `--app-*` tokens |
+| `copywriter` | sonnet | Every user-facing string |
+| `unifier` | sonnet | Auditing design and language consistency across the app |
+| `logic_engineer` | opus | Heavy algorithmic work, front and back |
+| `user_journey_engineer` | opus | Black-box testing the running app via Playwright |
+| `naive_user` | haiku | A first-time visitor: given only a URL and plain tasks, rates how hard each one was |
+| `mcp_engineer` | sonnet | Finding, building and connecting MCP servers |
+| `translator` | sonnet | The Arabic interface — written from the meaning — plus parity and RTL |
+| `cleaner` | sonnet | Behavior-preserving cleanup and pattern enforcement |
+| `db_engineer` | sonnet | Query plans, indexes, benchmarks, pgvector |
+| `angular_engineer` | sonnet | Frontend implementation |
+| `django_engineer` | sonnet | Backend implementation |
+
+## The design system
+
+**Angular Material (Material 3) is the design system**, themed once. `ADR-002` in
+`.claude/docs/adr/` records why.
+
+| File | Holds |
+|---|---|
+| `src/styles/_theme.scss` | `mat.theme()` — colour from the brand palettes, Tajawal, density — and the strong focus indicators. Every `--mat-sys-*` token, and every component override |
+| `src/styles/_theme-colors.scss` | The M3 palettes, generated from the brand gold by `ng generate @angular/material:theme-color` |
+| `src/styles/_tokens.scss` | What Material has no system token for, as `--app-*`: the space scale, the focus width, the icon box, motion, layers |
+| `src/styles/_base.scss` | Element defaults — body type and colour, headings, links, the focus ring for what is not Material, the skip link |
+| `src/styles/_layout.scss` | The page's maximum widths and the shell's breakpoints |
+
+The theme's colour scheme follows the operating system: every `--mat-sys-*` colour is
+`light-dark()`, so light and dark are both live.
+
+**Tajawal is the typeface**, in both languages — one family with matched Arabic and Latin
+designs, so a mixed sentence sets on one font. It is self-hosted from `@fontsource/tajawal`
+(weights 400, 500 and 700, the theme's regular, medium and bold), so the build fetches
+nothing at runtime, and Material's type scale (`--mat-sys-body-large`,
+`--mat-sys-headline-medium` and the rest) is set in it. A fourth weight is a new
+`@fontsource/tajawal/<weight>.css` entry in `angular.json` and a theme change, never a
+`font-weight` number in a feature.
+
+Icons are Font Awesome 7 Pro from the kit in `index.html`, drawn through `<mat-icon>`:
+`MAT_ICON_DEFAULT_OPTIONS` makes `fa-solid` the default font set, so
+`<mat-icon fontIcon="fa-eye" />` sits where Material's buttons, fields and menus expect an
+icon. `mat-icon` is `aria-hidden` by default; the text or `aria-label` beside it names the
+action. No Material Symbols font ships. Keyboard patterns — a listbox, a menu, tabs — come
+from the Material component, or from the CDK where Material has none.
+
+## Running the stack
 
 ```bash
-# 1) Backend (uses the conda env that already has torch 2.11+cu130)
-cd backend
-pip install -r requirements.txt          # API layer — boots instantly
-pip install -r requirements-ml.txt       # ML/QLoRA stack — needed for chat & training
-python scripts/download_model.py Qwen/Qwen3-14B   # ~28 GB, one-time
-uvicorn app.main:app --port 8077
-
-# 2) Frontend (separate terminal)
-cd frontend
-npm install
-npm start                                 # http://localhost:4200  (proxies /api → :8077)
+cp .env.example .env
+docker compose up --watch --build          # dev — hot reload both sides
 ```
 
-The API **boots without the ML stack** (heavy imports are lazy), so the GUI,
-projects, sessions and version tree all work for authoring before any GPU work.
-Chat/training return a clear 503/“not installed” until `requirements-ml.txt` is in.
+| What | Where |
+|---|---|
+| Angular | http://localhost:4200 |
+| API (proxied) | http://localhost:4200/api/ |
+| Swagger UI | http://localhost:4200/api/schema/swagger-ui/ |
+| Django admin | http://localhost:4200/admin/ |
 
-## Conventions
+```bash
+docker compose -f compose.yaml -f compose.prod.yaml up -d --build   # prod
+```
 
-- **Feature folders own behaviour; `core/models.py` owns the data shape.** We do
-  not use SQLModel `Relationship` (circular FKs + `from __future__ import
-  annotations` break the mapper) — query explicitly and cascade-delete in
-  services with `PRAGMA defer_foreign_keys`.
-- **Lazy ML imports** in `features/inference/engine.py` and `scripts/train_qlora.py`.
-- **One model resident at a time**; training unloads the inference engine first.
-  The one-trainer-at-a-time rule holds even with multiple selected GPUs.
-- **Arabic UI, English technical terms.** Don't translate `loss`, `adapter`, etc.
-- Each feature directory has a **`CLAUDE.md`** — read it before changing that feature.
+The Angular dev server proxies `/api`, `/admin` and `/static` to Django via `frontend/proxy.conf.json`, so dev is same-origin and needs no CORS configuration — matching how prod behaves behind nginx.
 
-## Language
+## Branches
 
-Every user-facing string is Arabic written to `.claude/docs/language.md` —
-the standard: no tashkeel, the product has no intent, no aside for a
-sceptic, a count never precedes a noun, a title names the page, one word per
-concept. `copywriter` and `translator` write to it, `unifier` keeps its
-vocabulary, and the guard hook enforces the tashkeel rule mechanically in
-the one place a regex can see it — the `ar.json` catalogues and seed
-migrations, which land with the i18n bundles at the Angular-22 cutover —
-with the same check in the `i18n` CI job.
+`main` is the trunk. Work happens on a branch off it, named for the issue it
+closes and what it does — short, lowercase, hyphenated, no session ids or
+generated suffixes.
 
-## Claude Code tooling (`.claude/`)
+```
+kind/issue-what-it-does
+```
 
-Specialist agents, hooks and the Django-side design pattern doc, ported and
-adapted from `bn7ya/template` (the architecture source for the Django
-migration). `.claude/docs/design-pattern.md` is the contract for
-`backend/apps/` + the existing Angular conventions; `.claude/agents/` are
-the specialists that cite it (`architect` plans, `django_engineer`/
-`angular_engineer`/`db_engineer` implement and review, `cleaner`/`unifier`
-sweep, `goldenizer`/`copywriter`/`translator` own presentation and Arabic
-copy). Two hooks enforce parts of it mechanically and **can block**:
-`guard-checks.py` (PostToolUse — layering violations and tashkeel in Arabic
-a user reads) and `memory-sync.py`
-(Stop — a touched feature's `CLAUDE.md` wasn't updated); `git-flow-gate.py`
-(UserPromptSubmit) is advisory only. See `.claude/skills/git-flow/SKILL.md`
-for the optional issue-first workflow these assume when a session isn't
-already working a pre-assigned branch.
+`kind` is one of `feat`, `fix`, `docs`, `chore`, `refactor`, and matches the type
+of the commits on the branch. Then the issue number, then two or three words a
+person would recognise in a branch list:
+
+```
+feat/12-orders-page
+fix/18-rtl-table-alignment
+docs/24-backup-runbook
+chore/31-bump-angular
+```
+
+When a request became several issues, the branch takes the lowest number of the
+batch — the branch delivers the slice, the issues are its steps.
+
+One slice per branch. If the name needs an "and", it is two branches.
+
+## How work gets committed
+
+Read `.claude/skills/git-flow/SKILL.md` before starting any feature, fix or
+refactor. These are the rules it enforces; they carry the same weight as the
+hard rules above.
+
+23. **An issue before the first edit.** Every feature, fix and refactor opens a
+    GitHub issue first, and the work references it. Documentation and chores do
+    not need one.
+24. **One issue, one commit, one working application.** Split a request by
+    behaviour, never into a backend commit and then a frontend commit — that
+    first commit is one you cannot return to. Every commit stands on its own:
+    check it out and the app runs.
+25. **The gate before the commit.** Run what CI runs — ruff, mypy, migrations check,
+    spectacular, pytest, ng lint, the production build, ng test, and
+    `compileall` over the hooks. Red is not a commit. CI itself runs only when a
+    branch merges into `main`, so this gate is the only check a branch gets before then.
+26. **Conventional subjects.** `<type>(<scope>): <subject> (#N)`, then a body
+    explaining why, then the `Verified against …` paragraph, then `Closes #N`.
+27. **Push every green commit, one PR per branch.** A commit on one machine is
+    not a backup. The PR closes every issue in the batch.
+28. **A session declares itself and reads the others.** Several Claude sessions run on
+    this machine at once, often in different worktrees, so before you edit a file, commit
+    to a branch, or start the gate, know who else is doing it. The hooks say so without
+    being asked; `/sessions` is how you look, and how you message a peer by name. Never
+    take a resource another live session announced without deciding to.
 
 ## Session awareness
 
-Several Claude sessions run on this machine at once, often in different worktrees, so before you edit a file, commit to a branch, or start the gate, know who else is doing it. Every session writes a short document about itself — its worktree, branch, issue, and what it was last asked to do — and reads every other live session's. Four hooks do it: `SessionStart` prints who else is live, `UserPromptSubmit` speaks only when that set changes, and two `PreToolUse` hooks warn before you edit a file another live session is holding or start a command that takes the gate, the test database or the compose project. The hooks say so without being asked; `/sessions` is how you look, and how you message a peer by name. Never take a resource another live session announced without deciding to.
+Every session writes a short document about itself — its worktree, branch, issue, and what it was last asked to do — and reads every other live session's. Four hooks do it: `SessionStart` prints who else is live, `UserPromptSubmit` speaks only when that set changes, and two `PreToolUse` hooks warn before you edit a file another live session is holding or start a command that takes the gate, the test database or the compose project.
 
 It **warns and lets you through**. One person drives every session, so the decision belongs with them, not with a hook. Nothing here takes a lock, and nothing waits on anything.
 
@@ -134,9 +298,16 @@ The documents live in `$XDG_RUNTIME_DIR/claude-sessions/`, never in the reposito
 
 `.claude/docs/sessions.md` is the full protocol and the reasoning. `CLAUDE_SESSIONS_OFF=1` turns it off; `/sessions` is the skill.
 
-## Verify
+## Template sync
 
-`backend/`: the smoke flow (project → task → session → correction → dataset →
-run prep → version tree → cascade delete) is the canonical end-to-end check.
-`frontend/`: `npm run build` must be warning-clean; the running app is verified
-against a live backend through the dev proxy.
+A product cut from this Template keeps taking its improvements. `.claude/template.json`
+names the Template repository and the last commit taken from it; a `SessionStart` hook
+fetches the Template at most every six hours and, when it has moved on, lists the commits
+this repository has not taken. `/template-sync` replays them on a `chore/sync-template`
+branch — a diff, not a merge, because a repository made with "Use this template" shares no
+history with it. In the Template itself the hook stays silent. `CLAUDE_TEMPLATE_SYNC_OFF=1`
+turns it off.
+
+## Prompt log
+
+Every prompt submitted in this project is appended to `prompt.txt` by a `UserPromptSubmit` hook. The file is gitignored and stays on the machine that wrote it — it is a local record of what was asked, not part of the repository. Do not edit it by hand.

@@ -1,0 +1,51 @@
+@use "sass:map";
+@use "@angular/material" as mat;
+@use "theme-colors";
+
+$_untracked: ();
+@each $role in display, headline, title, body, label {
+  @each $size in large, medium, small {
+    $_untracked: map.set($_untracked, #{$role}-#{$size}-tracking, 0);
+  }
+}
+
+html {
+  color-scheme: light dark;
+
+  @include mat.theme(
+    (
+      color: (
+        primary: theme-colors.$primary-palette,
+        tertiary: theme-colors.$tertiary-palette,
+      ),
+      typography: (
+        plain-family: ("Tajawal", "Omani Rial Sign", system-ui, sans-serif),
+        brand-family: ("Tajawal", "Omani Rial Sign", system-ui, sans-serif),
+        regular-weight: 400,
+        medium-weight: 500,
+        bold-weight: 700,
+      ),
+      density: 0,
+    )
+  );
+
+  @include mat.strong-focus-indicators(
+    (
+      border-color: var(--mat-sys-primary),
+      border-width: var(--app-focus-width),
+    )
+  );
+}
+
+// Arabic is a joined script: tracking breaks the joins, so every type step sets it at zero.
+html:lang(ar) {
+  @include mat.theme-overrides($_untracked);
+}
+
+// Font Awesome draws every mat-icon; this keeps its glyph centred in the box Material reserves.
+mat-icon.mat-icon {
+  inline-size: var(--app-icon-box);
+  block-size: var(--app-icon-box);
+  font-size: var(--app-icon-size);
+  line-height: var(--app-icon-box);
+}

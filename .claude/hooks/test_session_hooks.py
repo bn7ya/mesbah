@@ -262,6 +262,47 @@ def main() -> int:
         dead = run("resource-claim.py", held, home)
         check("a dead holder blocks nobody", dead.stdout == "", repr(dead.stdout))
 
+        print("register-harness  (the opencode liveness anchor)")
+        peer2_id = "33333333-4444-5555-6666-777777777777"
+        before = set((home / ".claude" / "sessions").glob("*.json"))
+        registry.register_harness(os.getpid(), peer2_id, str(root / "tree-two"), "opencode-peer")
+        written = json.loads((home / ".claude" / "sessions" / f"{os.getpid()}.json").read_text())
+        check("a registered opencode session's doc is live", registry.is_live(written))
+        check("it shows up as a peer to a different session", any(p.session_id == peer2_id for p in registry.peers(me)))
+        registry.register_harness(999_999_999, "a-dead-session", str(root), "ghost")
+        check(
+            "registering a dead pid writes nothing",
+            set((home / ".claude" / "sessions").glob("*.json")) == before | {home / ".claude" / "sessions" / f"{os.getpid()}.json"},
+        )
+
+        print("file-conflict via sidecar  (opencode has no file-history)")
+        target2 = root / "tree" / "opencode-shared.py"
+        target2.write_text("y = 2\n")
+        registry.touch_file(peer2_id, str(target2))
+        sidecar_conflict = run(
+            "file-conflict-warn.py",
+            {
+                "session_id": me,
+                "cwd": str(root),
+                "tool_input": {"file_path": str(target2)},
+                "hook_event_name": "PreToolUse",
+            },
+            home,
+        )
+        check("warns when an opencode peer holds the file (sidecar)", "opencode-peer" in sidecar_conflict.stdout, repr(sidecar_conflict.stdout))
+        registry.touch_file(me, str(root / "tree" / "mine.py"))
+        mine_sidecar = run(
+            "file-conflict-warn.py",
+            {
+                "session_id": me,
+                "cwd": str(root),
+                "tool_input": {"file_path": str(root / "tree" / "mine.py")},
+                "hook_event_name": "PreToolUse",
+            },
+            home,
+        )
+        check("a sidecar edit does not self-conflict", mine_sidecar.stdout == "", repr(mine_sidecar.stdout))
+
         print("bad input")
         for hook in (
             "session-start.py",

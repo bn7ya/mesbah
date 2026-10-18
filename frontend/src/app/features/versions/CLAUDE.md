@@ -30,7 +30,7 @@ A short explainer, two terms (`version`, `adapter`), then the tree. Each version
 outlined card, filled for the active one, with: its number, name and an Active badge (icon and
 word); what kind it is in words, with the `delta` term for a change; its notes; its size —
 for a change a bar and "{size}, which is {percent} of the full model", for a root "{size},
-stored once and not copied"; when it was made and by whom. Expert mode adds the LoRA rank,
+stored once and shared by every version"; when it was made and by whom. Expert mode adds the LoRA rank,
 whether biases were trained, the parameters changed and the size of the change, to two
 significant digits. The tree is nested lists: indentation and connector lines are borders in
 `--mat-sys-outline-variant`. A tree of only the base ends with "Train the model to add versions

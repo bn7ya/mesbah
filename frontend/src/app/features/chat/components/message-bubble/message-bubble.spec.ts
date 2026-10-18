@@ -147,7 +147,7 @@ describe('MessageBubble', () => {
   it('falls back to a plain sentence for a failure it has no words for', async () => {
     await show(message({ status: 'failed', content: '', error_code: 'something_new' }));
 
-    expect(host().querySelector('.bubble__failure')?.textContent).toContain('The reply could not be completed.');
+    expect(host().querySelector('.bubble__failure')?.textContent).toContain("The reply couldn't be completed.");
     expect(host().querySelector('a')).toBeNull();
   });
 
@@ -196,7 +196,7 @@ describe('MessageBubble', () => {
     await show(message({ edited_by: 'rana', approved: true, approved_by: 'rana' }));
 
     expect(text()).toContain('Mesbah');
-    expect(text()).toContain('12 in the prompt, 20 in the reply');
+    expect(text()).toContain('Prompt: 12. Reply: 20.');
     expect(text()).toContain('1.5 s');
     expect(text()).toContain('Approved by');
   });

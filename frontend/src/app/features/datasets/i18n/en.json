@@ -5,10 +5,10 @@
     "thinking": "Thinking",
     "addedBy": "Added by {name}",
     "rowsCount": "Rows: {count}",
-    "skippedCount": "Skipped: {count}",
-    "tokenLink": "Add a token",
+    "skippedCount": "Skipped rows: {count}",
+    "tokenLink": "Add a HuggingFace token",
     "imported": "Import started.",
-    "uploaded": "File added.",
+    "uploaded": "File uploaded.",
     "cancelled": "Stopping the import.",
     "retried": "Import started again.",
     "removed": "Dataset removed.",
@@ -20,7 +20,7 @@
     "format": {
       "messages": {
         "name": "Conversations",
-        "explain": "Each row is a conversation, and each message in it has a role and a text.",
+        "explain": "Each row is a conversation. Each message in it has a role and a text.",
         "columns": "messages: [{role, content}]"
       },
       "sharegpt": {
@@ -29,7 +29,7 @@
         "columns": "conversations: [{from, value}]"
       },
       "instruction": {
-        "name": "Instructions",
+        "name": "Instruction and answer",
         "explain": "Each row has an instruction, an optional input and the answer.",
         "columns": "instruction · input · output"
       },
@@ -44,7 +44,7 @@
         "columns": "text"
       },
       "unsupported": {
-        "name": "Layout not recognised",
+        "name": "Layout not recognized",
         "explain": "These columns don't match a supported layout. Choose the prompt and reply columns."
       }
     },
@@ -63,7 +63,7 @@
       "text": "Text",
       "thinking": "Thinking",
       "roles": {
-        "system": "System prompt",
+        "system": "Instructions",
         "user": "Prompt",
         "assistant": "Reply"
       }
@@ -164,14 +164,14 @@
       "thinkingColumns": "reasoning · thinking · reasoning_content · think · cot · <think>…</think>"
     },
     "edit": {
-      "title": "Edit the dataset",
+      "title": "Edit dataset",
       "name": "Name",
       "nameRequired": "Enter a name.",
       "description": "Description",
       "saving": "Saving…"
     },
     "detail": {
-      "breadcrumb": "Back",
+      "breadcrumb": "Breadcrumb",
       "loading": "Loading the dataset",
       "noDescription": "No description yet.",
       "edit": "Edit",
@@ -187,7 +187,7 @@
       "addedAt": "Added on",
       "columns": "Columns used",
       "checksum": "Checksum (SHA-256)",
-      "rowsTitle": "Contents",
+      "rowsTitle": "Rows",
       "rowsLoading": "Loading the rows",
       "pages": "Pages of rows",
       "stopped": "The import was stopped. Try again from the library.",
@@ -204,7 +204,7 @@
     "unsupported_file": "Upload a JSONL, JSON or CSV file.",
     "file_too_large": "The file is larger than 200 MB.",
     "empty_file": "The file has no rows.",
-    "dataset_not_ready": "This dataset hasn't finished importing.",
+    "dataset_not_ready": "The dataset hasn't finished importing. Wait for it to finish or choose another.",
     "upload_missing": "The uploaded file is gone. Upload it again."
   }
 }

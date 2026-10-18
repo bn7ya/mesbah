@@ -8,7 +8,7 @@
     "removed": "Model removed.",
     "cancelled": "Stopping the download.",
     "retried": "Download started again.",
-    "tokenLink": "Add a token",
+    "tokenLink": "Add a HuggingFace token",
     "family": {
       "dense_decoder": "Decoder",
       "moe_decoder": "Mixture of experts",
@@ -48,7 +48,7 @@
     "find": {
       "title": "Find a model",
       "label": "Search HuggingFace",
-      "hint": "Leave empty for popular models. Type a name to choose a task.",
+      "hint": "Leave empty for popular models. Enter a name to choose a task.",
       "submit": "Search",
       "task": "Task",
       "tasks": {
@@ -96,7 +96,7 @@
         "dense_decoder": "A standard text-writing model. All of its parameters work on every token.",
         "moe_decoder": "A mixture of experts. It holds many specialist parts and uses only a few of them for each token.",
         "encoder_decoder": "Reads the whole input first, then writes the output. Common in translation and summaries.",
-        "other": "The architecture of this model isn't recognised, so some details are missing."
+        "other": "The architecture of this model isn't recognized, so some details are missing."
       },
       "type": "Type",
       "activeLabel": "Parameters used for each token",
@@ -110,8 +110,8 @@
       "license": "License",
       "licenseNone": "Not stated",
       "size": "Download size",
-      "gated": "This model is gated. Accept its terms on HuggingFace, then save a token with access.",
-      "notDownloadable": "This repository has no model weights to load.",
+      "gated": "This model needs you to accept its terms on HuggingFace. Then save a HuggingFace token with access.",
+      "notDownloadable": "This repository has no model files that can be loaded.",
       "inLibrary": "This model is already in the library.",
       "readOnly": "Only a trainer or an administrator can download models.",
       "download": "Download",
@@ -121,7 +121,7 @@
   },
   "errors": {
     "already_in_library": "This model is already in the library.",
-    "not_downloadable": "This repository has no model weights to load.",
+    "not_downloadable": "This repository has no model files that can be loaded.",
     "disk_full": "There isn't enough free disk space for this model.",
     "hub_model_not_found": "HuggingFace has no model with that name.",
     "hub_model_gated": "This model needs a HuggingFace token with access to it. Save one on the System page.",

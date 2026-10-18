@@ -345,7 +345,7 @@ describe('ArchitectStore', () => {
       );
       await settle();
 
-      expect(store.fieldErrors().hidden_size).toBe('Use a whole number from 16 to 65,536.');
+      expect(store.fieldErrors().hidden_size).toBe('Enter a whole number from 16 to 65,536.');
     });
 
     it('reports a refusal that names no field in the page', async () => {
@@ -375,7 +375,7 @@ describe('ArchitectStore', () => {
 
       expect(store.estimate()).toBeNull();
       expect(store.estimating()).toBe(false);
-      expect(store.fieldErrors().seq_len).toBe('Use a whole number from 64 to 131,072.');
+      expect(store.fieldErrors().seq_len).toBe('Enter a whole number from 64 to 131,072.');
       expect(store.fieldErrors().batch).toBe(en.errors.design_missing);
 
       store.setNumber('seq_len', 512);
@@ -410,7 +410,7 @@ describe('ArchitectStore', () => {
       await typeIn(1000, estimate(RAISED, SIZE));
 
       expect(store.vocabularyNote()).toBe(
-        'The tokenizer of \u2066Qwen/Qwen3-0.6B\u2069 has a vocabulary size of 151,936. The model is counted with that vocabulary.',
+        'The tokenizer of \u2066Qwen/Qwen3-0.6B\u2069 has a vocabulary size of 151,936. The counts below use that size.',
       );
       expect(store.blueprint().vocab_size).toBe(1000);
       expect(store.estimate()?.design.vocab_size).toBe(SIZE);

@@ -1,7 +1,7 @@
 {
   "members": {
     "title": "Members",
-    "subtitle": "The people who use this Mesbah and what each of them can do.",
+    "subtitle": "The people who can sign in to Mesbah and what each of them can do.",
     "loading": "Loading members",
     "person": "Person",
     "role": "Role",
@@ -22,7 +22,7 @@
     "deactivate": {
       "open": "Deactivate",
       "title": "Deactivate {name}?",
-      "body": "They can no longer sign in. Their projects, chats and versions stay as they are.",
+      "body": "They can no longer sign in. Their projects, conversations and versions stay as they are.",
       "confirm": "Deactivate"
     },
     "roles": {
@@ -32,11 +32,11 @@
       },
       "reviewers": {
         "name": "Reviewer",
-        "can": "Also chats with versions, corrects replies and approves them for training."
+        "can": "Also chats with versions, edits replies and approves them for training."
       },
       "trainers": {
         "name": "Trainer",
-        "can": "Also downloads models, adds datasets, trains and exports."
+        "can": "Also downloads models, adds datasets, starts projects, trains and exports."
       },
       "admins": {
         "name": "Administrator",
@@ -60,8 +60,8 @@
   },
   "errors": {
     "username_taken": "That username is already in use.",
-    "last_administrator": "Mesbah needs at least one active administrator.",
-    "owner_locked": "The owner account stays an active administrator.",
+    "last_administrator": "There must be at least one active administrator.",
+    "owner_locked": "The owner account must stay an active administrator.",
     "self_deactivation": "You can't deactivate your own account."
   }
 }

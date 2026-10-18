@@ -232,7 +232,7 @@ describe('RunPage', () => {
       expect(used).toContain('0.03');
       expect(used).toContain('Examples per step');
       expect(used).not.toContain('LoRA');
-      expect(used).not.toContain('Rank-stabilised');
+      expect(used).not.toContain('Rank-stabilized');
       expect(used).not.toContain('Train biases');
     });
 
@@ -251,7 +251,7 @@ describe('RunPage', () => {
       const page = render({ ...NEW_MODEL, status: 'failed', version: null, error_code: 'out_of_memory' });
 
       const result = section(page, 'run-result');
-      expect(result).toContain('Design a smaller model in the Architect');
+      expect(result).toContain('Design a smaller model in the model designer');
       expect(result).not.toContain('rank');
     });
 

@@ -1,7 +1,7 @@
 {
   "projects": {
     "title": "Projects",
-    "subtitle": "A project is one model being customised. It starts from a model in the library and keeps every version trained from it.",
+    "subtitle": "A project is one model being customized. It starts from a model in the library and keeps every version trained from it.",
     "loading": "Loading projects",
     "pages": "Pages of projects",
     "activeVersion": "Active version:",
@@ -21,7 +21,7 @@
     },
     "empty": {
       "title": "No projects yet.",
-      "write": "Start a project from a model in the library, then chat with it, correct it and train it.",
+      "write": "Start a project from a model in the library. Then chat with it, edit its replies and train it.",
       "noModel": "A project starts from a model downloaded to this machine. Download one first.",
       "read": "A trainer or an administrator can start projects.",
       "models": "Go to Models"
@@ -56,27 +56,27 @@
         "baseModel": "Base model",
         "viewModels": "View models",
         "created": "Created",
-        "changed": "Last changed"
+        "changed": "Updated"
       },
       "remove": {
         "title": "Remove project",
         "body": "The project and all of its versions are removed. The base model stays in the library.",
         "open": "Remove project",
         "confirmTitle": "Remove {name}?",
-        "confirmBody": "The project and all of its saved versions are removed. The base model stays in the library.",
+        "confirmBody": "The project and all of its versions are removed. The base model stays in the library.",
         "confirm": "Remove",
         "done": "Project removed."
       }
     },
     "reply": {
-      "title": "How it replies",
+      "title": "Reply settings",
       "intro": "Every conversation in this project starts from these settings.",
       "instructions": "Instructions",
       "instructionsHint": "Text every conversation starts with, such as the model's role, its tone and the language to answer in. Optional.",
       "instructionsNone": "No instructions.",
       "thinking": "Thinking",
       "thinkingHint": "The model writes out its reasoning before it replies. The reasoning can be read and edited.",
-      "thinkingUnsupported": "This base model does not write out its thinking.",
+      "thinkingUnsupported": "This base model doesn't write out its thinking.",
       "on": "On",
       "off": "Off",
       "temperature": "Creativity",
@@ -89,7 +89,7 @@
     }
   },
   "errors": {
-    "base_model_not_ready": "This model hasn't finished downloading. Choose a ready model.",
-    "not_found": "That wasn't found. It may have been removed."
+    "base_model_not_ready": "The base model isn't ready yet. Wait for its download or training to finish.",
+    "not_found": "That couldn't be found. It may have been removed."
   }
 }

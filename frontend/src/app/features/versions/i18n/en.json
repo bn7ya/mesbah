@@ -23,8 +23,8 @@
       "change": "{size}, which is {percent} of the full model",
       "sliver": "{size}, under {percent} of the full model",
       "changeOnly": "{size}",
-      "root": "{size}, stored once and not copied",
-      "rootUnknown": "Stored once and not copied."
+      "root": "{size}, stored once and shared by every version",
+      "rootUnknown": "Stored once and shared by every version."
     },
     "row": {
       "created": "Created:",
@@ -70,12 +70,12 @@
       "formatLabel": "Format",
       "lora": {
         "name": "LoRA adapter",
-        "explain": "The change alone, as a zip file. For vLLM and PEFT.",
+        "explain": "The change alone, as a zip file. For vLLM and other tools that load LoRA.",
         "size": "Size: {size}"
       },
       "merged": {
         "name": "Merged model",
-        "explain": "The full model with the change folded in, as large as the base model. Works with any engine.",
+        "explain": "The full model with the change merged in, as large as the base model. Works with any engine.",
         "size": "Disk space: about {size}"
       },
       "gguf": {
@@ -118,11 +118,11 @@
       "removeTitle": "Remove this export?",
       "removeBody": "Its files are deleted from the server. The version itself stays.",
       "failure": {
-        "training_parts_missing": "The components needed to prepare this export are not installed on this machine.",
-        "converter_unavailable": "The GGUF converter could not be downloaded. Check the internet connection and try again.",
+        "training_parts_missing": "The training parts needed to prepare this export aren't installed on this machine.",
+        "converter_unavailable": "The GGUF converter couldn't be downloaded. Check the internet connection and try again.",
         "conversion_failed": "The conversion to GGUF failed. llama.cpp may not support this model.",
         "out_of_memory": "This machine ran out of memory while preparing the export.",
-        "exporter_crashed": "The export stopped unexpectedly.",
+        "exporter_crashed": "The export stopped unexpectedly. Try again.",
         "nothing_to_merge": "This version has no change to merge into the base model.",
         "failed": "The export failed."
       }
@@ -142,7 +142,7 @@
       "topLayers": "Layers that changed most",
       "rank": "Rank",
       "mapTitle": "Map of the change",
-      "intro": "Each square is a part of the model. A stronger colour means training changed it more.",
+      "intro": "Each square is a part of the model. A stronger color means training changed it more.",
       "less": "Less change",
       "more": "More change",
       "caption": "Change by layer and module",
@@ -157,8 +157,8 @@
     }
   },
   "errors": {
-    "root_version_kept": "The base model stays in the project.",
-    "active_version_kept": "The active version stays. Make another version active first.",
-    "not_exportable": "The base model is not on this machine, so this version cannot be exported."
+    "root_version_kept": "The base model can't be removed from a project.",
+    "active_version_kept": "The active version can't be removed. Make another version active first.",
+    "not_exportable": "The base model isn't on this machine, so this version can't be exported."
   }
 }

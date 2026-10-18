@@ -23,7 +23,7 @@
       "more": "Show more",
       "terms": "Terms:",
       "emptyTitle": "No conversations yet.",
-      "emptyWrite": "Ask a question, then edit any reply that is wrong. Edited and approved replies become training data.",
+      "emptyWrite": "Ask a question, then edit a wrong reply or approve a good one. Approved replies become training examples.",
       "emptyRead": "A reviewer, a trainer or an administrator can start conversations."
     },
     "remove": {
@@ -55,7 +55,7 @@
       "hint": "Enter sends. Shift and Enter add a line.",
       "send": "Send",
       "stop": "Stop",
-      "readOnly": "Reading only. A reviewer, a trainer or an administrator can write here."
+      "readOnly": "You can read this conversation. A reviewer, a trainer or an administrator can send messages."
     },
     "stream": {
       "loading": "Loading the model…",
@@ -63,7 +63,7 @@
       "writing": "Writing…"
     },
     "status": {
-      "failedUnknown": "The reply could not be completed.",
+      "failedUnknown": "The reply couldn't be completed. Send the message again.",
       "openEngines": "Go to Engines"
     },
     "marks": {
@@ -120,7 +120,7 @@
     },
     "expert": {
       "engine": "Engine",
-      "tokens": "{prompt} in the prompt, {reply} in the reply",
+      "tokens": "Prompt: {prompt}. Reply: {reply}.",
       "duration": "Duration",
       "seconds": "{count} s",
       "editedBy": "Edited by",
@@ -146,15 +146,15 @@
     }
   },
   "errors": {
-    "engine_unreachable": "The engine isn't running.",
-    "no_engine": "No engine is set up to run models.",
-    "model_not_on_disk": "The base model isn't downloaded yet.",
-    "engine_timeout": "The engine took too long to answer.",
-    "engine_failed": "The engine couldn't answer.",
-    "engine_rejected_token": "Mesbah's access token is not valid on this engine.",
-    "needs_gguf": "This version needs a GGUF export first.",
-    "engine_base_mismatch": "This engine runs a different base model than the project.",
-    "training_in_progress": "Training is using the memory. Chat again when it ends.",
+    "engine_unreachable": "The engine isn't running. Start it or choose another engine.",
+    "no_engine": "No engine is available to run models. An administrator can turn one on or connect one.",
+    "model_not_on_disk": "The base model isn't downloaded yet. Download it in Models.",
+    "engine_timeout": "The engine took too long to answer. Try again.",
+    "engine_failed": "The engine couldn't do that. Try again.",
+    "engine_rejected_token": "The engine didn't accept the saved API key. Check the key and try again.",
+    "needs_gguf": "This version needs a GGUF export first. Export it from Versions.",
+    "engine_base_mismatch": "This engine runs a different base model from the project's. Choose another engine.",
+    "training_in_progress": "Training is using the memory chat needs. Try again when the run ends.",
     "no_version": "This project has no version to chat with.",
     "message_changed": "Someone else changed this reply. Try again to replace their change.",
     "not_editable": "Only a finished reply from the model can be edited."
@@ -162,7 +162,7 @@
   "glossary": {
     "approved": {
       "term": "Approved",
-      "explain": "A reply marked as right. Approved replies and edited replies become the examples the model trains on next time."
+      "explain": "A reply marked as right, either as it is or after an edit. Approved replies become training examples."
     }
   }
 }

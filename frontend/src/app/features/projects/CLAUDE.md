@@ -39,7 +39,7 @@ filtered to `ready`).
   chosen already), description, instructions, and a Thinking toggle that follows the chosen
   model and is disabled, with the reason, when the model cannot think. With no ready model it
   says so and links to Models. Creating goes to the new project.
-- **Overview**: About (name and description editable, base model, dates), How it replies
+- **Overview**: About (name and description editable, base model, dates), Reply settings
   (instructions, Thinking, and the three reply settings as sliders with plain names and a term
   beside each: Creativity is `temperature`, Word choice range is `top_p`, Longest reply is
   counted in `token`s), and Remove project, behind a destructive confirmation. Each of the first

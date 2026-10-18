@@ -46,7 +46,8 @@ argues with a reader who was not doubting anything.
 9. **The backend sends keys, not prose.** An error carries a stable `code` and the
    frontend resolves `errors.<code>`; seeded prose with a stable key resolves through a
    key with the server's text as fallback. A sentence the frontend prints verbatim from
-   the server is a bug in whichever language it arrives.
+   the server is a bug in whichever language it arrives. A code that two features
+   resolve has one text, written the same in both bundles.
 10. **One word per concept.** The vocabulary below is the list. A second word for the same
     thing, in either language, is a divergence `unifier` removes.
 
@@ -83,7 +84,7 @@ safetensors · JSONL · API · API key · AdamW · 8-bit Adam
 | the marker on a changed reply | تم التعديل | edited |
 | an install-wide data entry | مجموعة بيانات | dataset |
 | one example in a dataset | صف | row |
-| one of a dataset's versions on HuggingFace | مجموعة فرعية | subset |
+| one of a dataset's variants on HuggingFace | مجموعة فرعية | subset |
 | a part of a dataset kept for one use (train, test) | قسم | split |
 | bringing a dataset from HuggingFace | استيراد | import |
 | sending a file from this computer | رفع | upload |
@@ -91,6 +92,32 @@ safetensors · JSONL · API · API key · AdamW · 8-bit Adam
 | the answer a training row teaches | الرد | reply |
 | turning data into a version | تدريب | training |
 | a server a version runs on | محرك | engine |
+| one session of training | عملية تدريب | run |
+| a reply marked as right, as it is or after an edit | معتمد | approved |
+| a training row as the model sees it | مثال | example |
+| the instructions every conversation starts with | التعليمات | instructions |
+| models or datasets kept on this machine | المكتبة | library |
+| ending something that is running | إيقاف | stop |
+| taking something out of a list or the library | إزالة | remove |
+| storing a model's numbers in fewer bits | ضغط النموذج | compression |
+| the access code for HuggingFace | رمز HuggingFace | HuggingFace token |
+| the page where a new model is designed | تصميم النماذج | model designer |
+| a reply that goes into training | مستخدم في التدريب | used for training |
+| one of a dataset's variants, in prose | نوع | variant |
+| making an API key | إنشاء | create |
+| ending a member's access | تعطيل | deactivate |
+| the packages training needs installed | مكونات التدريب | training parts |
+| how much detail a screen shows | مستوى التفاصيل | level of detail |
+| one full pass over all the examples | حقبة | epoch |
+| the small file holding a version's change | الإضافة | adapter |
+| the size of the gradient, charted per step | حجم التدرج | gradient norm |
+
+Notes on the rows above. `cancel` only closes a dialog without acting. `delete` is never used,
+since removal is soft. A bare "token" is a piece of text and nothing else, so the access code
+is always the HuggingFace token. `system prompt` is a glossary term beside "Instructions", not a label.
+In Arabic, "API key" stays Latin where it names the thing (a label, a title, the glossary) and
+is «المفتاح» once a sentence has named it; «تعطيل» covers both a deactivated member and an
+engine turned off, and «نسخة» is only ever a version, never a copy or a variant.
 
 ## What a native reader rejects
 
@@ -112,6 +139,8 @@ English:
 - "we don't", "it cannot", "never" as policy statements inside a label.
 - An em-dash aside or a semicolon joining two thoughts that wanted two sentences.
 - A verb that gives the software a mind: it asked, it refused, it read, it decided.
+- "We", or "Mesbah" as the one who needs, wants or decides ("Mesbah needs at least one administrator").
+- British spellings. The English is American: customize, color, leveled, recognized, license.
 
 ## The loop
 

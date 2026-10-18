@@ -1,6 +1,6 @@
 # features/architect
 
-The Architect page: design a new model (a decoder, a mixture of experts or an encoder-decoder),
+The Model designer page (`/architect`): design a new model (a decoder, a mixture of experts or an encoder-decoder),
 see what it adds up to, save it, and train it from nothing on the approved replies of other
 projects and on library datasets. Every signed-in user sees and uses the designer; trainers and
 above save, rename, remove and train.
@@ -29,7 +29,7 @@ counted the same way.
   parameters each token uses for a mixture of experts) and the saved designs as rows (open, rename,
   remove). Choosing one loads it into the designer and moves focus there.
 - **Design**: a header with what the designer holds (a ready-made design, a saved design, with
-  "Unsaved changes" when it differs, or a new one) and Save / Train it. Under it two panels:
+  "Unsaved changes" when it differs, or a new one) and Save / Train model. Under it two panels:
   - the **designer**: the kind of model as a toggle with one sentence each, then only the fields
     that kind uses, grouped (shape, attention, feed-forward or experts, vocabulary and context,
     tokenizer, training step). Each field has its range and a plain hint; a refused field shows the

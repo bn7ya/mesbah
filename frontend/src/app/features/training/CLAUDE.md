@@ -6,7 +6,7 @@ what changed (a LoRA delta). The page starts runs, shows them live and shows exa
 learns from. Every signed-in user sees it; trainers and above start, stop and remove runs.
 
 A run has a `kind`. A **LoRA run** is the one above. A **pretrain run** trains a new model from
-nothing and is started from the Architect page, never from here: it belongs to a scratch project,
+nothing and is started from the model designer (`/architect`), never from here: it belongs to a scratch project,
 learns from other projects' approved replies and library datasets, and ends with the project's
 first version (v0, the whole model), which joins the library and becomes the project's base. This
 feature only shows pretrain runs; it never starts one.
@@ -65,7 +65,7 @@ bundle.
   latest loss, dates, the version made, datasets, who started it; Open, Stop and Remove behind a
   confirmation), refreshed every three seconds while one is unfinished; examples as the
   conversations a run sees, the reply it learns highlighted, its thinking in a secondary block,
-  "corrected" marks and who approved. A pretrain run's card is titled "New model" instead of its
+  "edited" marks and who approved. A pretrain run's card is titled "New model" instead of its
   seeded name, says "A new model, trained from nothing" where a LoRA card says "Started from", and
   lists the projects whose approved replies it learns from by name (a count until the names load,
   "A removed project" for one that is gone), then its datasets.
@@ -169,7 +169,7 @@ not the values. Simple mode shows a note, with a reset, when Expert-only setting
 and the toggles show the exact value when the rate or rank matches no preset.
 
 **A pretrain run is shown here, never started here.** Training from nothing needs a design and creates a
-project, so the Architect page owns it. Here a scratch project is a project like another once its model
+project, so the model designer owns it. Here a scratch project is a project like another once its model
 exists, and until then the form says so; nothing in this feature reads a project's kind.
 
 **Project names are read one by one.** A pretrain run lists project ids, and a handful of reads of

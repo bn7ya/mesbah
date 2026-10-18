@@ -44,7 +44,7 @@
       "makeDefault": "Make default",
       "madeDefault": "Default engine changed.",
       "stopped": {
-        "title": "The engine is not running.",
+        "title": "The engine isn't running.",
         "body": "Chat and training need it. How to start it depends on how Mesbah was installed.",
         "pip": "Installed with pip",
         "pipBody": "Install the training parts, then start Mesbah again.",
@@ -85,7 +85,7 @@
       "madeDefault": "Default engine changed.",
       "disconnected": "Engine disconnected.",
       "disconnectTitle": "Disconnect {name}?",
-      "disconnectBody": "Versions can no longer run on it from Mesbah. The engine itself is not changed.",
+      "disconnectBody": "Versions can no longer run on it from Mesbah. The engine itself isn't changed.",
       "disconnectConfirm": "Disconnect"
     },
     "form": {
@@ -113,14 +113,14 @@
     },
     "keys": {
       "title": "API keys",
-      "lead": "A key lets another tool use Mesbah's models. It works with the role of its owner.",
-      "trainersOnly": "Keys are for trainers",
-      "trainersOnlyBody": "Trainers and administrators make API keys. Ask one of them if a tool needs one.",
+      "lead": "A key lets another tool use Mesbah's models. It can do whatever the role of its owner allows.",
+      "trainersOnly": "Keys are for trainers and administrators",
+      "trainersOnlyBody": "Ask one of them if a tool needs a key.",
       "new": "New key",
       "loading": "Loading keys",
       "pages": "Pages of keys",
       "emptyTitle": "No API keys yet.",
-      "emptyBody": "Make a key to let another tool use Mesbah.",
+      "emptyBody": "Create a key to let another tool use Mesbah.",
       "name": "Name",
       "prefix": "Starts with",
       "owner": "Owner",
@@ -160,7 +160,7 @@
       "modelsTitle": "Model names",
       "modelsLead": "A project's short name is its model name.",
       "modelActive": "The project's active version",
-      "modelVersion": "A specific version, here version 3"
+      "modelVersion": "A specific version, such as version 3"
     },
     "copy": {
       "action": "Copy",
@@ -171,10 +171,10 @@
   },
   "errors": {
     "builtin_engine_kept": "Mesbah's own engine can't be disconnected.",
-    "engine_unreachable": "The engine isn't running.",
+    "engine_unreachable": "The engine isn't running. Start it or choose another engine.",
     "engine_timeout": "The engine took too long to answer. Try again.",
-    "engine_rejected_token": "The engine did not accept the saved API key. Check the key and try again.",
+    "engine_rejected_token": "The engine didn't accept the saved API key. Check the key and try again.",
     "engine_failed": "The engine couldn't do that. Try again.",
-    "no_engine": "No engine is available to run models. Turn one on or connect one."
+    "no_engine": "No engine is available to run models. An administrator can turn one on or connect one."
   }
 }

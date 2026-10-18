@@ -153,6 +153,6 @@ describe('Composer', () => {
     await fixture.whenStable();
 
     expect(host().querySelector('textarea')).toBeNull();
-    expect(host().textContent).toContain('Reading only');
+    expect(host().textContent).toContain('You can read this conversation');
   });
 });

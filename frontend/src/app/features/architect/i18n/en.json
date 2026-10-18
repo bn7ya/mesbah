@@ -1,7 +1,7 @@
 {
   "architect": {
-    "title": "Architect",
-    "subtitle": "Design a new model and train it from nothing on the approved replies of your projects.",
+    "title": "Model designer",
+    "subtitle": "Design a new model and train it from nothing, on approved replies and datasets.",
     "start": {
       "title": "Start from",
       "presets": "Ready-made designs",
@@ -26,7 +26,7 @@
       "empty": "No saved designs yet.",
       "emptyWrite": "Save a design from the designer and it appears here.",
       "emptyRead": "A trainer or an administrator can save designs.",
-      "changed": "Changed: {date}",
+      "changed": "Updated: {date}",
       "current": "In the designer",
       "open": "Open",
       "openFor": "Open {name}",
@@ -37,12 +37,12 @@
     },
     "remove": {
       "title": "Remove {name}?",
-      "body": "The saved design is removed. Models already trained from it are not affected.",
+      "body": "The saved design is removed. Models already trained from it aren't affected.",
       "confirm": "Remove"
     },
     "discard": {
       "title": "Discard the unsaved changes?",
-      "body": "The designer holds changes that are not saved. Continuing replaces them.",
+      "body": "The designer holds changes that aren't saved. Continuing replaces them.",
       "confirm": "Discard"
     },
     "design": {
@@ -55,7 +55,7 @@
     },
     "actions": {
       "save": "Save",
-      "train": "Train it"
+      "train": "Train model"
     },
     "family": {
       "title": "Kind of model",
@@ -65,7 +65,7 @@
       },
       "moe_decoder": {
         "name": "Mixture of experts",
-        "about": "Holds many specialist blocks and uses only a few for each token. It is big but cheap to run."
+        "about": "Holds many specialist blocks and uses only a few for each token. It is large but cheap to run."
       },
       "encoder_decoder": {
         "name": "Encoder-decoder",
@@ -160,22 +160,22 @@
       }
     },
     "vocabulary": {
-      "raised": "The tokenizer of {tokenizer} has a vocabulary size of {tokens}. The model is counted with that vocabulary."
+      "raised": "The tokenizer of {tokenizer} has a vocabulary size of {tokens}. The counts below use that size."
     },
     "error": {
-      "range": "Use a whole number from {min} to {max}.",
+      "range": "Enter a whole number from {min} to {max}.",
       "kvNotDivisible": "The attention heads must divide evenly by the key-value heads."
     },
     "results": {
       "title": "Size and memory",
-      "working": "Working it out",
+      "working": "Calculating the size and memory",
       "fix": "This design can't be built yet. Fix the fields that show a message."
     },
     "breakdown": {
       "where": "Where the parameters are",
       "active": "Each token uses {active} of {total}.",
       "allActive": "All of them work on every token.",
-      "embeddings_dominate": "Most of this model is its vocabulary table: {share}. More layers or a wider model would make it more capable for the same size."
+      "embeddings_dominate": "The vocabulary table makes up {share} of this model. More layers or a wider model would make it more capable for the same size."
     },
     "memory": {
       "title": "Memory to train it here",
@@ -187,7 +187,7 @@
         "fits": "Fits",
         "tight": "Tight",
         "too_large": "Too large",
-        "cpu_only": "No GPU",
+        "cpu_only": "CPU only",
         "unknown": "Unknown"
       },
       "noGpu": "No GPU found. Training runs on the CPU, which is very slow.",
@@ -211,7 +211,7 @@
       "removed": "Design removed."
     },
     "train": {
-      "title": "Train it from nothing",
+      "title": "Train from nothing",
       "intro": "A new project holds the model. The model learns from the approved replies and datasets you choose.",
       "name": "Name of the new project",
       "nameRequired": "Enter a name.",
@@ -222,10 +222,10 @@
       "loading": "Loading the projects",
       "replies": "Approved replies: {count}",
       "none": "No approved replies yet.",
-      "unknown": "The replies could not be counted.",
+      "unknown": "The replies couldn't be counted.",
       "selected": "Approved replies chosen: {count}",
       "pick": "Choose at least one project or dataset.",
-      "expectation": "Training from nothing needs far more examples than customising an existing model. A small model trained on few replies will mostly repeat them.",
+      "expectation": "Training from nothing needs far more examples than customizing an existing model. A small model trained on few replies will mostly repeat them.",
       "submit": "Start training",
       "working": "Starting…",
       "started": "Training started.",
@@ -233,26 +233,26 @@
       "needSaving": "Save the changes first.",
       "needTokenizer": "Add a tokenizer and save the design.",
       "rows": "Rows: {count}",
-      "hasThinking": "With thinking",
+      "hasThinking": "Includes thinking",
       "limit": "Row limit",
       "limitFor": "Row limit for the dataset {name}",
-      "limitHint": "Optional. Empty uses every row.",
-      "limitError": "Use a whole number of 1 or more.",
-      "nothing": "Nothing to learn from yet. Add a dataset, or approve replies in a project.",
-      "toDatasets": "Go to datasets"
+      "limitHint": "Optional. Leave empty to use every row.",
+      "limitError": "Enter a whole number of 1 or more.",
+      "nothing": "Nothing to learn from yet. Import a dataset or approve replies in Chat.",
+      "toDatasets": "Go to Datasets"
     }
   },
   "errors": {
     "design_missing": "This field needs a number.",
     "design_invalid": "This field needs a whole number.",
-    "design_out_of_range": "This number is outside what Mesbah can build.",
+    "design_out_of_range": "This number is outside the allowed range.",
     "design_not_divisible": "The hidden size must divide evenly by the attention heads.",
     "design_odd_head_dim": "Each head needs an even width. Choose a hidden size and a number of heads that give one.",
     "design_too_many_active_experts": "A token can't use more experts than the model has.",
     "design_tied_only": "An encoder-decoder shares its vocabulary table with the output.",
     "tokenizer_needed": "Add a tokenizer to the design and save it before training.",
-    "nothing_to_learn": "There is nothing to learn from in the projects and datasets chosen.",
-    "dataset_not_ready": "A chosen dataset is not ready yet. Wait for its import to finish, or choose another."
+    "nothing_to_learn": "There is nothing to learn from yet. Approve replies in Chat or choose a dataset.",
+    "dataset_not_ready": "The dataset hasn't finished importing. Wait for it to finish or choose another."
   },
   "glossary": {
     "encoder_decoder": {
@@ -276,7 +276,7 @@
       "explain": "In a mixture of experts, the small part that picks the experts each token goes through."
     },
     "norms": {
-      "term": "Normalisation",
+      "term": "Normalization",
       "explain": "Small adjustments that keep the numbers inside the model in a steady range. They hold very few parameters."
     },
     "lm_head": {

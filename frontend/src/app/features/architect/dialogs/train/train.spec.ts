@@ -99,7 +99,7 @@ describe('TrainDialog', () => {
     expect(host.querySelector('input[name="name"]')).toHaveProperty('value', 'Tiny MoE example');
     expect(option('sources', 0).textContent).toContain('Approved replies: 12');
     expect(option('datasets', 0).textContent).toContain('Rows: 1,200');
-    expect(option('datasets', 0).textContent).toContain('With thinking');
+    expect(option('datasets', 0).textContent).toContain('Includes thinking');
   });
 
   it('keeps Train disabled, with the reason beside it, until something is chosen', async () => {

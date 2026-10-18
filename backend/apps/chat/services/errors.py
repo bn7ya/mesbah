@@ -13,7 +13,7 @@ class MessageChanged(APIException):
 class NotEditable(APIException):
     status_code = status.HTTP_409_CONFLICT
     default_code = "not_editable"
-    default_detail = "Only a finished reply from the model can be corrected."
+    default_detail = "Only a finished reply from the model can be edited."
 
 
 class NoVersion(APIException):

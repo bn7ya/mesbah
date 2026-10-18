@@ -3,12 +3,12 @@
     "title": "مجموعات البيانات",
     "subtitle": "بيانات التدريب من HuggingFace أو من ملفاتك.",
     "thinking": "سلسلة التفكير",
-    "addedBy": "أضافها {name}",
+    "addedBy": "تمت الإضافة بواسطة {name}",
     "rowsCount": "عدد الصفوف: {count}",
     "skippedCount": "الصفوف المستبعدة: {count}",
-    "tokenLink": "إضافة رمز",
+    "tokenLink": "إضافة رمز HuggingFace",
     "imported": "بدأ الاستيراد.",
-    "uploaded": "تمت إضافة الملف.",
+    "uploaded": "تم رفع الملف.",
     "cancelled": "جار إيقاف الاستيراد.",
     "retried": "بدأ الاستيراد من جديد.",
     "removed": "تمت إزالة مجموعة البيانات.",
@@ -25,11 +25,11 @@
       },
       "sharegpt": {
         "name": "محادثات بصيغة ShareGPT",
-        "explain": "كل صف محادثة، وكل رسالة فيها معلمة بكلمة human أو gpt.",
+        "explain": "كل صف محادثة، ولكل رسالة فيها وسم human أو gpt.",
         "columns": "conversations: [{from, value}]"
       },
       "instruction": {
-        "name": "تعليمات",
+        "name": "تعليمة وإجابة",
         "explain": "في كل صف تعليمة ومدخل اختياري والإجابة.",
         "columns": "instruction · input · output"
       },
@@ -56,14 +56,14 @@
       "text": "النص",
       "and": "مع",
       "none": "بدون",
-      "thinkingInline": "من وسم <think> في الرد، إن وجد"
+      "thinkingInline": "من وسم ⁦<think>⁩ في الرد، إن وجد"
     },
     "conversation": {
       "number": "الصف {number}",
       "text": "نص",
       "thinking": "سلسلة التفكير",
       "roles": {
-        "system": "تعليمات النظام",
+        "system": "التعليمات",
         "user": "الطلب",
         "assistant": "الرد"
       }
@@ -80,10 +80,10 @@
       "progressLabel": "تقدم استيراد {name}",
       "ready": "جاهزة",
       "failed": "فشل الاستيراد",
-      "stopped": "متوقفة",
+      "stopped": "تم الإيقاف",
       "open": "عرض الصفوف",
       "openFor": "عرض صفوف {name}",
-      "cancelFor": "إلغاء استيراد {name}",
+      "cancelFor": "إيقاف استيراد {name}",
       "retryFor": "إعادة استيراد {name}",
       "remove": "إزالة",
       "removeFor": "إزالة {name}",
@@ -98,13 +98,13 @@
     },
     "remove": {
       "title": "إزالة {name}؟",
-      "body": "تحذف الإزالة ملف مجموعة البيانات من هذا الجهاز. تبقى مجموعات HuggingFace هناك ويمكن استيرادها مرة أخرى.",
+      "body": "تتم إزالة ملف مجموعة البيانات من هذا الجهاز. تبقى مجموعة البيانات في HuggingFace ويمكن استيرادها مرة أخرى.",
       "confirm": "إزالة"
     },
     "find": {
       "title": "البحث عن مجموعة بيانات",
       "label": "البحث في HuggingFace",
-      "hint": "اتركه فارغا لعرض المجموعات الشائعة.",
+      "hint": "اتركه فارغا لعرض مجموعات البيانات الشائعة.",
       "submit": "بحث",
       "popular": "مجموعات البيانات الشائعة لتوليد النصوص",
       "resultsFor": "نتائج البحث عن",
@@ -135,8 +135,8 @@
       "columns": "الأعمدة",
       "choose": "اختيار الأعمدة يدويا",
       "firstRows": "الصفوف الأولى",
-      "checked": "الصفوف التي تم فحصها: {count}",
-      "unusable": "الصفوف غير الصالحة: {count}",
+      "checked": "عدد الصفوف التي تم فحصها: {count}",
+      "unusable": "عدد الصفوف غير الصالحة: {count}",
       "chooseFirst": "اختر عمود الطلب وعمود الرد لعرض الصفوف.",
       "nothingUsable": "لا يصلح أي صف من الصفوف الأولى مع هذه الأعمدة.",
       "limitTitle": "حجم الاستيراد",
@@ -160,7 +160,7 @@
       "progress": "نسبة الرفع: {percent}%",
       "readOnly": "رفع مجموعات البيانات متاح للمدرب والمسؤول.",
       "layouts": "الصيغ المقبولة",
-      "thinking": "عمود مستقل فيه التفكير، أو التفكير داخل وسم <think> في بداية الرد.",
+      "thinking": "عمود مستقل فيه التفكير، أو التفكير داخل وسم ⁦<think>⁩ في بداية الرد.",
       "thinkingColumns": "reasoning · thinking · reasoning_content · think · cot · <think>…</think>"
     },
     "edit": {
@@ -171,7 +171,7 @@
       "saving": "جار الحفظ…"
     },
     "detail": {
-      "breadcrumb": "رجوع",
+      "breadcrumb": "مسار التنقل",
       "loading": "جار تحميل مجموعة البيانات",
       "noDescription": "لا يوجد وصف بعد.",
       "edit": "تعديل",
@@ -183,28 +183,28 @@
       "size": "حجم الملف",
       "thinkingYes": "موجودة",
       "thinkingNo": "غير موجودة",
-      "addedBy": "أضافها",
+      "addedBy": "تمت الإضافة بواسطة",
       "addedAt": "تاريخ الإضافة",
       "columns": "الأعمدة المستخدمة",
       "checksum": "بصمة الملف (SHA-256)",
-      "rowsTitle": "المحتوى",
+      "rowsTitle": "الصفوف",
       "rowsLoading": "جار تحميل الصفوف",
       "pages": "صفحات الصفوف",
-      "stopped": "تم إيقاف الاستيراد. أعد المحاولة من المكتبة.",
+      "stopped": "تم إيقاف الاستيراد. حاول مرة أخرى من المكتبة.",
       "importing": "جار الاستيراد. عدد الصفوف حتى الآن: {count}"
     }
   },
   "errors": {
     "hub_dataset_not_found": "لا توجد في HuggingFace مجموعة بيانات بهذا الاسم.",
-    "hub_dataset_gated": "تحتاج مجموعة البيانات هذه إلى رمز HuggingFace له صلاحية الوصول إليها. احفظ الرمز في صفحة النظام.",
-    "hub_dataset_unavailable": "لا تتوفر في HuggingFace نسخة جاهزة من مجموعة البيانات هذه. حاول لاحقا أو اختر مجموعة أخرى.",
+    "hub_dataset_gated": "تحتاج مجموعة البيانات هذه إلى رمز HuggingFace له صلاحية الوصول إليها. احفظ رمزا في صفحة النظام.",
+    "hub_dataset_unavailable": "لا تتوفر في HuggingFace ملفات جاهزة لمجموعة البيانات هذه. حاول لاحقا أو اختر مجموعة أخرى.",
     "unknown_split": "لا تحتوي مجموعة البيانات هذه على هذه المجموعة الفرعية أو هذا القسم.",
     "unsupported_format": "لا تطابق الصفوف أي صيغة مدعومة.",
     "missing_column": "أحد الأعمدة المختارة غير موجود في هذه البيانات.",
     "unsupported_file": "ارفع ملفا بصيغة JSONL أو JSON أو CSV.",
     "file_too_large": "حجم الملف أكبر من 200 MB.",
     "empty_file": "لا يحتوي الملف على صفوف.",
-    "dataset_not_ready": "لم ينته استيراد مجموعة البيانات هذه بعد.",
+    "dataset_not_ready": "لم ينته استيراد مجموعة البيانات. انتظر اكتماله أو اختر مجموعة أخرى.",
     "upload_missing": "لم يعد الملف المرفوع موجودا. ارفعه مرة أخرى."
   }
 }

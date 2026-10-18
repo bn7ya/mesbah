@@ -1,16 +1,15 @@
 {
   "training": {
-    "title": "Training",
-    "intro": "Each run learns from the approved replies and the datasets chosen, and adds a new version. The version stores only what changed.",
+    "intro": "Each run learns from approved replies and datasets, and adds a new version. The version stores only what changed.",
     "terms": "Terms:",
     "learns": {
-      "title": "What it learns from",
+      "title": "What training learns from",
       "label": "Approved replies",
       "loading": "Loading approved replies",
-      "what": "Every reply that was corrected or approved in the chat and is still used for training counts.",
+      "what": "Approved replies count, edited ones included. A reply left out of training in Chat isn't counted.",
       "none": "No reply is approved yet.",
       "toChat": "Go to Chat",
-      "see": "See the examples"
+      "see": "Show examples"
     },
     "views": {
       "label": "Show",
@@ -22,23 +21,23 @@
     },
     "form": {
       "title": "Train a new version",
-      "intro": "A run takes the approved replies and the chosen datasets and adds a version. Only one run trains at a time.",
+      "intro": "Choose what the run learns from, then start it. Only one run trains at a time.",
       "name": "Name of the new version",
       "nameHint": "Optional. Without a name, the version shows only its number.",
       "startsFrom": {
         "label": "Start from",
         "active": "Active",
         "base": "The base model has no earlier training. The new version learns only from the examples.",
-        "enhance": "Enhancing {version} keeps what it learned and adds the new examples."
+        "enhance": "Building on {version} keeps what it learned and adds the new examples."
       },
       "useCorrections": "Learn from the approved replies",
-      "useCorrectionsHint": "Replies corrected or approved in the chat. Approved replies: {count}",
+      "useCorrectionsHint": "Replies approved in Chat, edited ones included. Approved replies: {count}",
       "activate": "Make it the active version when done",
       "activateHint": "Chat then uses the new version. An older version can be made active again.",
       "settings": "Settings",
       "expertTitle": "Expert settings",
-      "expertChanged": "Some expert settings are changed and still apply.",
-      "expertReset": "Reset them",
+      "expertChanged": "Some expert settings have been changed and apply to this run.",
+      "expertReset": "Reset expert settings",
       "custom": "Custom value: {value}. Set in Expert mode.",
       "loadingPlan": "Loading the settings for this machine",
       "noModel": "This project has no model yet. A new version can be trained once its first run has finished.",
@@ -53,7 +52,7 @@
       },
       "epochs": {
         "label": "Passes over the examples",
-        "hint": "How many times the model goes through all the examples. More passes learn more and can start to memorise."
+        "hint": "How many times the model goes through all the examples. More passes learn more, but the model can start to memorize them."
       },
       "rank": {
         "label": "How much the model may change",
@@ -79,9 +78,9 @@
         "chosen": "Chosen datasets",
         "remove": "Remove {name}",
         "limit": "Row limit",
-        "limitHint": "Empty uses all rows.",
+        "limitHint": "Leave empty to use all rows.",
         "none": "No dataset is ready.",
-        "toDatasets": "Open Datasets"
+        "toDatasets": "Go to Datasets"
       }
     },
     "expert": {
@@ -93,7 +92,7 @@
       "rank": "LoRA rank",
       "rankHint": "Size of the add-on. A larger rank can learn more.",
       "maxSteps": "Maximum steps",
-      "maxStepsHint": "Stops after this many steps. Empty runs every pass in full.",
+      "maxStepsHint": "Stops after this many steps. Leave empty to run every pass in full.",
       "maxSeqLen": "Longest example, in tokens",
       "maxSeqLenHint": "Longer examples are skipped. Memory use grows with this.",
       "batchSize": "Examples per step",
@@ -104,10 +103,10 @@
       "loraAlphaHint": "Scales the effect of the add-on. Often twice the rank.",
       "loraDropout": "LoRA dropout",
       "loraDropoutHint": "Share of the add-on skipped at random while training. 0 turns it off.",
-      "rslora": "Rank-stabilised LoRA",
+      "rslora": "Rank-stabilized LoRA",
       "rsloraHint": "Scales by the square root of the rank. Keeps large ranks stable.",
       "biases": "Train biases",
-      "biasesHint": "Also changes the model's bias values. The version can then only be exported as merged weights.",
+      "biasesHint": "Also changes the model's bias values. The version can then only be exported as a merged model.",
       "quantize": "4-bit loading",
       "quantizeHint": "Loads the base model compressed to 4 bits. Needs less memory. Quality drops slightly.",
       "checkpointing": "Gradient checkpointing",
@@ -122,10 +121,10 @@
     "fit": {
       "verdict": {
         "fits": "This machine has enough memory to train this model.",
-        "tight": "Memory is tight. It may run out during training and shorten the examples.",
+        "tight": "Memory is tight. Training may run out of memory, and the examples would then be shortened.",
         "too_large": "This model is too large to train on this machine.",
         "cpu_only": "No GPU found. It will train on the processor, slowly.",
-        "unknown": "It is not known whether this machine can train this model."
+        "unknown": "Whether this machine can train this model isn't known."
       },
       "need": "Needs about {required}. Available: {available}.",
       "needMemory": "Needs about {required} of memory."
@@ -141,7 +140,7 @@
       "fromNothing": "A new model, trained from nothing",
       "kind": "Kind",
       "separator": ",",
-      "made": "Made",
+      "made": "New version",
       "loss": "Latest loss",
       "started": "Started",
       "queued": "Queued",
@@ -150,7 +149,7 @@
       "open": "Open",
       "empty": {
         "title": "No runs yet.",
-        "write": "Start training from the card above. Its progress shows here.",
+        "write": "Start training with the form above. Progress shows here.",
         "read": "A trainer or an administrator can start training."
       },
       "stop": {
@@ -162,7 +161,7 @@
       "remove": {
         "open": "Remove",
         "title": "Remove this run?",
-        "body": "The run leaves the list. A version it made stays in the tree.",
+        "body": "The run is removed from the list. A version it made stays in the tree.",
         "confirm": "Remove"
       },
       "stopped": "Stopping at the next step.",
@@ -197,23 +196,23 @@
       "pages": "Pages of examples",
       "empty": {
         "title": "No approved replies yet.",
-        "body": "Correct or approve a reply in Chat. It then appears here, and a run can learn from it.",
+        "body": "Edit or approve a reply in Chat. It then appears here, and a run can learn from it.",
         "toChat": "Go to Chat"
       },
       "from": "Conversation:",
       "untitled": "Untitled conversation",
       "marks": "Marks",
-      "corrected": "Corrected",
-      "thinkingCorrected": "Thinking corrected",
+      "corrected": "Edited",
+      "thinkingCorrected": "Thinking edited",
       "asIs": "Approved as it is",
       "conversation": "Conversation as it goes into training",
       "role": {
         "system": "Instructions",
-        "user": "User",
-        "assistant": "Model"
+        "user": "Prompt",
+        "assistant": "Reply"
       },
       "thinking": "Thinking",
-      "learns": "Reply it learns",
+      "learns": "Reply the model learns",
       "approvedBy": "Approved by:",
       "updated": "Updated:"
     },
@@ -225,7 +224,7 @@
       "percent": "{percent} done",
       "left": "About {time} left",
       "estimating": "Estimating the time left",
-      "oom": "Ran out of GPU memory, so the examples were shortened to {length} tokens and training started again.",
+      "oom": "Ran out of GPU memory, so the examples were shortened and training started again. Longest example, in tokens: {length}.",
       "yes": "Yes",
       "no": "No"
     },
@@ -251,22 +250,22 @@
       "stoppedBody": "Nothing was saved from this run."
     },
     "failure": {
-      "no_examples": "None of the approved replies could be used. They may be too long for the length limit or not readable.",
+      "no_examples": "None of the approved replies could be used. They may be longer than the length limit, or hold no readable text.",
       "out_of_memory": "The GPU ran out of memory, even with shorter examples. Choose a smaller rank, turn on 4-bit loading, or use a smaller model.",
-      "load_failed": "The model could not be loaded. Check that it finished downloading.",
-      "training_parts_missing": "The training parts are not installed. Install them with this command:",
+      "load_failed": "The model couldn't be loaded. Check that it finished downloading.",
+      "training_parts_missing": "The training parts aren't installed. Install them with this command:",
       "training_parts_missingCommand": "pip install \"mesbah[train]\"",
       "trainer_crashed": "Training stopped unexpectedly. Start the run again.",
-      "interrupted": "Mesbah restarted while this run was going. Start it again.",
+      "interrupted": "The run was interrupted when Mesbah restarted. Start it again.",
       "bad_settings": "These settings can't be used together. Change them and start again.",
       "failed": "Training failed.",
       "pretrain": {
-        "no_examples": "None of the approved replies or datasets could be used. They may hold no text, or be too long for the length limit.",
-        "out_of_memory": "The GPU ran out of memory, even with shorter examples. Design a smaller model in the Architect and train it again.",
-        "load_failed": "The model or its tokenizer could not be built. Check the design and the tokenizer in the Architect.",
-        "trainer_crashed": "Training stopped unexpectedly. Train the model again from the Architect.",
-        "interrupted": "Mesbah restarted while this run was going. Train the model again from the Architect.",
-        "bad_settings": "The design or its settings can't be used. Check them in the Architect and train again."
+        "no_examples": "None of the approved replies or datasets could be used. They may hold no text, or be longer than the length limit.",
+        "out_of_memory": "The GPU ran out of memory, even with shorter examples. Design a smaller model in the model designer and train it again.",
+        "load_failed": "The model or its tokenizer couldn't be built. Check the design and the tokenizer in the model designer.",
+        "trainer_crashed": "Training stopped unexpectedly. Train the model again from the model designer.",
+        "interrupted": "The run was interrupted when Mesbah restarted. Train the model again from the model designer.",
+        "bad_settings": "The design or its settings can't be used. Check them in the model designer and train again."
       }
     },
     "loss": {
@@ -277,14 +276,14 @@
       "live": {
         "too_early": "Too early to tell. The loss needs a few more steps.",
         "falling": "Learning steadily. The loss fell from {first} to {latest}.",
-        "levelled_off": "The loss has levelled off at {latest}. More steps won't add much.",
-        "rising": "Getting worse. The loss rose to {latest}. Try a gentler learning strength."
+        "levelled_off": "The loss has leveled off at {latest}. More steps won't add much.",
+        "rising": "The loss is rising, now {latest}. Try a gentler learning rate."
       },
       "done": {
         "too_early": "Too few steps to tell how the loss moved. It ended at {latest}.",
         "falling": "The loss fell steadily, from {first} to {latest}.",
-        "levelled_off": "The loss levelled off at {latest}. More steps would not add much.",
-        "rising": "The loss rose by the end, to {latest}. Try a gentler learning strength."
+        "levelled_off": "The loss leveled off at {latest}. More steps wouldn't add much.",
+        "rising": "The loss rose by the end, to {latest}. Try a gentler learning rate."
       }
     },
     "chart": {
@@ -299,7 +298,7 @@
       "examples": "Examples",
       "skipped": "Skipped",
       "tokens": "Size of the examples",
-      "skippedWhy": "Skipped examples were too long for the length limit or could not be read.",
+      "skippedWhy": "Skipped examples were too long for the length limit or couldn't be read.",
       "waiting": "Shown once the examples are ready.",
       "replies": "Approved replies",
       "repliesUsed": "Used",
@@ -322,16 +321,16 @@
     }
   },
   "errors": {
-    "nothing_to_learn": "There are no approved replies to learn from yet. Correct or approve some in Chat first.",
-    "base_model_not_ready": "The base model isn't ready yet. Wait for it to finish downloading or training.",
+    "nothing_to_learn": "There is nothing to learn from yet. Approve replies in Chat or choose a dataset.",
+    "base_model_not_ready": "The base model isn't ready yet. Wait for its download or training to finish.",
     "wrong_parent": "That version belongs to another project.",
     "run_still_going": "Stop the run before removing it.",
-    "dataset_not_ready": "A chosen dataset isn't ready yet. Wait for its import to finish or choose another."
+    "dataset_not_ready": "The dataset hasn't finished importing. Wait for it to finish or choose another."
   },
   "glossary": {
     "loss": {
       "term": "loss",
-      "explain": "How far the model's answer is from the corrected one. Lower is better. It falls as the model learns."
+      "explain": "How far the model's answer is from the reply in the example. Lower is better. It falls as the model learns."
     },
     "epoch": {
       "term": "epoch",

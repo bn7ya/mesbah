@@ -2,6 +2,8 @@
 #
 #   docker compose up --watch --build
 #
+# Without Docker, `pip install mesbah && mesbah start` runs the same app on one machine.
+#
 # Angular  http://localhost:4200
 # API      http://localhost:4200/api/
 # Swagger  http://localhost:4200/api/schema/swagger-ui/
@@ -46,13 +48,15 @@ services:
     build:
       context: ./backend
       target: dev
-    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    command: ["uvicorn", "config.asgi:application", "--host=0.0.0.0", "--port=8000", "--reload"]
     env_file: [.env]
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.dev
     volumes:
       - static-files:/app/staticfiles
       - media-files:/app/media
+      # Models, datasets, version changes and exports, at the same path in every container.
+      - mesbah-data:/data
       # Read by the backup panel at /admin/dbs/: health, and restoring a kept backup.
       - backups:/var/backups/app
     ports:
@@ -80,10 +84,12 @@ services:
     build:
       context: ./backend
       target: dev
-    command: ["celery", "-A", "config", "worker", "-l", "info"]
+    command: ["celery", "-A", "config", "worker", "--queues=default", "-l", "info"]
     env_file: [.env]
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.dev
+    volumes:
+      - mesbah-data:/data
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_healthy}
@@ -172,6 +178,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  mesbah-data:
   db-data:
   redis-data:
   static-files:

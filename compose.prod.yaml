@@ -1,5 +1,5 @@
 # Production overlay. Angular is built statically and served by nginx, which
-# also reverse-proxies /api, /admin and /static to gunicorn.
+# also reverse-proxies /api, /admin and /static to uvicorn (ASGI, so replies can stream).
 #
 #   docker compose -f compose.yaml -f compose.prod.yaml up -d --build
 #
@@ -16,13 +16,13 @@ services:
     build:
       target: prod
     command:
-      - gunicorn
-      - config.wsgi:application
-      - --bind=0.0.0.0:8000
-      - --workers=${GUNICORN_WORKERS:-3}
-      - --timeout=${GUNICORN_TIMEOUT:-60}
-      - --access-logfile=-
-      - --error-logfile=-
+      - uvicorn
+      - config.asgi:application
+      - --host=0.0.0.0
+      - --port=8000
+      - --workers=${WEB_WORKERS:-3}
+      - --proxy-headers
+      - --forwarded-allow-ips=*
     environment:
       DJANGO_SETTINGS_MODULE: config.settings.prod
       DJANGO_DEBUG: "0"

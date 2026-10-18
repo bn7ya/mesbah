@@ -1,8 +1,29 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
 [project]
-name = "backend"
-version = "0.1.0"
-description = "Django backend — vertical slice + service/repository"
-requires-python = ">=3.13"
+name = "mesbah"
+dynamic = ["version"]
+description = "A studio for customizing language models: chat, correct, train, version and serve."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.12"
+authors = [{ name = "Mesbah contributors" }]
+keywords = ["llm", "fine-tuning", "lora", "qlora", "huggingface", "arabic"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: Arabic",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 
 dependencies = [
     "Django==5.2.*",
@@ -10,14 +31,14 @@ dependencies = [
     "drf-spectacular==0.28.*",
     "django-filter==25.*",
     "django-stubs-ext==6.*",
-    "psycopg[binary]==3.2.*",
+    "psycopg[binary,pool]==3.2.*",
     "pgvector==0.4.*",
     "redis==6.*",
     "django-redis==6.*",
     "celery==5.6.*",
     "django-celery-beat==2.8.*",
     "django-dbs==0.5.*",
-    "gunicorn==23.*",
+    "uvicorn[standard]>=0.54,<1",
     "whitenoise==6.*",
     "python-dotenv==1.*",
     "cryptography>=46,<51",
@@ -26,9 +47,31 @@ dependencies = [
     "nvidia-ml-py>=13,<14",
     "platformdirs>=4,<5",
     "psutil>=7,<8",
+    "pixeltable-pgserver==0.6.*",
+    "pywin32>=311; sys_platform == 'win32'",
 ]
 
+[project.scripts]
+mesbah = "mesbah.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/bn7ya/mesbah"
+Issues = "https://github.com/bn7ya/mesbah/issues"
+
 [project.optional-dependencies]
+# Training and the built-in engine. With an NVIDIA GPU, install torch from the CUDA index first
+# (`mesbah doctor` prints the command); PyPI's torch is CPU-only on Windows.
+train = [
+    "torch>=2.10,<3",
+    "transformers>=5.20,<6",
+    "peft>=0.21,<0.22",
+    "trl>=1.16,<2",
+    "accelerate>=1.15,<2",
+    "datasets>=5,<6",
+    "safetensors>=0.8,<1",
+    "tokenizers>=0.23,<1",
+    "bitsandbytes>=0.50,<1; sys_platform != 'darwin'",
+]
 dev = [
     "pytest==8.*",
     "pytest-django==4.*",
@@ -40,12 +83,28 @@ dev = [
     "djangorestframework-stubs[compatible-mypy]==3.16.*",
     "django-debug-toolbar==5.*",
     "types-psutil>=7,<8",
+    "build>=1.3,<2",
 ]
 
-[tool.setuptools]
-# The project is a Django application tree, not an installable package. Only the
-# dependency list matters here.
-packages = []
+[tool.hatch.version]
+path = "mesbah/__init__.py"
+pattern = '__version__: str = "(?P<version>[^"]+)"'
+
+# The wheel holds the `mesbah` package; the Django tree (apps, config) goes inside it as
+# mesbah/_server so generic names like `apps` never land in site-packages (ADR-003).
+[tool.hatch.build.targets.wheel]
+only-include = ["mesbah", "apps", "config"]
+exclude = ["**/tests", "**/__pycache__", "**/*.pyc"]
+artifacts = ["mesbah/_spa/**"]
+
+[tool.hatch.build.targets.wheel.sources]
+"apps" = "mesbah/_server/apps"
+"config" = "mesbah/_server/config"
+
+[tool.hatch.build.targets.sdist]
+only-include = ["mesbah", "apps", "config", "manage.py", "README.md", "LICENSE"]
+exclude = ["**/__pycache__", "**/*.pyc"]
+artifacts = ["mesbah/_spa/**"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.dev"
@@ -55,7 +114,7 @@ testpaths = ["apps", "mesbah"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py313"
+target-version = "py312"
 extend-exclude = ["*/migrations/*"]
 
 [tool.ruff.lint]
@@ -78,6 +137,8 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "*/tests/*" = ["S105", "S106"]
 "config/settings/*" = ["F403", "F405"]
+# The launcher and the probes start the processes Mesbah is made of, with arguments it builds.
+"mesbah/{launcher,cli,hardware}.py" = ["S603", "S607"]
 
 [tool.ruff.lint.flake8-annotations]
 allow-star-arg-any = true
@@ -86,7 +147,7 @@ allow-star-arg-any = true
 known-first-party = ["apps", "config", "mesbah"]
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.12"
 strict = true
 plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
 exclude = ["/migrations/"]

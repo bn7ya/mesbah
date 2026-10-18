@@ -10,9 +10,12 @@ backend/
   pyproject.toml            deps, ruff, mypy, pytest
   entrypoint.sh             wait for Postgres → migrate → exec the command
   config/
-    settings/{base,dev,prod}.py
-    urls.py                 every slice mounted under /api/
+    settings/{base,dev,prod}.py   Docker modes
+    settings/local.py             `mesbah start` (ADR-003)
+    urls.py                 every slice mounted under /api/; the Angular app when Django serves it
+    spa.py                  index.html for any path Angular routes
     celery.py               broker config comes from Django settings
+  tools/build_wheel.py      builds the frontend into the wheel
   apps/
     common/                 BaseModel, BaseRepository, pagination, errors, health
     accounts/               identity and sessions — /api/auth/
@@ -155,10 +158,21 @@ toolbar (`show_debug_toolbar()` reads `DEBUG` at request time) and console email
 **`urls.py`** — every API path under `/api/`, one prefix per app, plus the schema views
 and the admin, which carries the backup panel at `/admin/dbs/`.
 
-**`celery.py`** — the Celery app, configured from Django settings under `CELERY_`.
-**`wsgi.py`** / **`asgi.py`** — the entry points; gunicorn serves `wsgi.py`.
+**`settings/local.py`** (Mesbah) — `mesbah start`: the database from `DATABASE_URL`, a file
+cache and a filesystem broker in the data folder, the built Angular app served by WhiteNoise.
+**`spa.py`** — `index()`, index.html for every path that is not the API, the admin or a file.
+
+**`celery.py`** — the Celery app, configured from Django settings under `CELERY_`; tasks go to
+the `default` queue, one at a time per worker thread, acknowledged when done.
+**`asgi.py`** — the entry point uvicorn serves (ADR-006), with static files in `DEBUG`.
+**`wsgi.py`** — kept for tools that want WSGI; nothing in Mesbah serves it.
 
 ## Commands
+
+Dependencies install from `pyproject.toml` with uv (`uv pip install -r pyproject.toml --extra
+dev`); `pip install -e` does not work, because the wheel moves `apps` and `config` under
+`mesbah/_server` (ADR-003). `python -m mesbah start` runs the pip mode from a checkout;
+`python backend/tools/build_wheel.py` builds the frontend and the wheel into `backend/dist/`.
 
 ```bash
 docker compose exec backend python manage.py makemigrations

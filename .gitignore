@@ -45,3 +45,4 @@ backend/build/
 backend/dist/
 backend/mesbah/_spa/
 .mesbah/
+backend/LICENSE

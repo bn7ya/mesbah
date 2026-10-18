@@ -33,6 +33,8 @@ Template-owned files, so `/template-sync` conflicts in them are expected:
 `frontend/src/app/shared/CLAUDE.md`, `frontend/src/styles/{_theme,_tokens,_layout,_base}.scss`,
 `backend/pyproject.toml`, `backend/config/urls.py`, `backend/CLAUDE.md`,
 `backend/apps/accounts/` (setup), `frontend/src/app/core/auth/` (setup and roles),
+`backend/Dockerfile`, `compose.prod.yaml`, `.env.example`, `.github/workflows/ci.yml`,
+`backend/config/{asgi.py,settings/prod.py}`,
 `.claude/docs/language.md`, `README.md` and this file.
 
 Mesbah handles no money. `MoneyField`, `<app-money>` and the rial font stay because they
@@ -52,7 +54,7 @@ always beside an explanation (ADR-007, `.claude/docs/language.md`).
 | Cache / broker | Redis 8 |
 | Background jobs | Celery 5.6 + django-celery-beat |
 | Backups | django-dbs — encrypted, redundant, self-healing |
-| Serving | gunicorn (WSGI) behind nginx; Angular built statically |
+| Serving | uvicorn (ASGI) behind nginx; Angular built statically. Or `pip install mesbah && mesbah start`: embedded PostgreSQL, no Redis, one machine (ADR-003) |
 
 ## The design pattern
 
@@ -257,6 +259,16 @@ action. No Material Symbols font ships. Keyboard patterns — a listbox, a menu,
 from the Material component, or from the CDK where Material has none.
 
 ## Running the stack
+
+Without Docker (ADR-003):
+
+```bash
+pip install mesbah                          # or, in a checkout: cd backend && python -m mesbah
+mesbah start                                # embedded PostgreSQL, uvicorn, a worker; prints the setup code
+mesbah doctor                               # what this machine has and lacks
+```
+
+With Docker:
 
 ```bash
 cp .env.example .env

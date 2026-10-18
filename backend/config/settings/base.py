@@ -104,8 +104,10 @@ DATABASES: dict[str, Any] = {
         "PASSWORD": env("POSTGRES_PASSWORD", "app"),
         "HOST": env("POSTGRES_HOST", "db"),
         "PORT": env("POSTGRES_PORT", "5432"),
-        "CONN_MAX_AGE": 60,
+        # Served over ASGI, so persistent connections give way to psycopg's pool.
+        "CONN_MAX_AGE": 0,
         "CONN_HEALTH_CHECKS": True,
+        "OPTIONS": {"pool": {"min_size": 1, "max_size": int(env("POSTGRES_POOL_SIZE", "10"))}},
     }
 }
 
@@ -131,6 +133,9 @@ CELERY_TIMEZONE: str = "UTC"
 CELERY_TASK_TRACK_STARTED: bool = True
 CELERY_TASK_TIME_LIMIT: int = 30 * 60
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP: bool = True
+CELERY_TASK_DEFAULT_QUEUE: str = "default"
+CELERY_WORKER_PREFETCH_MULTIPLIER: int = 1
+CELERY_TASK_ACKS_LATE: bool = True
 
 
 REST_FRAMEWORK: dict[str, Any] = {
@@ -203,6 +208,8 @@ MEDIA_ROOT: Path = BASE_DIR / "media"
 
 # Models, datasets, version deltas and exports live outside the code, in one directory.
 MESBAH_DATA_DIR: Path = data_dir()
+# The built Angular app, served by Django itself when Mesbah runs without nginx.
+MESBAH_SPA_DIR: Path | None = None
 
 STORAGES: dict[str, Any] = {
     "default": {

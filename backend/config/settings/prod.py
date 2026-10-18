@@ -30,7 +30,7 @@ SESSION_COOKIE_SAMESITE: str = "Lax"
 CSRF_COOKIE_SAMESITE: str = "Lax"
 
 # The backup panel's session guard scores the client's network, and nginx is the
-# proxy in front of gunicorn. Count one more for each proxy in front of nginx.
+# proxy in front of uvicorn. Count one more for each proxy in front of nginx.
 DBS_TRUST_FORWARDED_FOR: bool = True
 DBS_TRUSTED_PROXIES: int = int(env("DBS_TRUSTED_PROXIES", "1"))
 

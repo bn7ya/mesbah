@@ -28,9 +28,25 @@ how work happens here is in [`CLAUDE.md`](CLAUDE.md) and
 | Cache / broker | Redis 8 |
 | Background jobs | Celery 5.6 + django-celery-beat |
 | Backups | django-dbs (encrypted, redundant, self-healing) |
-| Serving | gunicorn behind nginx; Angular built statically |
+| Serving | uvicorn (ASGI) behind nginx; Angular built statically. Or `mesbah start` on one machine |
 
-## Running it
+## Install it
+
+```bash
+pip install mesbah
+mesbah start
+```
+
+`mesbah start` brings up its own PostgreSQL in your user data folder, opens the browser, and
+prints a one-time setup code that creates the owner account. Training needs the training parts:
+
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cu130   # NVIDIA GPU
+pip install "mesbah[train]"
+mesbah doctor                                                         # what is missing
+```
+
+## Running it with Docker
 
 ```bash
 cp .env.example .env          # then set DJANGO_SECRET_KEY

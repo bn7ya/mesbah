@@ -36,6 +36,9 @@
               "@fontsource/tajawal/400.css",
               "@fontsource/tajawal/500.css",
               "@fontsource/tajawal/700.css",
+              "@fortawesome/fontawesome-free/css/fontawesome.css",
+              "@fortawesome/fontawesome-free/css/solid.css",
+              "@fortawesome/fontawesome-free/css/regular.css",
               "src/styles.scss"
             ],
             "stylePreprocessorOptions": {

@@ -167,7 +167,7 @@ over a backdrop needs the most, because it has the furthest to come. A feature-l
 
 ## 7. Icons, buttons, images
 
-**Icons are Font Awesome 7 Pro**, from the kit in `index.html`, drawn through `<mat-icon>`,
+**Icons are Font Awesome 7 Free**, bundled from npm (ADR-009), drawn through `<mat-icon>`,
 whose default font set is `fa-solid`:
 
 ```html

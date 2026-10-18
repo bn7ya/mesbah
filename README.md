@@ -22,7 +22,7 @@ how work happens here is in [`CLAUDE.md`](CLAUDE.md) and
 
 | Layer | Technology |
 |---|---|
-| Frontend | Angular 22 (standalone, signals, zoneless) + Angular Material 22 (Material 3) + Font Awesome 7 Pro |
+| Frontend | Angular 22 (standalone, signals, zoneless) + Angular Material 22 (Material 3) + Font Awesome 7 Free |
 | Backend | Django 5.2 LTS + DRF + drf-spectacular |
 | Database | PostgreSQL 18 + pgvector 0.8.6 |
 | Cache / broker | Redis 8 |

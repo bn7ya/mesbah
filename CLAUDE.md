@@ -26,7 +26,8 @@ Template, an ADR in `.claude/docs/adr/` (003 onward) says why. Mesbah edits thes
 Template-owned files, so `/template-sync` conflicts in them are expected:
 `compose.yaml`, `backend/config/settings/base.py`, `frontend/src/index.html`,
 `frontend/src/app/core/i18n/{en,ar}.json`, `frontend/src/app/core/i18n/locale.store{,.spec}.ts`,
-`frontend/src/app/core/CLAUDE.md`, `.gitignore`,
+`frontend/src/app/core/CLAUDE.md`, `frontend/CLAUDE.md`, `frontend/angular.json`,
+`frontend/package.json`, `.claude/docs/interface.md`, `.gitignore`,
 `.claude/docs/language.md`, `README.md` and this file.
 
 Mesbah handles no money. `MoneyField`, `<app-money>` and the rial font stay because they
@@ -40,7 +41,7 @@ always beside an explanation (ADR-007, `.claude/docs/language.md`).
 
 | Layer | Technology |
 |---|---|
-| Frontend | Angular 22 (standalone, signals, zoneless, TypeScript 6) + Angular Material 22 (Material 3) + Font Awesome 7 Pro (kit) |
+| Frontend | Angular 22 (standalone, signals, zoneless, TypeScript 6) + Angular Material 22 (Material 3) + Font Awesome 7 Free (bundled) |
 | Backend | Django 5.2 LTS + Django REST Framework + drf-spectacular (OpenAPI 3 / Swagger) |
 | Database | PostgreSQL 18 + pgvector 0.8.6 |
 | Cache / broker | Redis 8 |
@@ -242,7 +243,8 @@ nothing at runtime, and Material's type scale (`--mat-sys-body-large`,
 `@fontsource/tajawal/<weight>.css` entry in `angular.json` and a theme change, never a
 `font-weight` number in a feature.
 
-Icons are Font Awesome 7 Pro from the kit in `index.html`, drawn through `<mat-icon>`:
+Icons are Font Awesome 7 Free, bundled by `angular.json` from `@fortawesome/fontawesome-free`
+(solid and regular; ADR-009), drawn through `<mat-icon>`:
 `MAT_ICON_DEFAULT_OPTIONS` makes `fa-solid` the default font set, so
 `<mat-icon fontIcon="fa-eye" />` sits where Material's buttons, fields and menus expect an
 icon. `mat-icon` is `aria-hidden` by default; the text or `aria-label` beside it names the

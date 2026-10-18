@@ -107,21 +107,22 @@ the family in every `--mat-sys-*` type token; nothing else names a font. Body te
 `--mat-sys-body-large`, `<h1>` is `--mat-sys-headline-medium`, `<h2>` is
 `--mat-sys-title-large`, all from `_base.scss`.
 
-**Icons.** Font Awesome 7 Pro, loaded as a kit script from `index.html`, drawn through
-Material's `<mat-icon>`. `MAT_ICON_DEFAULT_OPTIONS` in `app.config.ts` makes `fa-solid` the
-default font set, so a template names only the glyph:
+**Icons.** Font Awesome 7 Free, bundled: `angular.json` lists the package's
+`fontawesome.css`, `solid.css` and `regular.css`, and the build copies the webfonts beside
+them, so nothing is fetched at runtime and the icons work offline (ADR-009). They are drawn
+through Material's `<mat-icon>`. `MAT_ICON_DEFAULT_OPTIONS` in `app.config.ts` makes
+`fa-solid` the default font set, so a template names only the glyph:
 
 ```html
 <mat-icon fontIcon="fa-user" />
-<mat-icon fontSet="fa-duotone" fontIcon="fa-user" />
+<mat-icon fontSet="fa-regular" fontIcon="fa-user" />
 ```
 
 That puts the glyph in the box Material's buttons, form-field prefixes and suffixes, menus
-and lists already lay out; `_theme.scss` centres it there. The kit is configured
-webfont-side (`method: "css"`), so it injects a stylesheet and the glyph renders on the
-element itself — nothing rewrites it into an `<svg>`, which keeps it indifferent to when
-Angular renders. Being Pro, `fa-thin`, `fa-duotone` and `fa-sharp` are available alongside
-the free styles; they stop working the day the subscription does.
+and lists already lay out; `_theme.scss` centres it there. The glyph renders on the element
+itself through the webfont, so nothing rewrites it into an `<svg>`. Only the Free set ships:
+`fa-thin`, `fa-duotone`, `fa-sharp` and Pro-only glyphs render nothing. Check a glyph in
+`node_modules/@fortawesome/fontawesome-free/css/fontawesome.css` before using it.
 
 `mat-icon` is `aria-hidden="true"` by default, so an icon is never self-describing: the
 text beside it, or a translated `aria-label` on the `matIconButton` that carries the

@@ -14,6 +14,7 @@ from config import spa
 api_patterns: list[URLPattern | URLResolver] = [
     path("health/", include("apps.common.urls")),
     path("auth/", include("apps.accounts.urls")),
+    path("datasets/", include("apps.datasets.urls")),
     path("members/", include("apps.members.urls")),
     path("models/", include("apps.models.urls")),
     path("projects/", include("apps.projects.urls")),

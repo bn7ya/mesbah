@@ -47,6 +47,7 @@ dependencies = [
     "nvidia-ml-py>=13,<14",
     "platformdirs>=4,<5",
     "psutil>=7,<8",
+    "pyarrow>=21,<23",
     "pixeltable-pgserver==0.6.*",
     "pywin32>=311; sys_platform == 'win32'",
 ]
@@ -165,7 +166,7 @@ plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
 exclude = ["/migrations/"]
 
 [[tool.mypy.overrides]]
-module = ["celery.*", "django_celery_beat.*", "dbs.*", "debug_toolbar.*", "pgvector.*", "whitenoise.*", "pynvml.*"]
+module = ["celery.*", "django_celery_beat.*", "dbs.*", "debug_toolbar.*", "pgvector.*", "whitenoise.*", "pynvml.*", "pyarrow.*"]
 ignore_missing_imports = true
 
 # The training parts are untyped and optional: skipping them gives the same result with or without.

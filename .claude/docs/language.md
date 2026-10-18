@@ -68,7 +68,7 @@ them, with `dir="ltr"` on the name. These terms stay in English in both language
 an `<app-term>` explanation in the reader's language:
 
 LoRA · QLoRA · GPU · VRAM · RAM · CPU · loss · learning rate · token · MoE · GGUF ·
-safetensors · API · API key
+safetensors · JSONL · API · API key
 
 | Concept | Arabic | English |
 |---|---|---|
@@ -82,6 +82,13 @@ safetensors · API · API key
 | changing a reply or thinking | تعديل | edit |
 | the marker on a changed reply | تم التعديل | edited |
 | an install-wide data entry | مجموعة بيانات | dataset |
+| one example in a dataset | صف | row |
+| one of a dataset's versions on HuggingFace | مجموعة فرعية | subset |
+| a part of a dataset kept for one use (train, test) | قسم | split |
+| bringing a dataset from HuggingFace | استيراد | import |
+| sending a file from this computer | رفع | upload |
+| the turn a training row answers | الطلب | prompt |
+| the answer a training row teaches | الرد | reply |
 | turning data into a version | تدريب | training |
 | a server a version runs on | محرك | engine |
 

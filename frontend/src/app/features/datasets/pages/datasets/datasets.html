@@ -1,0 +1,423 @@
+<header class="datasets__header">
+  <h1>{{ 'datasets.title' | t }}</h1>
+  <p class="text-secondary">{{ 'datasets.subtitle' | t }}</p>
+</header>
+
+@if (error(); as failure) {
+  <p class="datasets__failure" role="alert">
+    <mat-icon fontIcon="fa-circle-exclamation" />
+    {{ failure.message }}
+  </p>
+}
+
+<section class="datasets__section" aria-labelledby="datasets-library" [attr.aria-busy]="loading()">
+  <h2 id="datasets-library">{{ 'datasets.library.title' | t }}</h2>
+
+  @if (loading() && page().results.length === 0) {
+    <mat-progress-bar mode="indeterminate" [attr.aria-label]="'datasets.library.loading' | t" />
+  }
+
+  @if (libraryEmpty()) {
+    <mat-card appearance="outlined" class="datasets__note">
+      <mat-icon fontIcon="fa-database" />
+      <div class="datasets__note-text">
+        <p class="datasets__note-title">{{ 'datasets.library.emptyTitle' | t }}</p>
+        <p class="text-secondary">
+          {{ (canWrite() ? 'datasets.library.emptyWrite' : 'datasets.library.emptyRead') | t }}
+        </p>
+      </div>
+    </mat-card>
+  }
+
+  <ul class="datasets__list">
+    @for (dataset of page().results; track dataset.id) {
+      <li>
+        <mat-card appearance="outlined" class="datasets__row">
+          <div class="datasets__identity">
+            <h3 class="datasets__name">
+              @if (dataset.status === 'ready') {
+                <a [routerLink]="[dataset.id]" dir="auto">{{ dataset.name }}</a>
+              } @else {
+                <span dir="auto">{{ dataset.name }}</span>
+              }
+            </h3>
+            <p class="datasets__origin text-secondary">
+              @if (dataset.source === 'hub') {
+                <mat-icon fontIcon="fa-cloud-arrow-down" />
+                <span class="cdk-visually-hidden">{{ 'datasets.source.hub' | t }}:</span>
+                <span dir="ltr">
+                  @if (dataset.name !== dataset.repo_id) {
+                    {{ dataset.repo_id }} ·
+                  }
+                  {{ dataset.config_name }} · {{ dataset.split }}
+                </span>
+              } @else {
+                <mat-icon fontIcon="fa-file-arrow-up" />
+                <span class="cdk-visually-hidden">{{ 'datasets.source.upload' | t }}:</span>
+                <span dir="auto">{{ dataset.file_name }}</span>
+              }
+            </p>
+            @if (dataset.description) {
+              <p class="datasets__description" dir="auto">{{ dataset.description }}</p>
+            }
+            @if (dataset.excerpt) {
+              <p class="datasets__excerpt text-secondary"><span dir="auto">{{ dataset.excerpt }}</span></p>
+            }
+            <p class="datasets__meta text-secondary">
+              @if (dataset.format) {
+                <span>{{ 'datasets.format.' + dataset.format + '.name' | t }}</span>
+              }
+              @if (dataset.has_thinking) {
+                <span class="datasets__tag">
+                  <mat-icon fontIcon="fa-brain" />
+                  {{ 'datasets.thinking' | t }}
+                </span>
+              }
+              @if (dataset.created_by) {
+                <span>{{ 'datasets.addedBy' | t: { name: dataset.created_by } }}</span>
+              }
+            </p>
+          </div>
+
+          <div class="datasets__status">
+            @switch (dataset.status) {
+              @case ('queued') {
+                <mat-progress-bar
+                  mode="indeterminate"
+                  [attr.aria-label]="'datasets.library.progressLabel' | t: { name: dataset.name }"
+                />
+                <p class="text-secondary">{{ 'datasets.library.queued' | t }}</p>
+              }
+              @case ('importing') {
+                @let goal = target(dataset);
+                <mat-progress-bar
+                  [mode]="goal === null || dataset.rows === 0 ? 'indeterminate' : 'determinate'"
+                  [value]="percent(dataset)"
+                  [attr.aria-label]="'datasets.library.progressLabel' | t: { name: dataset.name }"
+                />
+                <p class="text-secondary">
+                  @if (goal === null) {
+                    {{ 'datasets.rowsCount' | t: { count: count(dataset.rows) } }}
+                  } @else {
+                    {{ 'datasets.library.progress' | t: { done: count(dataset.rows), total: count(goal) } }}
+                  }
+                </p>
+              }
+              @case ('ready') {
+                <p class="datasets__state">
+                  <mat-icon fontIcon="fa-circle-check" />
+                  <span>{{ 'datasets.library.ready' | t }}</span>
+                </p>
+                <p class="datasets__counts text-secondary">
+                  <span>{{ 'datasets.rowsCount' | t: { count: count(dataset.rows) } }}</span>
+                  @if (dataset.skipped > 0) {
+                    <span>{{ 'datasets.skippedCount' | t: { count: count(dataset.skipped) } }}</span>
+                  }
+                  <span>{{ dataset.size_bytes | bytes }}</span>
+                </p>
+              }
+              @case ('failed') {
+                <p class="datasets__state">
+                  <mat-icon fontIcon="fa-triangle-exclamation" />
+                  <span>{{ 'datasets.library.failed' | t }}</span>
+                </p>
+                <p class="text-secondary">
+                  {{ failureKey(dataset) | t }}
+                  @if (dataset.error_code === 'gated') {
+                    <a routerLink="/system">{{ 'datasets.tokenLink' | t }}</a>
+                  }
+                </p>
+              }
+              @case ('cancelled') {
+                <p class="datasets__state">
+                  <mat-icon fontIcon="fa-circle-pause" />
+                  <span>{{ 'datasets.library.stopped' | t }}</span>
+                </p>
+              }
+            }
+          </div>
+
+          <div class="datasets__actions">
+            @if (dataset.status === 'ready') {
+              <a
+                matButton
+                [routerLink]="[dataset.id]"
+                [attr.aria-label]="'datasets.library.openFor' | t: { name: dataset.name }"
+              >
+                <mat-icon fontIcon="fa-eye" />
+                {{ 'datasets.library.open' | t }}
+              </a>
+            }
+            @if (canWrite()) {
+              @if (dataset.status === 'queued' || dataset.status === 'importing') {
+                <button
+                  matButton
+                  type="button"
+                  [disabled]="isWorking(dataset)"
+                  [attr.aria-label]="'datasets.library.cancelFor' | t: { name: dataset.name }"
+                  (click)="cancel(dataset)"
+                >
+                  <mat-icon fontIcon="fa-stop" />
+                  {{ 'actions.cancel' | t }}
+                </button>
+              }
+              @if (dataset.status === 'failed' || dataset.status === 'cancelled') {
+                <button
+                  matButton
+                  type="button"
+                  [disabled]="isWorking(dataset)"
+                  [attr.aria-label]="'datasets.library.retryFor' | t: { name: dataset.name }"
+                  (click)="retry(dataset)"
+                >
+                  <mat-icon fontIcon="fa-rotate-right" />
+                  {{ 'actions.retry' | t }}
+                </button>
+              }
+              <button
+                matButton
+                type="button"
+                [disabled]="isWorking(dataset)"
+                [attr.aria-label]="'datasets.library.removeFor' | t: { name: dataset.name }"
+                (click)="remove(dataset)"
+              >
+                <mat-icon fontIcon="fa-trash" />
+                {{ 'datasets.library.remove' | t }}
+              </button>
+            }
+          </div>
+        </mat-card>
+      </li>
+    }
+  </ul>
+
+  @if (paged()) {
+    <mat-paginator
+      [length]="page().count"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="[25, 50, 100]"
+      [attr.aria-label]="'datasets.library.pages' | t"
+      (page)="turnPage($event)"
+    />
+  }
+</section>
+
+<section class="datasets__section" aria-labelledby="datasets-upload">
+  <h2 id="datasets-upload">{{ 'datasets.upload.title' | t }}</h2>
+
+  <mat-card appearance="outlined" class="datasets__upload">
+    <p>{{ 'datasets.upload.accepts' | t: { size: (maxUpload | bytes) } }}</p>
+    <p class="datasets__accepts text-secondary">
+      <span>{{ 'datasets.upload.savedAs' | t }}</span>
+      <app-term key="jsonl" />
+    </p>
+
+    @if (uploadFailure(); as failure) {
+      <p class="datasets__failure" role="alert">
+        <mat-icon fontIcon="fa-circle-exclamation" />
+        {{ failure.message }}
+      </p>
+    }
+
+    @if (canWrite()) {
+      <div class="datasets__upload-row">
+        <mat-form-field class="datasets__upload-name" subscriptSizing="dynamic">
+          <mat-label>{{ 'datasets.upload.name' | t }}</mat-label>
+          <input
+            matInput
+            name="uploadName"
+            dir="auto"
+            maxlength="200"
+            autocomplete="off"
+            [disabled]="uploading()"
+            [ngModel]="uploadName()"
+            (ngModelChange)="uploadName.set($event)"
+          />
+          <mat-hint>{{ 'datasets.upload.nameHint' | t }}</mat-hint>
+        </mat-form-field>
+        <input
+          #picker
+          class="cdk-visually-hidden"
+          type="file"
+          tabindex="-1"
+          aria-hidden="true"
+          [accept]="uploadTypes"
+          (change)="upload(picker)"
+        />
+        <button
+          matButton="filled"
+          type="button"
+          [disabled]="uploading()"
+          [attr.aria-busy]="uploading()"
+          (click)="picker.click()"
+        >
+          <mat-icon fontIcon="fa-upload" />
+          {{ (uploading() ? 'datasets.upload.working' : 'datasets.upload.choose') | t }}
+        </button>
+      </div>
+
+      @if (uploadProgress(); as percent) {
+        <mat-progress-bar mode="determinate" [value]="percent" [attr.aria-label]="'datasets.upload.progressLabel' | t" />
+        <p class="text-secondary" role="status">{{ 'datasets.upload.progress' | t: { percent: percent } }}</p>
+      } @else if (uploading()) {
+        <mat-progress-bar mode="indeterminate" [attr.aria-label]="'datasets.upload.progressLabel' | t" />
+      }
+    } @else {
+      <p class="text-secondary">{{ 'datasets.upload.readOnly' | t }}</p>
+    }
+
+    <mat-expansion-panel class="datasets__layouts">
+      <mat-expansion-panel-header>
+        <mat-panel-title>{{ 'datasets.upload.layouts' | t }}</mat-panel-title>
+      </mat-expansion-panel-header>
+      <dl class="datasets__layout-list">
+        @for (layout of layouts; track layout) {
+          <div>
+            <dt>{{ 'datasets.format.' + layout + '.name' | t }}</dt>
+            <dd>
+              <span>{{ 'datasets.format.' + layout + '.explain' | t }}</span>
+              <code dir="ltr">{{ 'datasets.format.' + layout + '.columns' | t }}</code>
+            </dd>
+          </div>
+        }
+        <div>
+          <dt><app-term key="thinking" /></dt>
+          <dd>
+            <span>{{ 'datasets.upload.thinking' | t }}</span>
+            <code dir="ltr">{{ 'datasets.upload.thinkingColumns' | t }}</code>
+          </dd>
+        </div>
+      </dl>
+    </mat-expansion-panel>
+  </mat-card>
+</section>
+
+<section class="datasets__section" aria-labelledby="datasets-find">
+  <h2 id="datasets-find">{{ 'datasets.find.title' | t }}</h2>
+
+  <form class="datasets__search" role="search" novalidate (ngSubmit)="submitSearch()">
+    <mat-form-field class="datasets__query" subscriptSizing="dynamic">
+      <mat-label>{{ 'datasets.find.label' | t }}</mat-label>
+      <input
+        matInput
+        type="search"
+        name="search"
+        dir="ltr"
+        autocomplete="off"
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+      />
+      <button matIconButton matSuffix type="submit" [attr.aria-label]="'datasets.find.submit' | t">
+        <mat-icon fontIcon="fa-magnifying-glass" />
+      </button>
+      <mat-hint>{{ 'datasets.find.hint' | t }}</mat-hint>
+    </mat-form-field>
+  </form>
+
+  <div class="datasets__results" [attr.aria-busy]="hubLoading()">
+    <p class="datasets__results-title" role="status">
+      @if (popular()) {
+        {{ 'datasets.find.popular' | t }}
+      } @else {
+        {{ 'datasets.find.resultsFor' | t }}
+        <span dir="ltr">{{ hubQuery() }}</span>
+      }
+    </p>
+
+    @if (hubLoading()) {
+      <mat-progress-bar mode="indeterminate" [attr.aria-label]="'datasets.find.loading' | t" />
+    }
+
+    @if (hubError(); as failure) {
+      <p class="datasets__failure" role="alert">
+        <mat-icon fontIcon="fa-circle-exclamation" />
+        {{ failure.message }}
+      </p>
+      <div>
+        <button matButton type="button" (click)="searchAgain()">{{ 'actions.retry' | t }}</button>
+      </div>
+    } @else if (!hubLoading() && hubResults().length === 0) {
+      <mat-card appearance="outlined" class="datasets__note">
+        <mat-icon fontIcon="fa-magnifying-glass" />
+        <div class="datasets__note-text">
+          <p class="datasets__note-title">{{ 'datasets.find.empty' | t }}</p>
+          <p class="text-secondary">{{ 'datasets.find.emptyHint' | t }}</p>
+        </div>
+      </mat-card>
+    }
+
+    <ul class="datasets__grid">
+      @for (result of hubResults(); track result.repo_id) {
+        <li>
+          <mat-card appearance="outlined" class="datasets__card">
+            <div class="datasets__card-top">
+              <h3 class="datasets__name"><span dir="ltr">{{ result.repo_id }}</span></h3>
+              @if (result.in_library) {
+                <p class="datasets__tag">
+                  <mat-icon fontIcon="fa-circle-check" />
+                  {{ 'datasets.find.inLibrary' | t }}
+                </p>
+              }
+            </div>
+
+            <p class="datasets__stats">
+              <span class="datasets__stat">
+                <mat-icon fontIcon="fa-download" />
+                <span class="cdk-visually-hidden">{{ 'datasets.find.downloads' | t }}:</span>
+                {{ result.downloads | compact }}
+              </span>
+              <span class="datasets__stat">
+                <mat-icon fontIcon="fa-heart" />
+                <span class="cdk-visually-hidden">{{ 'datasets.find.likes' | t }}:</span>
+                {{ result.likes | compact }}
+              </span>
+            </p>
+
+            @if (result.description) {
+              <p class="datasets__summary text-secondary" dir="auto">{{ result.description }}</p>
+            }
+
+            <p class="datasets__meta text-secondary">
+              @if (sizeRange(result.size_category); as size) {
+                <span>
+                  {{ 'datasets.find.size.' + size.key | t: { min: size.min, max: size.max } }}
+                </span>
+              }
+              @if (result.languages.length > 0) {
+                <span class="datasets__tag">
+                  <mat-icon fontIcon="fa-language" />
+                  <span class="cdk-visually-hidden">{{ 'datasets.find.languages' | t }}:</span>
+                  {{ result.languages | languages }}
+                </span>
+              }
+              @if (result.license) {
+                <span>
+                  {{ 'datasets.find.license' | t }}
+                  <span dir="ltr">{{ result.license }}</span>
+                </span>
+              }
+              @if (result.gated) {
+                <span class="datasets__tag">
+                  <mat-icon fontIcon="fa-lock" />
+                  {{ 'datasets.find.gated' | t }}
+                </span>
+              }
+            </p>
+
+            <div class="datasets__card-actions">
+              <button
+                matButton
+                type="button"
+                [attr.aria-label]="'datasets.find.previewFor' | t: { name: result.repo_id }"
+                (click)="preview(result)"
+              >
+                <mat-icon fontIcon="fa-eye" />
+                {{ 'datasets.find.preview' | t }}
+              </button>
+            </div>
+          </mat-card>
+        </li>
+      }
+    </ul>
+  </div>
+</section>

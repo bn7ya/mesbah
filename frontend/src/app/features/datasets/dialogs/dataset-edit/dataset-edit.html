@@ -1,0 +1,47 @@
+<h2 mat-dialog-title>{{ 'datasets.edit.title' | t }}</h2>
+
+<form novalidate (ngSubmit)="save()">
+  <mat-dialog-content class="edit">
+    @if (failure(); as error) {
+      <p class="edit__failure" role="alert">
+        <mat-icon fontIcon="fa-circle-exclamation" />
+        {{ error.message }}
+      </p>
+    }
+
+    <mat-form-field>
+      <mat-label>{{ 'datasets.edit.name' | t }}</mat-label>
+      <input
+        matInput
+        name="name"
+        dir="auto"
+        maxlength="200"
+        autocomplete="off"
+        [errorStateMatcher]="nameErrors"
+        [ngModel]="name()"
+        (ngModelChange)="name.set($event)"
+      />
+      <mat-error>{{ 'datasets.edit.nameRequired' | t }}</mat-error>
+    </mat-form-field>
+
+    <mat-form-field>
+      <mat-label>{{ 'datasets.edit.description' | t }}</mat-label>
+      <textarea
+        matInput
+        name="description"
+        dir="auto"
+        rows="4"
+        maxlength="2000"
+        [ngModel]="description()"
+        (ngModelChange)="description.set($event)"
+      ></textarea>
+    </mat-form-field>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button matButton type="button" [mat-dialog-close]="false">{{ 'actions.cancel' | t }}</button>
+    <button matButton="filled" type="submit" [disabled]="saving()" [attr.aria-busy]="saving()">
+      {{ (saving() ? 'datasets.edit.saving' : 'actions.save') | t }}
+    </button>
+  </mat-dialog-actions>
+</form>

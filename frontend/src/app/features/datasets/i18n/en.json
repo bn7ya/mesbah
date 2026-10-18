@@ -1,0 +1,210 @@
+{
+  "datasets": {
+    "title": "Datasets",
+    "subtitle": "Training data from HuggingFace or from your own files.",
+    "thinking": "Thinking",
+    "addedBy": "Added by {name}",
+    "rowsCount": "Rows: {count}",
+    "skippedCount": "Skipped: {count}",
+    "tokenLink": "Add a token",
+    "imported": "Import started.",
+    "uploaded": "File added.",
+    "cancelled": "Stopping the import.",
+    "retried": "Import started again.",
+    "removed": "Dataset removed.",
+    "saved": "Changes saved.",
+    "source": {
+      "hub": "HuggingFace",
+      "upload": "File"
+    },
+    "format": {
+      "messages": {
+        "name": "Conversations",
+        "explain": "Each row is a conversation, and each message in it has a role and a text.",
+        "columns": "messages: [{role, content}]"
+      },
+      "sharegpt": {
+        "name": "Conversations in ShareGPT style",
+        "explain": "Each row is a conversation, and each message in it is marked human or gpt.",
+        "columns": "conversations: [{from, value}]"
+      },
+      "instruction": {
+        "name": "Instructions",
+        "explain": "Each row has an instruction, an optional input and the answer.",
+        "columns": "instruction · input · output"
+      },
+      "prompt_completion": {
+        "name": "Prompts and replies",
+        "explain": "Each row has a prompt and the reply for the model to learn.",
+        "columns": "prompt + completion · question + answer · query + response"
+      },
+      "text": {
+        "name": "Plain text",
+        "explain": "Each row is a text for the model to learn to continue.",
+        "columns": "text"
+      },
+      "unsupported": {
+        "name": "Layout not recognised",
+        "explain": "These columns don't match a supported layout. Choose the prompt and reply columns."
+      }
+    },
+    "mapping": {
+      "conversation": "Conversation",
+      "prompt": "Prompt",
+      "reply": "Reply",
+      "thinking": "Thinking",
+      "text": "Text",
+      "and": "with",
+      "none": "None",
+      "thinkingInline": "From <think> in the reply, if there is one"
+    },
+    "conversation": {
+      "number": "Row {number}",
+      "text": "Text",
+      "thinking": "Thinking",
+      "roles": {
+        "system": "System prompt",
+        "user": "Prompt",
+        "assistant": "Reply"
+      }
+    },
+    "library": {
+      "title": "Library",
+      "loading": "Loading the library",
+      "pages": "Pages of datasets",
+      "emptyTitle": "No datasets yet.",
+      "emptyWrite": "Import one from HuggingFace or upload a file below.",
+      "emptyRead": "A trainer or an administrator can add datasets.",
+      "queued": "Waiting to start",
+      "progress": "Rows: {done} of {total}",
+      "progressLabel": "Import progress of {name}",
+      "ready": "Ready",
+      "failed": "Import failed",
+      "stopped": "Stopped",
+      "open": "View rows",
+      "openFor": "View the rows of {name}",
+      "cancelFor": "Cancel the import of {name}",
+      "retryFor": "Import {name} again",
+      "remove": "Remove",
+      "removeFor": "Remove {name}",
+      "failure": {
+        "gated": "This dataset needs a HuggingFace token with access to it.",
+        "not_found": "HuggingFace has no dataset with this name, or it is private.",
+        "hf_unreachable": "The connection to HuggingFace was interrupted.",
+        "unsupported_format": "None of the rows match the chosen layout.",
+        "disk_full": "There isn't enough free disk space.",
+        "unknown": "The import stopped because of an error."
+      }
+    },
+    "remove": {
+      "title": "Remove {name}?",
+      "body": "The dataset's file is deleted from this machine. A dataset from HuggingFace stays there and can be imported again.",
+      "confirm": "Remove"
+    },
+    "find": {
+      "title": "Find a dataset",
+      "label": "Search HuggingFace",
+      "hint": "Leave empty for popular datasets.",
+      "submit": "Search",
+      "popular": "Popular text generation datasets",
+      "resultsFor": "Results for",
+      "loading": "Searching HuggingFace",
+      "empty": "No datasets found.",
+      "emptyHint": "Check the spelling or try other words.",
+      "downloads": "Downloads",
+      "likes": "Likes",
+      "license": "License:",
+      "languages": "Languages",
+      "gated": "Needs access",
+      "inLibrary": "In library",
+      "preview": "Preview",
+      "previewFor": "Preview {name}",
+      "size": {
+        "under": "Rows: under {max}",
+        "between": "Rows: {min} to {max}",
+        "over": "Rows: over {min}"
+      }
+    },
+    "inspect": {
+      "loading": "Loading the dataset",
+      "about": "About this dataset",
+      "part": "Part to import",
+      "subset": "Subset",
+      "split": "Split",
+      "layout": "How the rows are read",
+      "columns": "Columns",
+      "choose": "Choose the columns by hand",
+      "firstRows": "First rows",
+      "checked": "Rows checked: {count}",
+      "unusable": "Rows that can't be used: {count}",
+      "chooseFirst": "Choose the prompt and reply columns to see the rows.",
+      "nothingUsable": "None of the first rows can be used with these columns.",
+      "limitTitle": "Size of the import",
+      "limit": "Row limit",
+      "limitHint": "The import stops at this many rows. More rows take longer to import and to train.",
+      "limitInvalid": "Enter a whole number from 1 to {max}.",
+      "readOnly": "Only a trainer or an administrator can import datasets.",
+      "close": "Close",
+      "import": "Import",
+      "starting": "Starting…"
+    },
+    "upload": {
+      "title": "Upload a file",
+      "accepts": "A JSONL, JSON or CSV file, up to {size}.",
+      "savedAs": "Every dataset is saved as",
+      "name": "Name",
+      "nameHint": "Optional. The file name is the default.",
+      "choose": "Choose a file",
+      "working": "Uploading…",
+      "progressLabel": "Upload progress",
+      "progress": "Uploaded: {percent}%",
+      "readOnly": "Only a trainer or an administrator can upload datasets.",
+      "layouts": "Accepted layouts",
+      "thinking": "A separate column with the reasoning, or the reasoning in <think> at the start of the reply.",
+      "thinkingColumns": "reasoning · thinking · reasoning_content · think · cot · <think>…</think>"
+    },
+    "edit": {
+      "title": "Edit the dataset",
+      "name": "Name",
+      "nameRequired": "Enter a name.",
+      "description": "Description",
+      "saving": "Saving…"
+    },
+    "detail": {
+      "breadcrumb": "Back",
+      "loading": "Loading the dataset",
+      "noDescription": "No description yet.",
+      "edit": "Edit",
+      "about": "Details",
+      "source": "Source",
+      "format": "Layout",
+      "rows": "Rows",
+      "skipped": "Skipped rows",
+      "size": "File size",
+      "thinkingYes": "Included",
+      "thinkingNo": "Not included",
+      "addedBy": "Added by",
+      "addedAt": "Added on",
+      "columns": "Columns used",
+      "checksum": "Checksum (SHA-256)",
+      "rowsTitle": "Contents",
+      "rowsLoading": "Loading the rows",
+      "pages": "Pages of rows",
+      "stopped": "The import was stopped. Try again from the library.",
+      "importing": "Importing. Rows so far: {count}"
+    }
+  },
+  "errors": {
+    "hub_dataset_not_found": "HuggingFace has no dataset with that name.",
+    "hub_dataset_gated": "This dataset needs a HuggingFace token with access to it. Save one on the System page.",
+    "hub_dataset_unavailable": "HuggingFace has no ready copy of this dataset. Try again later or choose another one.",
+    "unknown_split": "This dataset has no such subset or split.",
+    "unsupported_format": "The rows don't match any supported layout.",
+    "missing_column": "A chosen column isn't in this data.",
+    "unsupported_file": "Upload a JSONL, JSON or CSV file.",
+    "file_too_large": "The file is larger than 200 MB.",
+    "empty_file": "The file has no rows.",
+    "dataset_not_ready": "This dataset hasn't finished importing.",
+    "upload_missing": "The uploaded file is gone. Upload it again."
+  }
+}

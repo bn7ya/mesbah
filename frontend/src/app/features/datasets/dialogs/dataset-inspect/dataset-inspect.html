@@ -1,0 +1,253 @@
+<h2 mat-dialog-title><span dir="ltr">{{ data.repo }}</span></h2>
+
+<mat-dialog-content class="inspect" [attr.aria-busy]="loading()">
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" [attr.aria-label]="'datasets.inspect.loading' | t" />
+  }
+
+  @if (loadFailure(); as problem) {
+    <p class="inspect__failure" role="alert">
+      <mat-icon fontIcon="fa-circle-exclamation" />
+      <span>
+        {{ problem.message }}
+        @if (problem.code === 'hub_dataset_gated') {
+          <a routerLink="/system" mat-dialog-close>{{ 'datasets.tokenLink' | t }}</a>
+        }
+      </span>
+    </p>
+    <div>
+      <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
+    </div>
+  }
+
+  @if (shown(); as view) {
+    <section class="inspect__section" aria-labelledby="inspect-about">
+      <h3 id="inspect-about" class="cdk-visually-hidden">{{ 'datasets.inspect.about' | t }}</h3>
+      @if (view.description) {
+        <p class="inspect__description text-secondary" dir="auto">{{ view.description }}</p>
+      }
+      <p class="inspect__facts">
+        <span class="inspect__fact">
+          <mat-icon fontIcon="fa-download" />
+          <span class="cdk-visually-hidden">{{ 'datasets.find.downloads' | t }}:</span>
+          {{ view.downloads | compact }}
+        </span>
+        <span class="inspect__fact">
+          <mat-icon fontIcon="fa-heart" />
+          <span class="cdk-visually-hidden">{{ 'datasets.find.likes' | t }}:</span>
+          {{ view.likes | compact }}
+        </span>
+        @if (view.license) {
+          <span class="inspect__fact">
+            {{ 'datasets.find.license' | t }}
+            <span dir="ltr">{{ view.license }}</span>
+          </span>
+        }
+        @if (view.languages.length > 0) {
+          <span class="inspect__fact">
+            <mat-icon fontIcon="fa-language" />
+            <span class="cdk-visually-hidden">{{ 'datasets.find.languages' | t }}:</span>
+            {{ view.languages | languages }}
+          </span>
+        }
+        @if (view.gated) {
+          <span class="inspect__fact">
+            <mat-icon fontIcon="fa-lock" />
+            {{ 'datasets.find.gated' | t }}
+          </span>
+        }
+      </p>
+    </section>
+
+    <section class="inspect__section" aria-labelledby="inspect-part">
+      <h3 id="inspect-part">{{ 'datasets.inspect.part' | t }}</h3>
+      <p class="inspect__terms">
+        <app-term key="subset" />
+        <app-term key="split" />
+      </p>
+      <div class="inspect__choices">
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>{{ 'datasets.inspect.subset' | t }}</mat-label>
+          <mat-select [value]="view.config" [disabled]="loading()" (valueChange)="chooseConfig($event)">
+            @for (config of view.configs; track config.name) {
+              <mat-option [value]="config.name"><span dir="ltr">{{ config.name }}</span></mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>{{ 'datasets.inspect.split' | t }}</mat-label>
+          <mat-select [value]="view.split" [disabled]="loading()" (valueChange)="chooseSplit($event)">
+            @for (split of currentConfig()?.splits ?? []; track split.name) {
+              <mat-option [value]="split.name">
+                <span dir="ltr">{{ split.name }}</span>
+                @if (split.rows !== null) {
+                  · {{ 'datasets.rowsCount' | t: { count: count(split.rows) } }}
+                }
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+      </div>
+    </section>
+
+    <section class="inspect__section" aria-labelledby="inspect-layout">
+      <h3 id="inspect-layout">{{ 'datasets.inspect.layout' | t }}</h3>
+
+      <div class="inspect__format">
+        <mat-icon [fontIcon]="icons[view.mapping.format]" />
+        <div>
+          <p class="inspect__format-name">{{ 'datasets.format.' + view.mapping.format + '.name' | t }}</p>
+          <p class="text-secondary">{{ 'datasets.format.' + view.mapping.format + '.explain' | t }}</p>
+        </div>
+      </div>
+
+      @if (view.mapping.format !== 'unsupported') {
+        <dl class="inspect__mapping">
+          @if (view.mapping.conversation) {
+            <div>
+              <dt>{{ 'datasets.mapping.conversation' | t }}</dt>
+              <dd><code dir="ltr">{{ view.mapping.conversation }}</code></dd>
+            </div>
+          }
+          @if (view.mapping.prompt) {
+            <div>
+              <dt>{{ 'datasets.mapping.prompt' | t }}</dt>
+              <dd>
+                <code dir="ltr">{{ view.mapping.prompt }}</code>
+                @if (view.mapping.input) {
+                  {{ 'datasets.mapping.and' | t }}
+                  <code dir="ltr">{{ view.mapping.input }}</code>
+                }
+              </dd>
+            </div>
+          }
+          @if (view.mapping.reply) {
+            <div>
+              <dt>{{ 'datasets.mapping.reply' | t }}</dt>
+              <dd><code dir="ltr">{{ view.mapping.reply }}</code></dd>
+            </div>
+          }
+          @if (view.mapping.text) {
+            <div>
+              <dt>{{ 'datasets.mapping.text' | t }}</dt>
+              <dd><code dir="ltr">{{ view.mapping.text }}</code></dd>
+            </div>
+          }
+          <div>
+            <dt><app-term key="thinking" /></dt>
+            <dd>
+              @if (view.mapping.thinking) {
+                <code dir="ltr">{{ view.mapping.thinking }}</code>
+              } @else {
+                {{ 'datasets.mapping.thinkingInline' | t }}
+              }
+            </dd>
+          </div>
+        </dl>
+      }
+
+      <div class="inspect__columns">
+        <p class="text-secondary">{{ 'datasets.inspect.columns' | t }}</p>
+        <mat-chip-set [attr.aria-label]="'datasets.inspect.columns' | t">
+          @for (column of view.columns; track column) {
+            <mat-chip><span dir="ltr">{{ column }}</span></mat-chip>
+          }
+        </mat-chip-set>
+      </div>
+
+      @if (!unsupported()) {
+        <mat-slide-toggle [checked]="choosing()" [disabled]="loading()" (change)="togglePicking($event.checked)">
+          {{ 'datasets.inspect.choose' | t }}
+        </mat-slide-toggle>
+      }
+
+      @if (picking()) {
+        <div class="inspect__choices inspect__choices--three">
+          @for (role of roles; track role) {
+            <mat-form-field subscriptSizing="dynamic">
+              <mat-label>{{ 'datasets.mapping.' + role | t }}</mat-label>
+              <mat-select [value]="columns()[role]" [disabled]="loading()" (valueChange)="chooseColumn(role, $event)">
+                @if (role === 'thinking') {
+                  <mat-option value="">{{ 'datasets.mapping.none' | t }}</mat-option>
+                }
+                @for (column of view.columns; track column) {
+                  <mat-option [value]="column"><span dir="ltr">{{ column }}</span></mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          }
+        </div>
+      }
+    </section>
+
+    <section class="inspect__section" aria-labelledby="inspect-rows">
+      <h3 id="inspect-rows">{{ 'datasets.inspect.firstRows' | t }}</h3>
+      <p class="text-secondary">
+        {{ 'datasets.inspect.checked' | t: { count: count(view.sample_rows) } }}
+        ·
+        {{ 'datasets.inspect.unusable' | t: { count: count(view.sample_skipped) } }}
+      </p>
+      @if (view.conversations.length === 0) {
+        <p class="inspect__note">
+          <mat-icon fontIcon="fa-circle-info" />
+          <span>{{ (view.mapping.format === 'unsupported' ? 'datasets.inspect.chooseFirst' : 'datasets.inspect.nothingUsable') | t }}</span>
+        </p>
+      }
+      <ol class="inspect__rows">
+        @for (conversation of view.conversations; track conversation.index) {
+          <li><app-dataset-conversation [conversation]="conversation" [number]="conversation.index + 1" /></li>
+        }
+      </ol>
+    </section>
+
+    @if (canWrite()) {
+      <section class="inspect__section" aria-labelledby="inspect-limit">
+        <h3 id="inspect-limit">{{ 'datasets.inspect.limitTitle' | t }}</h3>
+        <mat-form-field class="inspect__limit">
+          <mat-label>{{ 'datasets.inspect.limit' | t }}</mat-label>
+          <input
+            matInput
+            type="number"
+            name="rowLimit"
+            min="1"
+            [max]="maxRows"
+            step="1"
+            inputmode="numeric"
+            [errorStateMatcher]="limitErrors"
+            [ngModel]="rowLimit()"
+            (ngModelChange)="rowLimit.set($event)"
+          />
+          <mat-hint>{{ 'datasets.inspect.limitHint' | t }}</mat-hint>
+          <mat-error>{{ 'datasets.inspect.limitInvalid' | t: { max: count(maxRows) } }}</mat-error>
+        </mat-form-field>
+      </section>
+    }
+  }
+</mat-dialog-content>
+
+@if (failure(); as problem) {
+  <p class="inspect__failure inspect__failure--footer" role="alert">
+    <mat-icon fontIcon="fa-circle-exclamation" />
+    {{ problem.message }}
+  </p>
+}
+
+<mat-dialog-actions align="end">
+  @if (blocker(); as reason) {
+    <p class="inspect__reason text-secondary" id="inspect-reason">{{ reason | t }}</p>
+  }
+  <button matButton type="button" [mat-dialog-close]="false">{{ 'datasets.inspect.close' | t }}</button>
+  @if (canWrite()) {
+    <button
+      matButton="filled"
+      type="button"
+      [disabled]="shown() === null || loading() || blocker() !== null || limitInvalid() || importing()"
+      [attr.aria-busy]="importing()"
+      [attr.aria-describedby]="blocker() ? 'inspect-reason' : null"
+      (click)="startImport()"
+    >
+      <mat-icon fontIcon="fa-file-import" />
+      {{ (importing() ? 'datasets.inspect.starting' : 'datasets.inspect.import') | t }}
+    </button>
+  }
+</mat-dialog-actions>

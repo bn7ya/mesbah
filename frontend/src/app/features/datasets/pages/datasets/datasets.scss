@@ -1,0 +1,306 @@
+@use "layout" as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-8);
+}
+
+.datasets__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+
+  h1,
+  p {
+    margin: 0;
+  }
+}
+
+.datasets__failure {
+  display: flex;
+  gap: var(--app-space-3);
+  align-items: center;
+  padding: var(--app-space-3) var(--app-space-4);
+  margin: 0;
+  color: var(--mat-sys-on-error-container);
+  background: var(--mat-sys-error-container);
+  border-radius: var(--mat-sys-corner-small);
+}
+
+.datasets__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.datasets__note {
+  display: flex;
+  flex-direction: row;
+  gap: var(--app-space-4);
+  align-items: flex-start;
+  padding: var(--app-space-6);
+}
+
+.datasets__note-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+
+  p {
+    margin: 0;
+  }
+}
+
+.datasets__note-title {
+  font: var(--mat-sys-title-medium);
+}
+
+.datasets__list,
+.datasets__grid {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.datasets__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+}
+
+.datasets__row {
+  display: grid;
+  gap: var(--app-space-4);
+  align-items: center;
+  padding: var(--app-space-5);
+
+  p {
+    margin: 0;
+  }
+
+  @include from($screen-md) {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) auto;
+  }
+}
+
+.datasets__identity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+  min-inline-size: 0;
+}
+
+.datasets__name {
+  margin: 0;
+  font: var(--mat-sys-title-medium);
+  overflow-wrap: anywhere;
+}
+
+.datasets__origin {
+  display: flex;
+  gap: var(--app-space-2);
+  align-items: center;
+  font: var(--mat-sys-body-medium);
+  overflow-wrap: anywhere;
+}
+
+.datasets__description {
+  font: var(--mat-sys-body-medium);
+}
+
+.datasets__excerpt {
+  overflow: hidden;
+  font: var(--mat-sys-body-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.datasets__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-4);
+  margin: 0;
+  font: var(--mat-sys-body-medium);
+}
+
+.datasets__tag {
+  display: inline-flex;
+  gap: var(--app-space-1);
+  align-items: center;
+  margin: 0;
+}
+
+.datasets__status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+}
+
+.datasets__state {
+  display: flex;
+  gap: var(--app-space-2);
+  align-items: center;
+}
+
+.datasets__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-4);
+  font: var(--mat-sys-body-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.datasets__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+}
+
+.datasets__search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+}
+
+.datasets__query {
+  max-inline-size: $reading-max;
+}
+
+.datasets__results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+}
+
+.datasets__results-title {
+  margin: 0;
+  font: var(--mat-sys-title-medium);
+}
+
+.datasets__grid {
+  display: grid;
+  gap: var(--app-space-3);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, #{$column-min * 2}), 1fr));
+}
+
+.datasets__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+  block-size: 100%;
+  padding: var(--app-space-5);
+
+  p {
+    margin: 0;
+  }
+}
+
+.datasets__card-top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+}
+
+.datasets__stats {
+  display: flex;
+  gap: var(--app-space-4);
+}
+
+.datasets__stat {
+  display: inline-flex;
+  gap: var(--app-space-2);
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.datasets__summary {
+  display: -webkit-box;
+  overflow: hidden;
+  font: var(--mat-sys-body-medium);
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.datasets__card-actions {
+  display: flex;
+  margin-block-start: auto;
+}
+
+.datasets__upload {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+  padding: var(--app-space-6);
+
+  p {
+    margin: 0;
+  }
+}
+
+.datasets__accepts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-2);
+  align-items: center;
+}
+
+.datasets__upload-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+
+  @include from($screen-md) {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+.datasets__upload-name {
+  flex: 1;
+  max-inline-size: $card-max;
+}
+
+.datasets__upload-row > button {
+  align-self: flex-start;
+
+  @include from($screen-md) {
+    margin-block-start: var(--app-space-2);
+  }
+}
+
+.datasets__layout-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+  margin: 0;
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-1);
+  }
+
+  dt {
+    display: flex;
+    align-items: center;
+    font: var(--mat-sys-title-small);
+  }
+
+  dd {
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-1);
+    align-items: flex-start;
+    margin: 0;
+    font: var(--mat-sys-body-medium);
+  }
+
+  code {
+    overflow-wrap: anywhere;
+  }
+}

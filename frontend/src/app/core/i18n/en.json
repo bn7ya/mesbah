@@ -66,6 +66,7 @@
     "open": "Open the menu",
     "projects": "Projects",
     "models": "Models",
+    "datasets": "Datasets",
     "engines": "Engines",
     "system": "System",
     "members": "Members"
@@ -179,6 +180,22 @@
     "ollama": {
       "term": "Ollama",
       "explain": "A program that runs language models on a personal computer. Mesbah connects to it by its address."
+    },
+    "dataset": {
+      "term": "Dataset",
+      "explain": "A collection of examples a model learns from. In Mesbah each example is a conversation or a piece of text."
+    },
+    "subset": {
+      "term": "Subset",
+      "explain": "Some datasets come in several versions, such as one for each language or task. Each version is a subset."
+    },
+    "split": {
+      "term": "Split",
+      "explain": "A part of a dataset kept for one use, such as train for training or test for checking the result."
+    },
+    "jsonl": {
+      "term": "JSONL",
+      "explain": "A text file with one record on each line. Mesbah saves every dataset this way, one conversation on each line."
     }
   },
   "paginator": {

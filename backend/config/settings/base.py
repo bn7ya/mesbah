@@ -61,6 +61,7 @@ THIRD_PARTY_APPS: list[str] = [
 LOCAL_APPS: list[str] = [
     "apps.common",
     "apps.accounts",
+    "apps.datasets",
     "apps.members",
     "apps.models",
     "apps.projects",
@@ -171,6 +172,8 @@ SPECTACULAR_SETTINGS: dict[str, Any] = {
     "SORT_OPERATIONS": False,
     # Several slices have a `role` or a `status`; each set of choices gets its own name.
     "ENUM_NAME_OVERRIDES": {
+        "DatasetFormatEnum": "apps.datasets.models.Dataset.Format",
+        "DatasetStatusEnum": "apps.datasets.models.Dataset.Status",
         "ExportFormatEnum": "apps.versions.models.Export.Format",
         "MemberRoleEnum": "apps.members.roles.LADDER",
         "MessageRoleEnum": ["system", "user", "assistant"],

@@ -316,8 +316,7 @@
       "optimizer": "Optimizer",
       "warmup": "Warm-up share",
       "device": "Trained on",
-      "processor": "The processor",
-      "gpu": "GPU {list}"
+      "processor": "The processor"
     }
   },
   "errors": {

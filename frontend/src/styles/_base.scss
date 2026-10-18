@@ -16,6 +16,14 @@ h2 {
   font: var(--mat-sys-title-large);
 }
 
+h3 {
+  font: var(--mat-sys-title-medium);
+}
+
+h4 {
+  font: var(--mat-sys-title-small);
+}
+
 a {
   color: var(--mat-sys-primary);
 }
@@ -27,7 +35,7 @@ a {
 
 code,
 pre {
-  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-family: var(--app-font-mono);
 }
 
 .text-secondary {

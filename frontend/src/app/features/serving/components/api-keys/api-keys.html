@@ -16,19 +16,12 @@
   </header>
 
   @if (!canTrain()) {
-    <mat-card appearance="outlined" class="keys__note">
-      <mat-icon fontIcon="fa-key" />
-      <div class="keys__note-text">
-        <p class="keys__note-title">{{ 'serving.keys.trainersOnly' | t }}</p>
-        <p class="text-secondary">{{ 'serving.keys.trainersOnlyBody' | t }}</p>
-      </div>
-    </mat-card>
+    <app-empty-state icon="fa-key" [heading]="'serving.keys.trainersOnly' | t">
+      {{ 'serving.keys.trainersOnlyBody' | t }}
+    </app-empty-state>
   } @else {
     @if (error(); as failure) {
-      <p class="keys__failure" role="alert">
-        <mat-icon fontIcon="fa-circle-exclamation" />
-        {{ failure.message }}
-      </p>
+      <app-note kind="error">{{ failure.message }}</app-note>
     }
 
     @if (loading() && page().results.length === 0) {
@@ -36,13 +29,9 @@
     }
 
     @if (empty()) {
-      <mat-card appearance="outlined" class="keys__note">
-        <mat-icon fontIcon="fa-key" />
-        <div class="keys__note-text">
-          <p class="keys__note-title">{{ 'serving.keys.emptyTitle' | t }}</p>
-          <p class="text-secondary">{{ 'serving.keys.emptyBody' | t }}</p>
-        </div>
-      </mat-card>
+      <app-empty-state icon="fa-key" [heading]="'serving.keys.emptyTitle' | t">
+        {{ 'serving.keys.emptyBody' | t }}
+      </app-empty-state>
     } @else if (page().count > 0) {
       <div class="keys__table">
         <div class="keys__scroll">

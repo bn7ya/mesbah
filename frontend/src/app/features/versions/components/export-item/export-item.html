@@ -3,10 +3,9 @@
 <mat-card appearance="outlined" class="export" [attr.aria-busy]="unfinished() || busy()">
   <div class="export__head">
     <h3 class="export__name">{{ 'versions.export.' + row.format + '.name' | t }}</h3>
-    <span class="export__status" [class.export__status--failed]="row.status === 'failed'" role="status">
-      <mat-icon [fontIcon]="icon()" />
+    <app-status role="status" [icon]="icon()" [tone]="tone()">
       {{ 'versions.exports.status.' + row.status | t }}
-    </span>
+    </app-status>
   </div>
 
   @if (row.out_type) {
@@ -31,10 +30,7 @@
   @if (folder()) {
     <div class="export__folder">
       <p class="text-secondary">{{ 'versions.exports.folderNote' | t }}</p>
-      <p class="export__path">
-        <span class="text-secondary">{{ 'versions.exports.pathLabel' | t }}</span>
-        <code dir="ltr">{{ row.path }}</code>
-      </p>
+      <app-code-block [label]="'versions.exports.pathLabel' | t" [code]="row.path" />
     </div>
   }
 

@@ -1,6 +1,6 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
-import type { VersionNode } from '../../data/versions.types';
+import { MAX_INDENT_DEPTH, type VersionNode } from '../../data/versions.types';
 import { VersionRow } from '../version-row/version-row';
 
 @Component({
@@ -12,4 +12,7 @@ import { VersionRow } from '../version-row/version-row';
 })
 export class VersionBranch {
   readonly node = input.required<VersionNode>();
+  readonly depth = input(0);
+
+  readonly flat = computed(() => this.depth() >= MAX_INDENT_DEPTH);
 }

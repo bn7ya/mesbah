@@ -6,10 +6,7 @@
 </nav>
 
 @if (openError(); as failure) {
-  <p class="dataset__failure" role="alert">
-    <mat-icon fontIcon="fa-circle-exclamation" />
-    {{ failure.message }}
-  </p>
+  <app-note kind="error">{{ failure.message }}</app-note>
 }
 
 @if (dataset() === null && openError() === null) {
@@ -19,7 +16,7 @@
 @if (dataset(); as current) {
   <header class="dataset__header">
     <p class="dataset__eyebrow text-secondary"><app-term key="dataset" /></p>
-    <h1 dir="auto">{{ current.name }}</h1>
+    <h1><span dir="auto">{{ current.name }}</span></h1>
     @if (current.description) {
       <p class="dataset__description" dir="auto">{{ current.description }}</p>
     } @else {
@@ -126,10 +123,7 @@
           <mat-progress-bar mode="indeterminate" [attr.aria-label]="'datasets.detail.rowsLoading' | t" />
         }
         @if (rowsError(); as failure) {
-          <p class="dataset__failure" role="alert">
-            <mat-icon fontIcon="fa-circle-exclamation" />
-            {{ failure.message }}
-          </p>
+          <app-note kind="error">{{ failure.message }}</app-note>
           <div>
             <button matButton type="button" (click)="reloadRows()">{{ 'actions.retry' | t }}</button>
           </div>
@@ -151,16 +145,10 @@
         }
       }
       @case ('failed') {
-        <p class="dataset__state">
-          <mat-icon fontIcon="fa-triangle-exclamation" />
-          <span>{{ failureKey(current) | t }}</span>
-        </p>
+        <app-status tone="error" icon="fa-triangle-exclamation">{{ failureKey(current) | t }}</app-status>
       }
       @case ('cancelled') {
-        <p class="dataset__state">
-          <mat-icon fontIcon="fa-circle-pause" />
-          <span>{{ 'datasets.detail.stopped' | t }}</span>
-        </p>
+        <app-status icon="fa-circle-pause">{{ 'datasets.detail.stopped' | t }}</app-status>
       }
       @default {
         <mat-progress-bar mode="indeterminate" [attr.aria-label]="'datasets.library.progressLabel' | t: { name: current.name }" />

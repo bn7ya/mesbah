@@ -7,13 +7,3 @@
   max-inline-size: $card-max;
 }
 
-.edit__failure {
-  display: flex;
-  gap: var(--app-space-3);
-  align-items: center;
-  padding: var(--app-space-3) var(--app-space-4);
-  margin: 0;
-  color: var(--mat-sys-on-error-container);
-  background: var(--mat-sys-error-container);
-  border-radius: var(--mat-sys-corner-small);
-}

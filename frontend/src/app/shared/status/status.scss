@@ -1,0 +1,27 @@
+:host {
+  display: inline-flex;
+}
+
+.status {
+  display: inline-flex;
+  gap: var(--app-space-2);
+  align-items: center;
+  font: var(--mat-sys-label-large);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.status--prominent {
+  font: var(--mat-sys-title-medium);
+}
+
+.status--ok {
+  color: var(--mat-sys-on-surface);
+
+  mat-icon {
+    color: var(--mat-sys-primary);
+  }
+}
+
+.status--error {
+  color: var(--mat-sys-error);
+}

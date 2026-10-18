@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, Injector, computed, inject } from '@angular/core';
 import { MatButton } from '@angular/material/button';
-import { MatCard } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
 import { MatPaginator, type PageEvent } from '@angular/material/paginator';
@@ -23,7 +22,9 @@ import { firstValueFrom } from 'rxjs';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { confirmAction } from '@shared/confirm-dialog/confirm-dialog';
+import { EmptyState } from '@shared/empty-state/empty-state';
 import { DateTimePipe } from '@shared/format/datetime.pipe';
+import { Note } from '@shared/note/note';
 import { Term } from '@shared/term/term';
 import { KEYS_PAGE_SIZE_OPTIONS, type ApiKey } from '../../data/serving.types';
 import { NewKeyDialog } from '../../dialogs/new-key/new-key';
@@ -33,8 +34,8 @@ import { ServingStore } from '../../state/serving.store';
   selector: 'app-api-keys',
   imports: [
     DateTimePipe,
+    EmptyState,
     MatButton,
-    MatCard,
     MatCell,
     MatCellDef,
     MatColumnDef,
@@ -48,6 +49,7 @@ import { ServingStore } from '../../state/serving.store';
     MatRow,
     MatRowDef,
     MatTable,
+    Note,
     Term,
     TranslatePipe,
   ],

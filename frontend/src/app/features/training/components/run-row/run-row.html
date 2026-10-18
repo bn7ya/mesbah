@@ -2,7 +2,7 @@
 
 <mat-card appearance="outlined" class="row" [attr.aria-busy]="busy()">
   <div class="row__head">
-    <h3 class="row__name" dir="auto">{{ title() }}</h3>
+    <h3 class="row__name"><span dir="auto">{{ title() }}</span></h3>
     <app-run-status [run]="item" [stopping]="stopRequested()" />
   </div>
 

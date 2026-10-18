@@ -4,10 +4,7 @@
   <p class="text-secondary">{{ 'versions.export.intro' | t }}</p>
 
   @if (failure(); as problem) {
-    <p class="export__failure" role="alert">
-      <mat-icon fontIcon="fa-circle-exclamation" />
-      {{ problem.message }}
-    </p>
+    <app-note kind="error">{{ problem.message }}</app-note>
   }
 
   <mat-radio-group

@@ -16,6 +16,7 @@ import type { ApiError } from '@core/http/api.types';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { BytesPipe } from '@shared/format/bytes.pipe';
+import { Note } from '@shared/note/note';
 import { Term } from '@shared/term/term';
 import {
   EXPORT_FORMATS,
@@ -42,6 +43,7 @@ import { versionLabel } from '../../state/version-label';
     MatIcon,
     MatRadioButton,
     MatRadioGroup,
+    Note,
     Term,
     TranslatePipe,
   ],

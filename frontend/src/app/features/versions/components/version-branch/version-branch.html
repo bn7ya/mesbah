@@ -1,10 +1,10 @@
 <app-version-row [version]="node().version" />
 
 @if (node().children.length > 0) {
-  <ul class="branch__children">
+  <ul class="branch__children" [class.branch__children--flat]="flat()">
     @for (child of node().children; track child.version.id) {
       <li class="branch__item">
-        <app-version-branch [node]="child" />
+        <app-version-branch [node]="child" [depth]="depth() + 1" />
       </li>
     }
   </ul>

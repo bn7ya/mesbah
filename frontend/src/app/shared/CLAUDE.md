@@ -20,6 +20,11 @@ way and turns a shared component into a feature's private one.
 | `format/` | Sizes and numbers in the reader's language, Latin digits |
 | `confirm-dialog/` | Asking before an action that removes or replaces something |
 | `version/` | A version's label and its name in words, and the announcement that keeps the project frame's chip current (projects and versions) |
+| `note/` | Every message in a box: a failure (`kind="error"`, `role="alert"`) and a hint the reader may need (`role="note"`, or `role="status"` with `live`) |
+| `empty-state/` | A list, table or panel with nothing in it: an icon, a title, the reason and, when there is one, the way out |
+| `status/` | A state or a tag as an icon and a word — a run, an engine, a download, a member, "Default" |
+| `fit-verdict/` | Whether a model fits this machine, as a `status` with the verdict's own icon |
+| `code-block/` | A command, an address or an error's detail in a monospace block that wraps, with room beside its label for a Copy button |
 
 `StatusPage` takes `titleKey` and `bodyKey` as translation keys, bound straight
 from route `data` by `withComponentInputBinding()`. A new status page is a route
@@ -60,6 +65,30 @@ listens to (`changes`); nothing is replayed to a late listener. **`VersionNamePi
 **`versionName()`** — a version's name for display: the backend's seeded `base` on version 0
 reads "Base model" in the reader's language, any other name stays. `VersionLabel` is the shape
 a project carries its active version in.
+
+**`Note`** (`<app-note [kind] [icon] [live]>`) — the one box for a message. `kind="error"` is the error
+container with `fa-circle-exclamation` and `role="alert"`; the default is a hint on the secondary
+container with `fa-circle-info` and `role="note"`, or `role="status"` when `live` (a hint that
+changes as the form does). `icon` swaps the glyph. The text is the content; a Retry button goes
+under the box, not in it.
+
+**`EmptyState`** (`<app-empty-state [icon] [heading]>`) — an outlined card with the icon, the title
+in `title-medium`, the content as the reason in the secondary tone, and any element marked
+`emptyActions` as the buttons below it. Used where a section would otherwise show nothing, inside
+a page and inside a dialog alike.
+
+**`Status`** (`<app-status [icon] [tone] [prominent]>`) — an icon and a word on one line.
+`tone="ok"` draws the icon in the accent, `"error"` colours both, the default is the secondary
+tone. `prominent` sets it in `title-medium` for a card's headline state. State is never colour
+alone, so the word always comes with the icon.
+
+**`FitVerdict`** (`<app-fit-verdict [verdict] [prominent]>`) — a `Status` whose icon follows the
+verdict (`FIT_ICONS`) and whose tone is `error` only when the model is too large. The word is the
+content, translated by the feature that renders it.
+
+**`CodeBlock`** (`<app-code-block [code] [label]>`) — a `pre` in `--app-font-mono`, left to right,
+wrapped inside the block so it never scrolls the page. The `label` and anything projected into
+it (a Copy button) sit in a bar above.
 
 **`ConfirmDialog`**, **`confirmAction()`** (`confirm-dialog/`) — a `MatDialog` that asks one
 question with translation keys and resolves to `true` only on the confirming button; a

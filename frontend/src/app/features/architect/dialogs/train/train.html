@@ -4,16 +4,10 @@
   <mat-dialog-content class="train">
     <p class="train__intro">{{ 'architect.train.intro' | t }}</p>
 
-    <p class="train__expectation" role="note">
-      <mat-icon fontIcon="fa-circle-info" />
-      <span>{{ 'architect.train.expectation' | t }}</span>
-    </p>
+    <app-note>{{ 'architect.train.expectation' | t }}</app-note>
 
     @if (failure(); as problem) {
-      <p class="train__failure" role="alert">
-        <mat-icon fontIcon="fa-circle-exclamation" />
-        {{ problem.message }}
-      </p>
+      <app-note kind="error">{{ problem.message }}</app-note>
     }
 
     <mat-form-field subscriptSizing="dynamic">
@@ -40,24 +34,19 @@
       }
 
       @if (loadFailure(); as problem) {
-        <p class="train__failure" role="alert">
-          <mat-icon fontIcon="fa-circle-exclamation" />
-          {{ problem.message }}
-        </p>
+        <app-note kind="error">{{ problem.message }}</app-note>
         <div>
           <button matButton type="button" (click)="loadAgain()">{{ 'actions.retry' | t }}</button>
         </div>
       }
 
       @if (nothingAvailable()) {
-        <p class="train__empty">
-          <mat-icon fontIcon="fa-box-open" />
-          <span>{{ 'architect.train.nothing' | t }}</span>
-          <a matButton routerLink="/datasets" mat-dialog-close>
+        <app-empty-state class="train__empty" icon="fa-box-open" [heading]="'architect.train.nothing' | t">
+          <a emptyActions matButton routerLink="/datasets" mat-dialog-close>
             <mat-icon fontIcon="fa-database" />
             {{ 'architect.train.toDatasets' | t }}
           </a>
-        </p>
+        </app-empty-state>
       }
 
       @if (sources().length > 0) {

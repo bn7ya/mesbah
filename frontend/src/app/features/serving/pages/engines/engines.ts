@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButton } from '@angular/material/button';
-import { MatIcon } from '@angular/material/icon';
 import { MatProgressBar } from '@angular/material/progress-bar';
 
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { Note } from '@shared/note/note';
 import { Term } from '@shared/term/term';
 import { ApiKeys } from '../../components/api-keys/api-keys';
 import { BuiltinEngine } from '../../components/builtin-engine/builtin-engine';
@@ -19,8 +19,8 @@ import { ServingStore } from '../../state/serving.store';
     BuiltinEngine,
     ConnectGuide,
     MatButton,
-    MatIcon,
     MatProgressBar,
+    Note,
     OtherEngines,
     Term,
     TranslatePipe,

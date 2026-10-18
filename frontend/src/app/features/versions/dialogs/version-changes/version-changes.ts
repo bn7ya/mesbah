@@ -7,7 +7,6 @@ import {
   MatDialogContent,
   MatDialogTitle,
 } from '@angular/material/dialog';
-import { MatIcon } from '@angular/material/icon';
 import { MatProgressBar } from '@angular/material/progress-bar';
 
 import { LocaleStore } from '@core/i18n/locale.store';
@@ -15,6 +14,7 @@ import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { UiModeStore } from '@core/ui/ui-mode.store';
 import { CompactPipe } from '@shared/format/compact.pipe';
 import { formatNumber, formatSignificant } from '@shared/format/format';
+import { Note } from '@shared/note/note';
 import { Term } from '@shared/term/term';
 import { ChangeMapView } from '../../components/change-map/change-map';
 import { MAX_TINT, type VersionDialogData, type VersionKind } from '../../data/versions.types';
@@ -37,8 +37,8 @@ const NO_MAP: Readonly<Record<VersionKind, string>> = {
     MatDialogClose,
     MatDialogContent,
     MatDialogTitle,
-    MatIcon,
     MatProgressBar,
+    Note,
     Term,
     TranslatePipe,
   ],

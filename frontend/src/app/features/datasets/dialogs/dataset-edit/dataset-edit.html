@@ -3,10 +3,7 @@
 <form novalidate (ngSubmit)="save()">
   <mat-dialog-content class="edit">
     @if (failure(); as error) {
-      <p class="edit__failure" role="alert">
-        <mat-icon fontIcon="fa-circle-exclamation" />
-        {{ error.message }}
-      </p>
+      <app-note kind="error">{{ error.message }}</app-note>
     }
 
     <mat-form-field>

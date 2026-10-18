@@ -15,6 +15,8 @@ import { UiModeStore } from '@core/ui/ui-mode.store';
 import { confirmAction } from '@shared/confirm-dialog/confirm-dialog';
 import { BytesPipe } from '@shared/format/bytes.pipe';
 import { formatNumber } from '@shared/format/format';
+import { Note } from '@shared/note/note';
+import { Status } from '@shared/status/status';
 import { Term } from '@shared/term/term';
 import { DatasetConversation } from '../../components/conversation/conversation';
 import { IMPORT_FAILURES, type Dataset, type EditDialogData, type Mapping } from '../../data/datasets.types';
@@ -30,7 +32,9 @@ import { DatasetsStore } from '../../state/datasets.store';
     MatIcon,
     MatPaginator,
     MatProgressBar,
+    Note,
     RouterLink,
+    Status,
     Term,
     TranslatePipe,
   ],

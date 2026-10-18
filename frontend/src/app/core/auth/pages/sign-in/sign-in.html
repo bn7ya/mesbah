@@ -6,10 +6,7 @@
     </header>
 
     @if (error(); as failure) {
-      <p class="sign-in__failure" role="alert">
-        <mat-icon fontIcon="fa-circle-exclamation" />
-        {{ failure.message }}
-      </p>
+      <app-note kind="error">{{ failure.message }}</app-note>
     }
 
     <form class="sign-in__form" novalidate (ngSubmit)="submit()">

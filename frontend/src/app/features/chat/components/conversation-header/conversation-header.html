@@ -27,7 +27,7 @@
           <button matButton type="button" (click)="cancelRename()">{{ 'actions.cancel' | t }}</button>
         </form>
       } @else {
-        <h2 class="head__name" dir="auto">{{ current.title || ('chat.list.untitled' | t) }}</h2>
+        <h2 class="head__name"><span dir="auto">{{ current.title || ('chat.list.untitled' | t) }}</span></h2>
         @if (canWrite()) {
           <button matIconButton type="button" [attr.aria-label]="'chat.header.rename' | t" (click)="startRename()">
             <mat-icon fontIcon="fa-pen" />

@@ -13,21 +13,15 @@
   </header>
 
   @if (empty()) {
-    <mat-card appearance="outlined" class="others__note">
-      <mat-icon fontIcon="fa-server" />
-      <div class="others__note-text">
-        <p class="others__note-title">{{ 'serving.others.emptyTitle' | t }}</p>
-        <p class="text-secondary">{{ (canManage() ? 'serving.others.emptyAdmin' : 'serving.others.emptyRead') | t }}</p>
-        @if (canManage()) {
-          <div>
-            <button matButton="filled" type="button" (click)="connect()">
-              <mat-icon fontIcon="fa-plug" />
-              {{ 'serving.others.connect' | t }}
-            </button>
-          </div>
-        }
-      </div>
-    </mat-card>
+    <app-empty-state icon="fa-server" [heading]="'serving.others.emptyTitle' | t">
+      {{ (canManage() ? 'serving.others.emptyAdmin' : 'serving.others.emptyRead') | t }}
+      @if (canManage()) {
+        <button emptyActions matButton="filled" type="button" (click)="connect()">
+          <mat-icon fontIcon="fa-plug" />
+          {{ 'serving.others.connect' | t }}
+        </button>
+      }
+    </app-empty-state>
   }
 
   <ul class="others__grid">
@@ -35,25 +29,21 @@
       <li>
         <mat-card appearance="outlined" class="engine" [attr.aria-busy]="isWorking(engine)">
           <div class="engine__top">
-            <h3 class="engine__name" dir="auto">{{ engine.name }}</h3>
-            <p class="engine__tags">
-              <span class="engine__state">
-                <mat-icon [fontIcon]="engine.state.running ? 'fa-circle-check' : 'fa-circle-xmark'" />
+            <h3 class="engine__name"><span dir="auto">{{ engine.name }}</span></h3>
+            <div class="engine__tags">
+              <app-status
+                [tone]="engine.state.running ? 'ok' : 'neutral'"
+                [icon]="engine.state.running ? 'fa-circle-check' : 'fa-circle-xmark'"
+              >
                 {{ (engine.state.running ? 'serving.state.running' : 'serving.state.stopped') | t }}
-              </span>
+              </app-status>
               @if (engine.is_default) {
-                <span class="engine__tag">
-                  <mat-icon fontIcon="fa-star" />
-                  {{ 'serving.state.default' | t }}
-                </span>
+                <app-status icon="fa-star">{{ 'serving.state.default' | t }}</app-status>
               }
               @if (!engine.enabled) {
-                <span class="engine__tag">
-                  <mat-icon fontIcon="fa-power-off" />
-                  {{ 'serving.state.off' | t }}
-                </span>
+                <app-status icon="fa-power-off">{{ 'serving.state.off' | t }}</app-status>
               }
-            </p>
+            </div>
           </div>
 
           <div class="engine__kind">

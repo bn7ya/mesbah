@@ -10,7 +10,6 @@ import {
   MatDialogTitle,
 } from '@angular/material/dialog';
 import { MatFormField, MatHint, MatLabel } from '@angular/material/form-field';
-import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import { MatSlider, MatSliderThumb } from '@angular/material/slider';
 
@@ -18,6 +17,7 @@ import type { ApiError } from '@core/http/api.types';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { formatNumber } from '@shared/format/format';
+import { Note } from '@shared/note/note';
 import { Term } from '@shared/term/term';
 import {
   PROMPT_MAX,
@@ -42,11 +42,11 @@ import { ConversationsStore } from '../../state/conversations.store';
     MatDialogTitle,
     MatFormField,
     MatHint,
-    MatIcon,
     MatInput,
     MatLabel,
     MatSlider,
     MatSliderThumb,
+    Note,
     Term,
     TranslatePipe,
   ],

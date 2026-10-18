@@ -12,12 +12,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { LocaleSwitcher } from '@core/i18n/locale-switcher/locale-switcher';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { Note } from '@shared/note/note';
 import { AuthStore } from '../../state/auth.store';
 
 @Component({
   selector: 'app-sign-in',
   imports: [
     FormsModule,
+    LocaleSwitcher,
     MatButton,
     MatCard,
     MatDivider,
@@ -28,8 +30,8 @@ import { AuthStore } from '../../state/auth.store';
     MatInput,
     MatLabel,
     MatSuffix,
+    Note,
     TranslatePipe,
-    LocaleSwitcher,
   ],
   templateUrl: './sign-in.html',
   styleUrl: './sign-in.scss',

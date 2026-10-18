@@ -83,7 +83,7 @@
       "stopped": "Stopped",
       "open": "View rows",
       "openFor": "View the rows of {name}",
-      "cancelFor": "Cancel the import of {name}",
+      "cancelFor": "Stop the import of {name}",
       "retryFor": "Import {name} again",
       "remove": "Remove",
       "removeFor": "Remove {name}",

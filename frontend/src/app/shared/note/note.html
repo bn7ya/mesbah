@@ -1,0 +1,4 @@
+<div class="note" [class.note--error]="kind() === 'error'" [attr.role]="role()">
+  <mat-icon [fontIcon]="glyph()" />
+  <div class="note__text"><ng-content /></div>
+</div>

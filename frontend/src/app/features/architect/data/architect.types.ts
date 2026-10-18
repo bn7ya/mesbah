@@ -350,14 +350,6 @@ export const PARTS: readonly PartSpec[] = [
   { key: 'lm_head', tone: 'primary-container' },
 ];
 
-export const FIT_ICONS: Readonly<Record<FitVerdict, string>> = {
-  fits: 'fa-circle-check',
-  tight: 'fa-triangle-exclamation',
-  too_large: 'fa-circle-xmark',
-  cpu_only: 'fa-microchip',
-  unknown: 'fa-circle-question',
-};
-
 export const FAMILY_TERMS: Readonly<Record<Family, string>> = {
   dense_decoder: 'token',
   moe_decoder: 'moe',

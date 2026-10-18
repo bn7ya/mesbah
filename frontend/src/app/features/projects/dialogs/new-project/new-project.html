@@ -7,35 +7,23 @@
     }
 
     @if (modelsFailure(); as problem) {
-      <p class="new-project__failure" role="alert">
-        <mat-icon fontIcon="fa-circle-exclamation" />
-        {{ problem.message }}
-      </p>
+      <app-note kind="error">{{ problem.message }}</app-note>
       <div>
         <button matButton type="button" (click)="tryModelsAgain()">{{ 'actions.retry' | t }}</button>
       </div>
     }
 
     @if (noModel()) {
-      <div class="new-project__note">
-        <mat-icon fontIcon="fa-box-open" />
-        <div class="new-project__note-text">
-          <p class="new-project__note-title">{{ 'projects.new.noModel' | t }}</p>
-          <p class="text-secondary">{{ 'projects.new.noModelBody' | t }}</p>
-          <div>
-            <a matButton routerLink="/models" mat-dialog-close>
-              <mat-icon fontIcon="fa-cube" />
-              {{ 'projects.new.toModels' | t }}
-            </a>
-          </div>
-        </div>
-      </div>
+      <app-empty-state icon="fa-box-open" [heading]="'projects.new.noModel' | t">
+        {{ 'projects.new.noModelBody' | t }}
+        <a emptyActions matButton routerLink="/models" mat-dialog-close>
+          <mat-icon fontIcon="fa-cube" />
+          {{ 'projects.new.toModels' | t }}
+        </a>
+      </app-empty-state>
     } @else {
       @if (failure(); as problem) {
-        <p class="new-project__failure" role="alert">
-          <mat-icon fontIcon="fa-circle-exclamation" />
-          {{ problem.message }}
-        </p>
+        <app-note kind="error">{{ problem.message }}</app-note>
       }
 
       <mat-form-field subscriptSizing="dynamic">

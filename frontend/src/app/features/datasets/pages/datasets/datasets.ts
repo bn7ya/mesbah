@@ -18,9 +18,12 @@ import type { ApiError } from '@core/http/api.types';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { confirmAction } from '@shared/confirm-dialog/confirm-dialog';
+import { EmptyState } from '@shared/empty-state/empty-state';
 import { BytesPipe } from '@shared/format/bytes.pipe';
 import { CompactPipe } from '@shared/format/compact.pipe';
 import { formatCompact, formatNumber } from '@shared/format/format';
+import { Note } from '@shared/note/note';
+import { Status } from '@shared/status/status';
 import { Term } from '@shared/term/term';
 import {
   IMPORT_FAILURES,
@@ -44,6 +47,7 @@ const SIZE_UNITS: Readonly<Record<string, number>> = { K: 1e3, M: 1e6, B: 1e9, T
   imports: [
     BytesPipe,
     CompactPipe,
+    EmptyState,
     FormsModule,
     LanguagesPipe,
     MatButton,
@@ -60,7 +64,9 @@ const SIZE_UNITS: Readonly<Record<string, number>> = { K: 1e3, M: 1e6, B: 1e9, T
     MatPaginator,
     MatProgressBar,
     MatSuffix,
+    Note,
     RouterLink,
+    Status,
     Term,
     TranslatePipe,
   ],

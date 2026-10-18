@@ -66,8 +66,9 @@ freeing memory, disconnecting or revoking, and report each change in a snack bar
 (`components/connect-guide/snippets.ts`) builds the addresses and examples.
 
 **`LoadedVersions`** — the versions on an engine, each linking to its project's Versions tab.
-**`CodeBlock`** — a labelled `pre` with a Copy button, always left to right. **`CopyButton`** —
-copies a text through the CDK clipboard and reports in a snack bar.
+**`CopyButton`** — copies a text through the CDK clipboard and reports in a snack bar. It sits
+inside the shared `<app-code-block>` (the address, each example, each start command), which wraps
+the code in its own block.
 
 **`EngineFormDialog`** (`dialogs/engine-form/`) — connects an engine or edits one. The kind is a
 select with its explanation under it and cannot change once connected; the model name shows only
@@ -98,5 +99,10 @@ be put back when it fails; a button states the action and the card shows the res
 **The built-in engine has no Disconnect, no Edit and no on/off.** It can only be made the default;
 the backend keeps `409 builtin_engine_kept` as the real guard.
 
-**Code is left to right and set in the body type.** No monospace face ships, so `CodeBlock` uses
-the theme's body style.
+**Code is left to right, in the monospace stack, and wraps.** `<app-code-block>` (shared) sets code in
+`--app-font-mono`, the stack `code` uses everywhere, and wraps long lines inside the block, so a
+command never scrolls sideways or widens the page.
+
+**An engine card keeps its four actions on one line.** The grid of engine cards starts a column at
+36rem so Edit, Turn off, Make default and Disconnect fit beside each other; under the `sm`
+breakpoint they sit in two columns of two.

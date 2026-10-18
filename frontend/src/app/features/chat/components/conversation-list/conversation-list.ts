@@ -12,6 +12,7 @@ import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { confirmAction } from '@shared/confirm-dialog/confirm-dialog';
 import { DateTimePipe } from '@shared/format/datetime.pipe';
 import { formatNumber } from '@shared/format/format';
+import { Note } from '@shared/note/note';
 import { Term } from '@shared/term/term';
 import type { Conversation } from '../../data/chat.types';
 import { ConversationsStore } from '../../state/conversations.store';
@@ -28,6 +29,7 @@ import { ConversationsStore } from '../../state/conversations.store';
     MatListItemTitle,
     MatNavList,
     MatProgressBar,
+    Note,
     RouterLink,
     Term,
     TranslatePipe,

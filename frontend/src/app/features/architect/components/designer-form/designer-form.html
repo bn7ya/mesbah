@@ -79,10 +79,7 @@
 
         @if (group.key === 'vocabulary') {
           @if (vocabularyNote(); as note) {
-            <p class="designer__note" role="note">
-              <mat-icon fontIcon="fa-circle-info" />
-              <span>{{ note }}</span>
-            </p>
+            <app-note>{{ note }}</app-note>
           }
         }
 

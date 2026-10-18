@@ -6,15 +6,12 @@
   }
 
   @if (loadFailure(); as problem) {
-    <p class="inspect__failure" role="alert">
-      <mat-icon fontIcon="fa-circle-exclamation" />
-      <span>
-        {{ problem.message }}
-        @if (problem.code === 'hub_dataset_gated') {
-          <a routerLink="/system" mat-dialog-close>{{ 'datasets.tokenLink' | t }}</a>
-        }
-      </span>
-    </p>
+    <app-note kind="error">
+      {{ problem.message }}
+      @if (problem.code === 'hub_dataset_gated') {
+        <a routerLink="/system" mat-dialog-close>{{ 'datasets.tokenLink' | t }}</a>
+      }
+    </app-note>
     <div>
       <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
     </div>
@@ -188,10 +185,9 @@
         {{ 'datasets.inspect.unusable' | t: { count: count(view.sample_skipped) } }}
       </p>
       @if (view.conversations.length === 0) {
-        <p class="inspect__note">
-          <mat-icon fontIcon="fa-circle-info" />
-          <span>{{ (view.mapping.format === 'unsupported' ? 'datasets.inspect.chooseFirst' : 'datasets.inspect.nothingUsable') | t }}</span>
-        </p>
+        <app-note>
+          {{ (view.mapping.format === 'unsupported' ? 'datasets.inspect.chooseFirst' : 'datasets.inspect.nothingUsable') | t }}
+        </app-note>
       }
       <ol class="inspect__rows">
         @for (conversation of view.conversations; track conversation.index) {
@@ -226,10 +222,7 @@
 </mat-dialog-content>
 
 @if (failure(); as problem) {
-  <p class="inspect__failure inspect__failure--footer" role="alert">
-    <mat-icon fontIcon="fa-circle-exclamation" />
-    {{ problem.message }}
-  </p>
+  <app-note kind="error" class="inspect__footer-note">{{ problem.message }}</app-note>
 }
 
 <mat-dialog-actions align="end">

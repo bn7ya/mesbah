@@ -68,11 +68,13 @@ above it, `highestRole()` picks a user's role, `roleGuard()` is `groupGuard()` o
 
 **`SetupPage`** (`auth/pages/setup/`, Mesbah) — the first-run form: the setup code from the
 terminal, a name, a username and a password; creates the owner through
-`AuthStore.setUp()` and goes to the start page.
+`AuthStore.setUp()` and goes to the start page. A refusal shows in the shared `<app-note kind="error">`,
+the one error box every page uses.
 
 **`SignInPage`** (`auth/pages/sign-in/`) — the sign-in form on a `mat-card`: validates both
 fields and shows each error through `mat-error` (an `ErrorStateMatcher` per field reads the
-signals), toggles password visibility, signs in through the store and follows `?next=`.
+signals), toggles password visibility, signs in through the store and follows `?next=`. A refusal
+shows in the shared `<app-note kind="error">`.
 
 **`LocaleStore`** (`i18n/`) — the current language, persisted (Arabic until someone chooses), and the dictionary of every
 registered bundle. Writes `lang` and `dir` on the document, and turns the CDK's root

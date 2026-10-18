@@ -40,6 +40,13 @@ reads as a broken button, and the user's next move is to click it again.
 The first feature that needs a confirmation builds one dialog component on `MatDialog` in
 `shared/`, once, and every later feature opens that.
 
+**The pieces that carry a state are drawn once, in `shared/`.** A message in a box is
+`<app-note>` — `kind="error"` for a failure (`role="alert"`), the default for a hint. A list, a
+table or a panel with nothing in it is `<app-empty-state>`. A state or a tag is `<app-status>`
+— an icon and a word, in the accent, the error colour or the secondary tone — and whether a model
+fits is `<app-fit-verdict>`. A command or an address is `<app-code-block>`: monospace, wrapped
+inside its block. A feature that draws its own box for any of these has made a second one.
+
 **State is never carried by colour alone.** A failure is an icon *and* text *and* the tone:
 the sign-in page sets a `fa-circle-exclamation` beside the words on
 `--mat-sys-error-container`. A field in error has `aria-invalid="true"`, the error colour,
@@ -80,16 +87,29 @@ its size, weight and leading together, so a step is applied whole with
 regular, medium and bold — 400, 500, 700. The steps are in `rem`, so the reader's browser
 setting still scales them.
 
-**Use the element, not a size.** A page title is an `<h1>` (`headline-medium`), a section an
-`<h2>` (`title-large`), body text `body-large`; `_base.scss` sets them. Secondary text is
-`class="text-secondary"`:
+**Use the element, not a size.** `_base.scss` sets four heading steps and nothing else sets one:
+
+| Element | Step | It names |
+|---|---|---|
+| `<h1>` | `headline-medium` | the page; on a project's tabs, the project |
+| `<h2>` | `title-large` | a section of a page, above its card; a run, under its project |
+| `<h3>` | `title-medium` | a card or a row in a list; a group of fields in a card; a section of a run |
+| `<h4>` | `title-small` | a label inside a group |
+
+Body text is `body-large`; secondary text is `class="text-secondary"`:
 
 ```html
 <h1>{{ 'orders.title' | t }}</h1>
 <p class="text-secondary">{{ 'orders.subtitle' | t }}</p>
 ```
 
-A feature that re-declares a heading's `font-size` has started a second scale.
+**Depth sets size.** A heading is one step below the heading it sits under, so the element is
+chosen by depth and the size follows. A section's title sits above its card, never inside it.
+A project's tabs carry no title of their own — the tab label already says where you are — so
+each section is an `<h2>` straight under the tabs, as on Overview. A caption over a list
+("Ready designs", "Popular models") is a label, `label-large` in the secondary tone, not a
+heading level: the names beneath it stay the largest thing in the group. A feature that
+re-declares a heading's `font` has started a second scale.
 
 **One family.** The theme sets Tajawal, self-hosted, with matched Arabic and Latin designs,
 in every type token, so a mixed sentence does not fall between two fonts. Three weights ship
@@ -113,9 +133,14 @@ and the hook blocks raw px in feature styles.
 (Advice elsewhere says "multiples of 4 or 8". This scale is 4, and mixing the two produces a
 scale with holes in it. Use the scale.)
 
-**Insets are equal or 1:2.** A card pads equally on every side — a page's `mat-card` takes
-`--app-space-7`. A control's inline padding is about double its block padding, and
-Material's buttons and fields already are; a feature does not re-pad them.
+**Insets are equal or 1:2.** A card pads equally on every side — a section's `mat-card` takes
+`--app-space-6`, a card that is one row of a list `--app-space-5`. A control's inline padding is
+about double its block padding, and Material's buttons and fields already are; a feature does
+not re-pad them.
+
+**The page has one rhythm.** The sections of a page sit `--app-space-8` apart. A section's title
+sits `--app-space-3` above its content, and `--app-space-2` above its lead line. An action beside
+a title (New project, Add member) aligns to the top of the heading block, not the bottom.
 
 **Let it breathe, then stop.** Whitespace is how grouping is expressed (§2). It is not a
 quality in itself, and a screen the user has to scroll to see two fields is not airy, it is

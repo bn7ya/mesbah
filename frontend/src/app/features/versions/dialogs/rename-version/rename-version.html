@@ -3,10 +3,7 @@
 <form novalidate (ngSubmit)="submit()">
   <mat-dialog-content class="rename">
     @if (failure(); as problem) {
-      <p class="rename__failure" role="alert">
-        <mat-icon fontIcon="fa-circle-exclamation" />
-        {{ problem.message }}
-      </p>
+      <app-note kind="error">{{ problem.message }}</app-note>
     }
 
     <mat-form-field>

@@ -105,7 +105,9 @@ system. **Look at a change in both.**
 `angular.json` — 400, 500 and 700, the theme's regular, medium and bold. `mat.theme()` sets
 the family in every `--mat-sys-*` type token; nothing else names a font. Body text is
 `--mat-sys-body-large`, `<h1>` is `--mat-sys-headline-medium`, `<h2>` is
-`--mat-sys-title-large`, all from `_base.scss`.
+`--mat-sys-title-large`, `<h3>` is `--mat-sys-title-medium` and `<h4>` is
+`--mat-sys-title-small`, all from `_base.scss`; a feature never sets a heading's `font`. Code uses
+`--app-font-mono`.
 
 **Icons.** Font Awesome 7 Free, bundled: `angular.json` lists the package's
 `fontawesome.css`, `solid.css` and `regular.css`, and the build copies the webfonts beside

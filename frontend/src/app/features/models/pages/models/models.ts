@@ -17,9 +17,12 @@ import { firstValueFrom } from 'rxjs';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { confirmAction } from '@shared/confirm-dialog/confirm-dialog';
+import { EmptyState } from '@shared/empty-state/empty-state';
+import { FitVerdict } from '@shared/fit-verdict/fit-verdict';
 import { BytesPipe } from '@shared/format/bytes.pipe';
 import { CompactPipe } from '@shared/format/compact.pipe';
-import { FitVerdict } from '../../components/fit-verdict/fit-verdict';
+import { Note } from '@shared/note/note';
+import { Status } from '@shared/status/status';
 import {
   DOWNLOAD_FAILURES,
   HUB_TASKS,
@@ -36,6 +39,7 @@ import { ModelsStore } from '../../state/models.store';
   imports: [
     BytesPipe,
     CompactPipe,
+    EmptyState,
     FitVerdict,
     FormsModule,
     MatButton,
@@ -51,7 +55,9 @@ import { ModelsStore } from '../../state/models.store';
     MatPaginator,
     MatProgressBar,
     MatSuffix,
+    Note,
     RouterLink,
+    Status,
     TranslatePipe,
   ],
   templateUrl: './models.html',

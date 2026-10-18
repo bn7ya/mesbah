@@ -28,7 +28,7 @@
       "ready": "Ready",
       "failed": "Download failed",
       "stopped": "Stopped",
-      "cancelFor": "Cancel the download of {name}",
+      "cancelFor": "Stop the download of {name}",
       "retryFor": "Download {name} again",
       "remove": "Remove",
       "removeFor": "Remove {name}",

@@ -10,6 +10,7 @@ import { RouterLink } from '@angular/router';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { formatNumber } from '@shared/format/format';
+import { Note } from '@shared/note/note';
 import { Term } from '@shared/term/term';
 import { ExampleList } from '../../components/example-list/example-list';
 import { RunList } from '../../components/run-list/run-list';
@@ -27,6 +28,7 @@ import { TrainingStore } from '../../state/training.store';
     MatCard,
     MatIcon,
     MatProgressBar,
+    Note,
     RouterLink,
     RunList,
     Term,

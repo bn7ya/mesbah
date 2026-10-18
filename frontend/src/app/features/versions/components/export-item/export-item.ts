@@ -9,9 +9,12 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { CodeBlock } from '@shared/code-block/code-block';
 import { confirmAction } from '@shared/confirm-dialog/confirm-dialog';
 import { BytesPipe } from '@shared/format/bytes.pipe';
 import { DateTimePipe } from '@shared/format/datetime.pipe';
+import { Status } from '@shared/status/status';
+import type { StatusTone } from '@shared/status/status.types';
 import {
   EXPORT_FAILURES,
   EXPORT_STATUS_ICONS,
@@ -22,7 +25,17 @@ import { VersionsStore } from '../../state/versions.store';
 
 @Component({
   selector: 'app-export-item',
-  imports: [BytesPipe, DateTimePipe, MatButton, MatCard, MatIcon, MatProgressBar, TranslatePipe],
+  imports: [
+    BytesPipe,
+    CodeBlock,
+    DateTimePipe,
+    MatButton,
+    MatCard,
+    MatIcon,
+    MatProgressBar,
+    Status,
+    TranslatePipe,
+  ],
   templateUrl: './export-item.html',
   styleUrl: './export-item.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -41,6 +54,10 @@ export class ExportItem {
   readonly busy = computed(() => this.store.exportsWorking().includes(this.item().id));
   readonly unfinished = computed(() => UNFINISHED_EXPORTS.includes(this.item().status));
   readonly icon = computed(() => EXPORT_STATUS_ICONS[this.item().status]);
+  readonly tone = computed<StatusTone>(() => {
+    const { status } = this.item();
+    return status === 'ready' ? 'ok' : status === 'failed' ? 'error' : 'neutral';
+  });
   readonly downloadUrl = computed(() => this.store.downloadUrl(this.item()));
 
   readonly folder = computed(() => {

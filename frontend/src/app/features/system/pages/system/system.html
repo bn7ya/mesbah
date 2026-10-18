@@ -8,10 +8,7 @@
 }
 
 @if (error(); as failure) {
-  <p class="system__failure" role="alert">
-    <mat-icon fontIcon="fa-circle-exclamation" />
-    {{ failure.message }}
-  </p>
+  <app-note kind="error">{{ failure.message }}</app-note>
 }
 
 @if (overview(); as view) {
@@ -19,13 +16,9 @@
     <h2 id="system-gpus">{{ 'system.gpus.title' | t }}</h2>
 
     @if (gpus().length === 0) {
-      <mat-card appearance="outlined" class="system__note">
-        <mat-icon fontIcon="fa-triangle-exclamation" />
-        <div class="system__note-text">
-          <p class="system__note-title">{{ 'system.gpus.none' | t }}</p>
-          <p class="text-secondary">{{ 'system.gpus.noneBody' | t }}</p>
-        </div>
-      </mat-card>
+      <app-empty-state icon="fa-triangle-exclamation" [heading]="'system.gpus.none' | t">
+        {{ 'system.gpus.noneBody' | t }}
+      </app-empty-state>
     } @else {
       <mat-card appearance="outlined" class="system__card">
         <p class="system__lead">
@@ -137,15 +130,11 @@
       <p class="text-secondary">{{ 'system.hf.why' | t }}</p>
 
       @if (view.huggingface.configured) {
-        <p class="system__status">
-          <mat-icon fontIcon="fa-circle-check" />
-          <span>{{ 'system.hf.configured' | t: { account: view.huggingface.account, hint: view.huggingface.hint } }}</span>
-        </p>
+        <app-status tone="ok" icon="fa-circle-check">
+          {{ 'system.hf.configured' | t: { account: view.huggingface.account, hint: view.huggingface.hint } }}
+        </app-status>
       } @else {
-        <p class="system__status">
-          <mat-icon fontSet="fa-regular" fontIcon="fa-circle" />
-          <span>{{ 'system.hf.missing' | t }}</span>
-        </p>
+        <app-status icon="fa-circle-minus">{{ 'system.hf.missing' | t }}</app-status>
       }
 
       @if (canManage()) {
@@ -187,24 +176,15 @@
     <h2 id="system-parts">{{ 'system.parts.title' | t }}</h2>
     <mat-card appearance="outlined" class="system__card">
       @if (trainingReady()) {
-        <p class="system__status">
-          <mat-icon fontIcon="fa-circle-check" />
-          <span>{{ 'system.parts.ready' | t }}</span>
-        </p>
+        <app-status tone="ok" icon="fa-circle-check">{{ 'system.parts.ready' | t }}</app-status>
       } @else {
-        <p class="system__status">
-          <mat-icon fontIcon="fa-circle-info" />
-          <span>{{ 'system.parts.missing' | t }}</span>
-        </p>
-        <pre class="system__command" dir="ltr"><code>{{ trainInstall }}</code></pre>
+        <app-note>{{ 'system.parts.missing' | t }}</app-note>
+        <app-code-block [code]="trainInstall" />
       }
 
       @if (torchWithoutCuda()) {
-        <p class="system__status">
-          <mat-icon fontIcon="fa-triangle-exclamation" />
-          <span>{{ 'system.parts.cpuTorch' | t }}</span>
-        </p>
-        <pre class="system__command" dir="ltr"><code>{{ cudaInstall }}</code></pre>
+        <app-note icon="fa-triangle-exclamation">{{ 'system.parts.cpuTorch' | t }}</app-note>
+        <app-code-block [code]="cudaInstall" />
       }
 
       @if (expert()) {

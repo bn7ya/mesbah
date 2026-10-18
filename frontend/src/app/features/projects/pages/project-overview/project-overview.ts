@@ -21,6 +21,7 @@ import { confirmAction } from '@shared/confirm-dialog/confirm-dialog';
 import { CompactPipe } from '@shared/format/compact.pipe';
 import { DateTimePipe } from '@shared/format/datetime.pipe';
 import { formatNumber } from '@shared/format/format';
+import { Note } from '@shared/note/note';
 import { Term } from '@shared/term/term';
 import {
   DESCRIPTION_MAX,
@@ -50,9 +51,10 @@ import { ProjectStore } from '../../state/project.store';
     MatIcon,
     MatInput,
     MatLabel,
-    MatSlideToggle,
     MatSlider,
     MatSliderThumb,
+    MatSlideToggle,
+    Note,
     RouterLink,
     Term,
     TranslatePipe,

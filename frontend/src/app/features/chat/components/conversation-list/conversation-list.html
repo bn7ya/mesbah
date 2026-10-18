@@ -20,10 +20,7 @@
   }
 
   @if (error(); as failure) {
-    <p class="list__failure" role="alert">
-      <mat-icon fontIcon="fa-circle-exclamation" />
-      {{ failure.message }}
-    </p>
+    <app-note kind="error">{{ failure.message }}</app-note>
     <div>
       <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
     </div>

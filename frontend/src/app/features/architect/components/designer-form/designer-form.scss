@@ -23,7 +23,6 @@
   h3 {
     display: flex;
     align-items: center;
-    font: var(--mat-sys-title-medium);
   }
 }
 
@@ -57,14 +56,4 @@
 
 .designer__hint {
   font: var(--mat-sys-body-medium);
-}
-
-.designer__note {
-  display: flex;
-  gap: var(--app-space-3);
-  align-items: flex-start;
-  padding: var(--app-space-4);
-  color: var(--mat-sys-on-secondary-container);
-  background: var(--mat-sys-secondary-container);
-  border-radius: var(--mat-sys-corner-medium);
 }

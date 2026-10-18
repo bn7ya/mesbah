@@ -4,10 +4,7 @@
 </header>
 
 @if (error(); as failure) {
-  <p class="datasets__failure" role="alert">
-    <mat-icon fontIcon="fa-circle-exclamation" />
-    {{ failure.message }}
-  </p>
+  <app-note kind="error">{{ failure.message }}</app-note>
 }
 
 <section class="datasets__section" aria-labelledby="datasets-library" [attr.aria-busy]="loading()">
@@ -18,15 +15,9 @@
   }
 
   @if (libraryEmpty()) {
-    <mat-card appearance="outlined" class="datasets__note">
-      <mat-icon fontIcon="fa-database" />
-      <div class="datasets__note-text">
-        <p class="datasets__note-title">{{ 'datasets.library.emptyTitle' | t }}</p>
-        <p class="text-secondary">
-          {{ (canWrite() ? 'datasets.library.emptyWrite' : 'datasets.library.emptyRead') | t }}
-        </p>
-      </div>
-    </mat-card>
+    <app-empty-state icon="fa-database" [heading]="'datasets.library.emptyTitle' | t">
+      {{ (canWrite() ? 'datasets.library.emptyWrite' : 'datasets.library.emptyRead') | t }}
+    </app-empty-state>
   }
 
   <ul class="datasets__list">
@@ -68,10 +59,7 @@
                 <span>{{ 'datasets.format.' + dataset.format + '.name' | t }}</span>
               }
               @if (dataset.has_thinking) {
-                <span class="datasets__tag">
-                  <mat-icon fontIcon="fa-brain" />
-                  {{ 'datasets.thinking' | t }}
-                </span>
+                <app-status icon="fa-brain">{{ 'datasets.thinking' | t }}</app-status>
               }
               @if (dataset.created_by) {
                 <span>{{ 'datasets.addedBy' | t: { name: dataset.created_by } }}</span>
@@ -104,10 +92,7 @@
                 </p>
               }
               @case ('ready') {
-                <p class="datasets__state">
-                  <mat-icon fontIcon="fa-circle-check" />
-                  <span>{{ 'datasets.library.ready' | t }}</span>
-                </p>
+                <app-status tone="ok" icon="fa-circle-check">{{ 'datasets.library.ready' | t }}</app-status>
                 <p class="datasets__counts text-secondary">
                   <span>{{ 'datasets.rowsCount' | t: { count: count(dataset.rows) } }}</span>
                   @if (dataset.skipped > 0) {
@@ -117,10 +102,7 @@
                 </p>
               }
               @case ('failed') {
-                <p class="datasets__state">
-                  <mat-icon fontIcon="fa-triangle-exclamation" />
-                  <span>{{ 'datasets.library.failed' | t }}</span>
-                </p>
+                <app-status tone="error" icon="fa-triangle-exclamation">{{ 'datasets.library.failed' | t }}</app-status>
                 <p class="text-secondary">
                   {{ failureKey(dataset) | t }}
                   @if (dataset.error_code === 'gated') {
@@ -129,10 +111,7 @@
                 </p>
               }
               @case ('cancelled') {
-                <p class="datasets__state">
-                  <mat-icon fontIcon="fa-circle-pause" />
-                  <span>{{ 'datasets.library.stopped' | t }}</span>
-                </p>
+                <app-status icon="fa-circle-pause">{{ 'datasets.library.stopped' | t }}</app-status>
               }
             }
           </div>
@@ -158,7 +137,7 @@
                   (click)="cancel(dataset)"
                 >
                   <mat-icon fontIcon="fa-stop" />
-                  {{ 'actions.cancel' | t }}
+                  {{ 'actions.stop' | t }}
                 </button>
               }
               @if (dataset.status === 'failed' || dataset.status === 'cancelled') {
@@ -213,10 +192,7 @@
     </p>
 
     @if (uploadFailure(); as failure) {
-      <p class="datasets__failure" role="alert">
-        <mat-icon fontIcon="fa-circle-exclamation" />
-        {{ failure.message }}
-      </p>
+      <app-note kind="error">{{ failure.message }}</app-note>
     }
 
     @if (canWrite()) {
@@ -329,21 +305,14 @@
     }
 
     @if (hubError(); as failure) {
-      <p class="datasets__failure" role="alert">
-        <mat-icon fontIcon="fa-circle-exclamation" />
-        {{ failure.message }}
-      </p>
+      <app-note kind="error">{{ failure.message }}</app-note>
       <div>
         <button matButton type="button" (click)="searchAgain()">{{ 'actions.retry' | t }}</button>
       </div>
     } @else if (!hubLoading() && hubResults().length === 0) {
-      <mat-card appearance="outlined" class="datasets__note">
-        <mat-icon fontIcon="fa-magnifying-glass" />
-        <div class="datasets__note-text">
-          <p class="datasets__note-title">{{ 'datasets.find.empty' | t }}</p>
-          <p class="text-secondary">{{ 'datasets.find.emptyHint' | t }}</p>
-        </div>
-      </mat-card>
+      <app-empty-state icon="fa-magnifying-glass" [heading]="'datasets.find.empty' | t">
+        {{ 'datasets.find.emptyHint' | t }}
+      </app-empty-state>
     }
 
     <ul class="datasets__grid">
@@ -353,10 +322,7 @@
             <div class="datasets__card-top">
               <h3 class="datasets__name"><span dir="ltr">{{ result.repo_id }}</span></h3>
               @if (result.in_library) {
-                <p class="datasets__tag">
-                  <mat-icon fontIcon="fa-circle-check" />
-                  {{ 'datasets.find.inLibrary' | t }}
-                </p>
+                <app-status tone="ok" icon="fa-circle-check">{{ 'datasets.find.inLibrary' | t }}</app-status>
               }
             </div>
 
@@ -384,11 +350,10 @@
                 </span>
               }
               @if (result.languages.length > 0) {
-                <span class="datasets__tag">
-                  <mat-icon fontIcon="fa-language" />
+                <app-status icon="fa-language">
                   <span class="cdk-visually-hidden">{{ 'datasets.find.languages' | t }}:</span>
                   {{ result.languages | languages }}
-                </span>
+                </app-status>
               }
               @if (result.license) {
                 <span>
@@ -397,10 +362,7 @@
                 </span>
               }
               @if (result.gated) {
-                <span class="datasets__tag">
-                  <mat-icon fontIcon="fa-lock" />
-                  {{ 'datasets.find.gated' | t }}
-                </span>
+                <app-status icon="fa-lock">{{ 'datasets.find.gated' | t }}</app-status>
               }
             </p>
 

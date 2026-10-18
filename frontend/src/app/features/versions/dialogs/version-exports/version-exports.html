@@ -4,20 +4,14 @@
   <p class="text-secondary">{{ 'versions.exports.intro' | t }}</p>
 
   @if (loadFailure(); as problem) {
-    <p class="exports__failure" role="alert">
-      <mat-icon fontIcon="fa-circle-exclamation" />
-      {{ problem.message }}
-    </p>
+    <app-note kind="error">{{ problem.message }}</app-note>
     <div>
       <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
     </div>
   }
 
   @if (error(); as problem) {
-    <p class="exports__failure" role="alert">
-      <mat-icon fontIcon="fa-circle-exclamation" />
-      {{ problem.message }}
-    </p>
+    <app-note kind="error">{{ problem.message }}</app-note>
   }
 
   @if (loading() && exports().length === 0) {
@@ -25,13 +19,9 @@
   }
 
   @if (empty()) {
-    <div class="exports__empty">
-      <mat-icon fontIcon="fa-box-open" />
-      <div>
-        <p>{{ 'versions.exports.empty' | t }}</p>
-        <p class="text-secondary">{{ 'versions.exports.emptyHint' | t }}</p>
-      </div>
-    </div>
+    <app-empty-state icon="fa-box-open" [heading]="'versions.exports.empty' | t">
+      {{ 'versions.exports.emptyHint' | t }}
+    </app-empty-state>
   }
 
   <ul class="exports__list" [attr.aria-label]="'versions.exports.list' | t" [attr.aria-busy]="loading()">

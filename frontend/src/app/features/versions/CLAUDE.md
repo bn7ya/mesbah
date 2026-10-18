@@ -95,7 +95,9 @@ when the dialog closes.
 tree, opened on the project from its `projectId` input.
 
 **`VersionBranch`** (`components/version-branch/`) — one version's row and, below it, a list of
-its children, each a `VersionBranch`; draws the connectors.
+its children, each a `VersionBranch`; draws the connectors. Its `depth` input stops the indent at
+`MAX_INDENT_DEPTH` levels (and drops the connectors below that), so a long chain of versions keeps
+a readable row on a phone.
 
 **`VersionRow`** (`components/version-row/`) — one version as a card. Opens the rename, what
 changed, exports and export dialogs with its own injector, asks before removing and reports each

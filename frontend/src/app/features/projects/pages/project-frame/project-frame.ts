@@ -10,6 +10,7 @@ import { rolesFrom } from '@core/auth/roles';
 import { AuthStore } from '@core/auth/state/auth.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { CompactPipe } from '@shared/format/compact.pipe';
+import { Note } from '@shared/note/note';
 import { VersionNamePipe } from '@shared/version/version-name.pipe';
 import { PROJECT_TABS } from '../../project-tabs';
 import { ProjectStore } from '../../state/project.store';
@@ -27,6 +28,7 @@ import { ProjectStore } from '../../state/project.store';
     MatTabLink,
     MatTabNav,
     MatTabNavPanel,
+    Note,
     RouterLink,
     RouterLinkActive,
     RouterOutlet,

@@ -12,11 +12,11 @@ import {
   MatDialogTitle,
 } from '@angular/material/dialog';
 import { MatError, MatFormField, MatHint, MatLabel } from '@angular/material/form-field';
-import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 
 import type { ApiError } from '@core/http/api.types';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { Note } from '@shared/note/note';
 import { NAME_MAX, NOTES_MAX, type Draft, type SaveDialogData } from '../../data/architect.types';
 import { ArchitectStore } from '../../state/architect.store';
 
@@ -33,9 +33,9 @@ import { ArchitectStore } from '../../state/architect.store';
     MatError,
     MatFormField,
     MatHint,
-    MatIcon,
     MatInput,
     MatLabel,
+    Note,
     TranslatePipe,
   ],
   templateUrl: './save-draft.html',

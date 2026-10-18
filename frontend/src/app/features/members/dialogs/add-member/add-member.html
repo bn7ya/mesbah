@@ -3,13 +3,10 @@
 <form novalidate (ngSubmit)="submit()">
   <mat-dialog-content class="add-member">
     @if (failure(); as error) {
-      <p class="add-member__failure" role="alert">
-        <mat-icon fontIcon="fa-circle-exclamation" />
-        {{ error.message }}
-      </p>
+      <app-note kind="error">{{ error.message }}</app-note>
     }
 
-    <mat-form-field>
+    <mat-form-field subscriptSizing="dynamic">
       <mat-label>{{ 'members.add.username' | t }}</mat-label>
       <input
         matInput
@@ -59,17 +56,17 @@
     </mat-form-field>
 
     <div class="add-member__names">
-      <mat-form-field>
+      <mat-form-field subscriptSizing="dynamic">
         <mat-label>{{ 'members.add.firstName' | t }}</mat-label>
         <input matInput name="firstName" dir="auto" [ngModel]="firstName()" (ngModelChange)="firstName.set($event)" />
       </mat-form-field>
-      <mat-form-field>
+      <mat-form-field subscriptSizing="dynamic">
         <mat-label>{{ 'members.add.lastName' | t }}</mat-label>
         <input matInput name="lastName" dir="auto" [ngModel]="lastName()" (ngModelChange)="lastName.set($event)" />
       </mat-form-field>
     </div>
 
-    <mat-form-field>
+    <mat-form-field subscriptSizing="dynamic">
       <mat-label>{{ 'members.add.email' | t }}</mat-label>
       <input matInput name="email" type="email" dir="ltr" [ngModel]="email()" (ngModelChange)="email.set($event)" />
     </mat-form-field>

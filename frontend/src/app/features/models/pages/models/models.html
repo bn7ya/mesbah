@@ -4,10 +4,7 @@
 </header>
 
 @if (error(); as failure) {
-  <p class="models__failure" role="alert">
-    <mat-icon fontIcon="fa-circle-exclamation" />
-    {{ failure.message }}
-  </p>
+  <app-note kind="error">{{ failure.message }}</app-note>
 }
 
 <section class="models__section" aria-labelledby="models-library" [attr.aria-busy]="loading()">
@@ -18,15 +15,9 @@
   }
 
   @if (libraryEmpty()) {
-    <mat-card appearance="outlined" class="models__note">
-      <mat-icon fontIcon="fa-box-open" />
-      <div class="models__note-text">
-        <p class="models__note-title">{{ 'models.library.emptyTitle' | t }}</p>
-        <p class="text-secondary">
-          {{ (canWrite() ? 'models.library.emptyWrite' : 'models.library.emptyRead') | t }}
-        </p>
-      </div>
-    </mat-card>
+    <app-empty-state icon="fa-box-open" [heading]="'models.library.emptyTitle' | t">
+      {{ (canWrite() ? 'models.library.emptyWrite' : 'models.library.emptyRead') | t }}
+    </app-empty-state>
   }
 
   <ul class="models__list">
@@ -41,10 +32,7 @@
               }
               <span>{{ 'models.family.' + model.family | t }}</span>
               @if (model.supports_thinking) {
-                <span class="models__tag">
-                  <mat-icon fontIcon="fa-brain" />
-                  {{ 'models.thinking' | t }}
-                </span>
+                <app-status icon="fa-brain">{{ 'models.thinking' | t }}</app-status>
               }
             </p>
           </div>
@@ -73,16 +61,12 @@
               }
               @case ('ready') {
                 <p class="models__state">
-                  <mat-icon fontIcon="fa-circle-check" />
-                  <span>{{ 'models.library.ready' | t }}</span>
+                  <app-status tone="ok" icon="fa-circle-check">{{ 'models.library.ready' | t }}</app-status>
                   <span class="text-secondary">{{ model.size_bytes | bytes }}</span>
                 </p>
               }
               @case ('failed') {
-                <p class="models__state">
-                  <mat-icon fontIcon="fa-triangle-exclamation" />
-                  <span>{{ 'models.library.failed' | t }}</span>
-                </p>
+                <app-status tone="error" icon="fa-triangle-exclamation">{{ 'models.library.failed' | t }}</app-status>
                 <p class="text-secondary">
                   {{ failureKey(model) | t }}
                   @if (model.error_code === 'gated') {
@@ -91,10 +75,7 @@
                 </p>
               }
               @case ('cancelled') {
-                <p class="models__state">
-                  <mat-icon fontIcon="fa-circle-pause" />
-                  <span>{{ 'models.library.stopped' | t }}</span>
-                </p>
+                <app-status icon="fa-circle-pause">{{ 'models.library.stopped' | t }}</app-status>
               }
             }
           </div>
@@ -110,7 +91,7 @@
                   (click)="cancel(model)"
                 >
                   <mat-icon fontIcon="fa-stop" />
-                  {{ 'actions.cancel' | t }}
+                  {{ 'actions.stop' | t }}
                 </button>
               }
               @if (model.status === 'failed' || model.status === 'cancelled') {
@@ -203,21 +184,14 @@
     }
 
     @if (hubError(); as failure) {
-      <p class="models__failure" role="alert">
-        <mat-icon fontIcon="fa-circle-exclamation" />
-        {{ failure.message }}
-      </p>
+      <app-note kind="error">{{ failure.message }}</app-note>
       <div>
         <button matButton type="button" (click)="searchAgain()">{{ 'actions.retry' | t }}</button>
       </div>
     } @else if (!hubLoading() && hubResults().length === 0) {
-      <mat-card appearance="outlined" class="models__note">
-        <mat-icon fontIcon="fa-magnifying-glass" />
-        <div class="models__note-text">
-          <p class="models__note-title">{{ 'models.find.empty' | t }}</p>
-          <p class="text-secondary">{{ 'models.find.emptyHint' | t }}</p>
-        </div>
-      </mat-card>
+      <app-empty-state icon="fa-magnifying-glass" [heading]="'models.find.empty' | t">
+        {{ 'models.find.emptyHint' | t }}
+      </app-empty-state>
     }
 
     <ul class="models__grid">
@@ -227,10 +201,7 @@
             <div class="models__card-top">
               <h3 class="models__repo"><span dir="ltr">{{ result.repo_id }}</span></h3>
               @if (result.in_library) {
-                <p class="models__tag">
-                  <mat-icon fontIcon="fa-circle-check" />
-                  {{ 'models.find.inLibrary' | t }}
-                </p>
+                <app-status tone="ok" icon="fa-circle-check">{{ 'models.find.inLibrary' | t }}</app-status>
               }
             </div>
 
@@ -261,21 +232,14 @@
 
             <p class="models__tags">
               @if (result.gated) {
-                <span class="models__tag">
-                  <mat-icon fontIcon="fa-lock" />
-                  {{ 'models.find.gated' | t }}
-                </span>
+                <app-status icon="fa-lock">{{ 'models.find.gated' | t }}</app-status>
               }
               @if (result.supports_thinking) {
-                <span class="models__tag">
-                  <mat-icon fontIcon="fa-brain" />
-                  {{ 'models.thinking' | t }}
-                </span>
+                <app-status icon="fa-brain">{{ 'models.thinking' | t }}</app-status>
               }
-              <span class="models__tag">
-                {{ 'models.find.chat' | t }}:
-                <app-fit-verdict [verdict]="result.fit.chat.verdict" />
-              </span>
+              <app-fit-verdict [verdict]="result.fit.chat.verdict">
+                {{ 'models.find.chat' | t }}: {{ 'models.fit.verdict.' + result.fit.chat.verdict | t }}
+              </app-fit-verdict>
             </p>
 
             <div class="models__card-actions">

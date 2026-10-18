@@ -8,7 +8,7 @@
   gap: var(--app-space-6);
 
   p,
-  h3 {
+  h4 {
     margin: 0;
   }
 }
@@ -43,10 +43,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--app-space-3);
-}
-
-.breakdown__heading {
-  font: var(--mat-sys-title-medium);
 }
 
 .breakdown__bar {
@@ -136,14 +132,4 @@
 .breakdown__swatch--secondary-container,
 .breakdown__swatch--tertiary-container {
   border: var(--app-hairline) solid var(--mat-sys-outline-variant);
-}
-
-.breakdown__note {
-  display: flex;
-  gap: var(--app-space-3);
-  align-items: flex-start;
-  padding: var(--app-space-4);
-  color: var(--mat-sys-on-secondary-container);
-  background: var(--mat-sys-secondary-container);
-  border-radius: var(--mat-sys-corner-medium);
 }

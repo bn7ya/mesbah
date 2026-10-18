@@ -12,6 +12,7 @@ import { ROLE_LADDER, type Role } from '@core/auth/roles.types';
 import type { ApiError } from '@core/http/api.types';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { Note } from '@shared/note/note';
 import { MembersStore } from '../../state/members.store';
 
 @Component({
@@ -33,6 +34,7 @@ import { MembersStore } from '../../state/members.store';
     MatOption,
     MatSelect,
     MatSuffix,
+    Note,
     TranslatePipe,
   ],
   templateUrl: './add-member.html',

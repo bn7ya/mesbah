@@ -19,10 +19,14 @@
           </p>
         </div>
 
-        <app-code-block [label]="'serving.guide.address' | t" [code]="api.address" />
+        <app-code-block [label]="'serving.guide.address' | t" [code]="api.address">
+          <app-copy-button [text]="api.address" [what]="'serving.guide.address' | t" />
+        </app-code-block>
 
         @for (snippet of api.snippets; track snippet.id) {
-          <app-code-block [label]="snippet.labelKey | t" [code]="snippet.code" />
+          <app-code-block [label]="snippet.labelKey | t" [code]="snippet.code">
+            <app-copy-button [text]="snippet.code" [what]="snippet.labelKey | t" />
+          </app-code-block>
         }
       </article>
     }

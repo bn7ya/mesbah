@@ -2,10 +2,7 @@
   <h2 mat-dialog-title>{{ 'serving.newKey.createdTitle' | t }}</h2>
 
   <mat-dialog-content class="new-key">
-    <p class="new-key__warning" role="status">
-      <mat-icon fontIcon="fa-triangle-exclamation" />
-      {{ 'serving.newKey.warning' | t }}
-    </p>
+    <app-note live icon="fa-triangle-exclamation">{{ 'serving.newKey.warning' | t }}</app-note>
 
     <mat-form-field subscriptSizing="dynamic">
       <mat-label>{{ 'serving.newKey.keyLabel' | t }}</mat-label>
@@ -34,10 +31,7 @@
   <form novalidate (ngSubmit)="submit()">
     <mat-dialog-content class="new-key">
       @if (failure(); as error) {
-        <p class="new-key__failure" role="alert">
-          <mat-icon fontIcon="fa-circle-exclamation" />
-          {{ error.message }}
-        </p>
+        <app-note kind="error">{{ error.message }}</app-note>
       }
 
       <mat-form-field>

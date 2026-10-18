@@ -1,4 +1,5 @@
 import type { ApiError } from '@core/http/api.types';
+import type { StatusTone } from '@shared/status/status.types';
 
 export type RunStatus = 'queued' | 'preparing' | 'training' | 'saving' | 'completed' | 'failed' | 'cancelled';
 
@@ -300,8 +301,6 @@ export interface SizeShare {
   readonly bytes: number;
 }
 
-export type StatusTone = 'waiting' | 'going' | 'done' | 'failed' | 'stopped';
-
 export interface StatusLook {
   readonly icon: string;
   readonly tone: StatusTone;
@@ -332,21 +331,13 @@ export const FINISHED_STATUSES: readonly RunStatus[] = ['completed', 'failed', '
 export const STOPPABLE_STATUSES: readonly RunStatus[] = ['queued', 'preparing', 'training', 'saving'];
 
 export const STATUS_LOOKS: Readonly<Record<RunStatus, StatusLook>> = {
-  queued: { icon: 'fa-hourglass-half', tone: 'waiting' },
-  preparing: { icon: 'fa-gears', tone: 'going' },
-  training: { icon: 'fa-graduation-cap', tone: 'going' },
-  saving: { icon: 'fa-floppy-disk', tone: 'going' },
-  completed: { icon: 'fa-circle-check', tone: 'done' },
-  failed: { icon: 'fa-circle-exclamation', tone: 'failed' },
-  cancelled: { icon: 'fa-ban', tone: 'stopped' },
-};
-
-export const FIT_ICONS: Readonly<Record<FitVerdict, string>> = {
-  fits: 'fa-circle-check',
-  tight: 'fa-triangle-exclamation',
-  too_large: 'fa-circle-xmark',
-  cpu_only: 'fa-microchip',
-  unknown: 'fa-circle-question',
+  queued: { icon: 'fa-hourglass-half', tone: 'neutral' },
+  preparing: { icon: 'fa-gears', tone: 'ok' },
+  training: { icon: 'fa-graduation-cap', tone: 'ok' },
+  saving: { icon: 'fa-floppy-disk', tone: 'ok' },
+  completed: { icon: 'fa-circle-check', tone: 'ok' },
+  failed: { icon: 'fa-circle-exclamation', tone: 'error' },
+  cancelled: { icon: 'fa-ban', tone: 'neutral' },
 };
 
 export const KIND_WORDED_STAGES: readonly string[] = ['tokenizer', 'model'];

@@ -58,9 +58,6 @@ and forgets it on close. Download is disabled, with the reason beside it, when t
 has no weights, the model is already in the library (a failed or stopped one can be downloaded
 again), or the reader cannot write. Closes with `true` once the download is queued.
 
-**`FitVerdict`** (`components/fit-verdict/`) — a verdict as an icon and a word, never colour
-alone.
-
 **`modelsGuard`** (`guards/`) — viewers and above.
 
 ## Errors

@@ -95,10 +95,14 @@ blueprint, `signature()` compares two blueprints ignoring unused fields, `within
 
 **`ArchitectPage`** (`pages/architect/`) — the page above. Opens the save and train dialogs with
 its own injector, moves focus to the designer heading when a design is chosen, reports in snack bars
-and goes to the new run after training starts.
+and goes to the new run after training starts. Its sections are `h2`s (Start from, Design); the
+form's groups and the results card's title are `h3`s, and the breakdown's and the memory's titles
+`h4`s.
 
 **`StartingPoints`** (`components/starting-points/`) — the ready-made designs and the saved designs.
 Asks before replacing a designer with unsaved changes, opens the rename dialog, asks before removing.
+The two lists are named by a caption, not a heading, so each design's name (`h3`) stays the largest
+thing in its card.
 
 **`DesignerForm`** (`components/designer-form/`) — the kind toggle and the fields of the current
 kind from `GROUPS` and `FIELDS`. A field's error state reads `ArchitectStore.fieldErrors` through an

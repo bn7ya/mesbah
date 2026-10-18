@@ -1,0 +1,9 @@
+<span
+  class="status"
+  [class.status--ok]="tone() === 'ok'"
+  [class.status--error]="tone() === 'error'"
+  [class.status--prominent]="prominent()"
+>
+  <mat-icon [fontIcon]="icon()" />
+  <span><ng-content /></span>
+</span>

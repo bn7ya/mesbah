@@ -15,11 +15,12 @@ import { RouterLink } from '@angular/router';
 import type { ApiError } from '@core/http/api.types';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { FitVerdict } from '@shared/fit-verdict/fit-verdict';
 import { BytesPipe } from '@shared/format/bytes.pipe';
 import { CompactPipe } from '@shared/format/compact.pipe';
 import { formatNumber } from '@shared/format/format';
+import { Note } from '@shared/note/note';
 import { Term } from '@shared/term/term';
-import { FitVerdict } from '../../components/fit-verdict/fit-verdict';
 import { FIT_USES, type InspectionDialogData, type LibraryRef } from '../../data/models.types';
 import { ModelsStore } from '../../state/models.store';
 
@@ -40,6 +41,7 @@ function blocksDownload(ref: LibraryRef | null): boolean {
     MatDialogTitle,
     MatIcon,
     MatProgressBar,
+    Note,
     RouterLink,
     Term,
     TranslatePipe,

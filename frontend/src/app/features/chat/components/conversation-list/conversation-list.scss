@@ -22,16 +22,6 @@
   justify-content: space-between;
 }
 
-.list__failure {
-  display: flex;
-  gap: var(--app-space-3);
-  align-items: center;
-  padding: var(--app-space-3) var(--app-space-4);
-  color: var(--mat-sys-on-error-container);
-  background: var(--mat-sys-error-container);
-  border-radius: var(--mat-sys-corner-small);
-}
-
 .list__row {
   display: flex;
   gap: var(--app-space-1);

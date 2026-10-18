@@ -20,7 +20,9 @@ import { RouterLink } from '@angular/router';
 
 import type { ApiError } from '@core/http/api.types';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { EmptyState } from '@shared/empty-state/empty-state';
 import { CompactPipe } from '@shared/format/compact.pipe';
+import { Note } from '@shared/note/note';
 import { DESCRIPTION_MAX, NAME_MAX, PROMPT_MAX } from '../../data/projects.types';
 import { ProjectsStore } from '../../state/projects.store';
 
@@ -29,6 +31,7 @@ import { ProjectsStore } from '../../state/projects.store';
   imports: [
     CdkTextareaAutosize,
     CompactPipe,
+    EmptyState,
     FormsModule,
     MatButton,
     MatDialogActions,
@@ -46,6 +49,7 @@ import { ProjectsStore } from '../../state/projects.store';
     MatSelect,
     MatSelectTrigger,
     MatSlideToggle,
+    Note,
     RouterLink,
     TranslatePipe,
   ],

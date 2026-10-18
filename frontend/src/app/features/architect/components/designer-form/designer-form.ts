@@ -5,7 +5,6 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonToggle, MatButtonToggleGroup } from '@angular/material/button-toggle';
 import type { ErrorStateMatcher } from '@angular/material/core';
 import { MatError, MatFormField, MatHint, MatLabel } from '@angular/material/form-field';
-import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { map } from 'rxjs';
@@ -13,6 +12,7 @@ import { map } from 'rxjs';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { formatNumber } from '@shared/format/format';
+import { Note } from '@shared/note/note';
 import { Term } from '@shared/term/term';
 import {
   FAMILIES,
@@ -41,10 +41,10 @@ const ROOMY = '(min-width: 36rem)';
     MatError,
     MatFormField,
     MatHint,
-    MatIcon,
     MatInput,
     MatLabel,
     MatSlideToggle,
+    Note,
     Term,
     TranslatePipe,
   ],

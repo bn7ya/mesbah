@@ -1,0 +1,35 @@
+:host {
+  display: block;
+}
+
+.empty {
+  display: flex;
+  flex-direction: row;
+  gap: var(--app-space-4);
+  align-items: flex-start;
+  padding: var(--app-space-6);
+}
+
+.empty__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--app-space-2);
+  min-inline-size: 0;
+}
+
+.empty__title {
+  font: var(--mat-sys-title-medium);
+}
+
+.empty__body:empty,
+.empty__actions:empty {
+  display: none;
+}
+
+.empty__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+  margin-block-start: var(--app-space-2);
+}

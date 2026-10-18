@@ -1,18 +1,18 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { MatButton } from '@angular/material/button';
-import { MatCard } from '@angular/material/card';
-import { MatIcon } from '@angular/material/icon';
 import { MatPaginator, type PageEvent } from '@angular/material/paginator';
 import { MatProgressBar } from '@angular/material/progress-bar';
 
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { EmptyState } from '@shared/empty-state/empty-state';
+import { Note } from '@shared/note/note';
 import { RUN_PAGE_SIZES } from '../../data/training.types';
 import { TrainingStore } from '../../state/training.store';
 import { RunRow } from '../run-row/run-row';
 
 @Component({
   selector: 'app-run-list',
-  imports: [MatButton, MatCard, MatIcon, MatPaginator, MatProgressBar, RunRow, TranslatePipe],
+  imports: [EmptyState, MatButton, MatPaginator, MatProgressBar, Note, RunRow, TranslatePipe],
   templateUrl: './run-list.html',
   styleUrl: './run-list.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

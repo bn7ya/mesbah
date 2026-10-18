@@ -18,6 +18,7 @@ import { MatSlideToggle } from '@angular/material/slide-toggle';
 
 import type { ApiError } from '@core/http/api.types';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { Note } from '@shared/note/note';
 import {
   ADDRESS_PATTERN,
   CONNECTABLE_KINDS,
@@ -50,6 +51,7 @@ import { ServingStore } from '../../state/serving.store';
     MatOption,
     MatSelect,
     MatSlideToggle,
+    Note,
     TranslatePipe,
   ],
   templateUrl: './engine-form.html',

@@ -8,39 +8,35 @@
   </div>
 
   <mat-card appearance="outlined" class="builtin__card" [attr.aria-busy]="working()">
-    <p class="builtin__status">
-      <span class="builtin__state">
-        <mat-icon [fontIcon]="loaded.running ? 'fa-circle-check' : 'fa-circle-xmark'" />
+    <div class="builtin__status">
+      <app-status
+        prominent
+        [tone]="loaded.running ? 'ok' : 'neutral'"
+        [icon]="loaded.running ? 'fa-circle-check' : 'fa-circle-xmark'"
+      >
         {{ (loaded.running ? 'serving.state.running' : 'serving.state.stopped') | t }}
-      </span>
+      </app-status>
       @if (loaded.running && loaded.busy) {
-        <span class="builtin__tag">
-          <mat-icon fontIcon="fa-hourglass-half" />
-          {{ 'serving.state.busy' | t }}
-        </span>
+        <app-status icon="fa-hourglass-half">{{ 'serving.state.busy' | t }}</app-status>
       }
       @if (current.is_default) {
-        <span class="builtin__tag">
-          <mat-icon fontIcon="fa-star" />
-          {{ 'serving.state.default' | t }}
-        </span>
+        <app-status icon="fa-star">{{ 'serving.state.default' | t }}</app-status>
       }
       @if (!current.enabled) {
-        <span class="builtin__tag">
-          <mat-icon fontIcon="fa-power-off" />
-          {{ 'serving.state.off' | t }}
-        </span>
+        <app-status icon="fa-power-off">{{ 'serving.state.off' | t }}</app-status>
       }
-    </p>
+    </div>
 
     @if (!loaded.running) {
       <div class="builtin__stopped">
-        <p class="builtin__note-title">{{ 'serving.builtin.stopped.title' | t }}</p>
+        <h3>{{ 'serving.builtin.stopped.title' | t }}</h3>
         <p class="text-secondary">{{ 'serving.builtin.stopped.body' | t }}</p>
         <div class="builtin__steps">
           @for (step of commands; track step.id) {
             <div class="builtin__step">
-              <app-code-block [label]="step.labelKey | t" [code]="step.command" />
+              <app-code-block [label]="step.labelKey | t" [code]="step.command">
+                <app-copy-button [text]="step.command" [what]="step.labelKey | t" />
+              </app-code-block>
               <p class="text-secondary">{{ step.bodyKey | t }}</p>
             </div>
           }

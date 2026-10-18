@@ -3,14 +3,24 @@
 :host {
   display: flex;
   flex-direction: column;
-  gap: var(--app-space-6);
+  gap: var(--app-space-8);
   max-inline-size: $reading-max;
 }
 
-.training__intro {
+.training__top {
   display: flex;
   flex-direction: column;
-  gap: var(--app-space-2);
+  gap: var(--app-space-4);
+
+  p {
+    margin: 0;
+  }
+}
+
+.training__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
 
   h2,
   p {
@@ -18,37 +28,11 @@
   }
 }
 
-.training__failure {
-  display: flex;
-  gap: var(--app-space-3);
-  align-items: center;
-  padding: var(--app-space-3) var(--app-space-4);
-  margin: 0;
-  color: var(--mat-sys-on-error-container);
-  background: var(--mat-sys-error-container);
-  border-radius: var(--mat-sys-corner-small);
-}
-
-.training__learns {
+.training__card {
   display: flex;
   flex-direction: column;
   gap: var(--app-space-4);
   padding: var(--app-space-6);
-
-  h3,
-  p {
-    margin: 0;
-  }
-
-  h3 {
-    font: var(--mat-sys-title-medium);
-  }
-}
-
-.learns__body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--app-space-4);
 
   @include from($screen-sm) {
     flex-direction: row;
@@ -79,21 +63,6 @@
   flex-direction: column;
   gap: var(--app-space-2);
   align-items: flex-start;
-}
-
-.training__views {
-  display: flex;
-  flex-direction: column;
-  gap: var(--app-space-4);
-
-  h3,
-  p {
-    margin: 0;
-  }
-
-  h3 {
-    font: var(--mat-sys-title-medium);
-  }
 }
 
 .views__head {

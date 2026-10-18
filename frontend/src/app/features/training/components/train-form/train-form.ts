@@ -16,11 +16,12 @@ import type { ApiError } from '@core/http/api.types';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { UiModeStore } from '@core/ui/ui-mode.store';
+import { FitVerdict } from '@shared/fit-verdict/fit-verdict';
 import { BytesPipe } from '@shared/format/bytes.pipe';
 import { formatNumber } from '@shared/format/format';
+import { Note } from '@shared/note/note';
 import { Term } from '@shared/term/term';
 import {
-  FIT_ICONS,
   NAME_MAX,
   type DatasetChoice,
   type Draft,
@@ -40,6 +41,7 @@ import { VersionRef } from '../version-ref/version-ref';
   imports: [
     BytesPipe,
     ExpertSettings,
+    FitVerdict,
     FormsModule,
     MatButton,
     MatCard,
@@ -55,6 +57,7 @@ import { VersionRef } from '../version-ref/version-ref';
     MatSelect,
     MatSelectTrigger,
     MatSlideToggle,
+    Note,
     RouterLink,
     SimpleSettings,
     Term,
@@ -103,8 +106,6 @@ export class TrainForm {
 
   readonly corrections = computed(() => this.plan()?.corrections ?? 0);
   readonly fit = computed<Fit | null>(() => this.plan()?.fit ?? null);
-  readonly fitIcon = computed(() => FIT_ICONS[this.fit()?.verdict ?? 'unknown']);
-  readonly fitWarns = computed(() => this.fit()?.verdict === 'too_large');
   readonly fitTerm = computed(() => (this.fit()?.verdict === 'cpu_only' ? 'gpu' : 'vram'));
 
   readonly selected = computed<StartVersion | null>(

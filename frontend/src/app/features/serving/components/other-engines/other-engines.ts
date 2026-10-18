@@ -9,6 +9,8 @@ import { firstValueFrom } from 'rxjs';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { confirmAction } from '@shared/confirm-dialog/confirm-dialog';
+import { EmptyState } from '@shared/empty-state/empty-state';
+import { Status } from '@shared/status/status';
 import { Term } from '@shared/term/term';
 import { KIND_TERMS, type Engine, type EngineFormData } from '../../data/serving.types';
 import { EngineFormDialog } from '../../dialogs/engine-form/engine-form';
@@ -17,7 +19,7 @@ import { LoadedVersions } from '../loaded-versions/loaded-versions';
 
 @Component({
   selector: 'app-other-engines',
-  imports: [LoadedVersions, MatButton, MatCard, MatIcon, Term, TranslatePipe],
+  imports: [EmptyState, LoadedVersions, MatButton, MatCard, MatIcon, Status, Term, TranslatePipe],
   templateUrl: './other-engines.html',
   styleUrl: './other-engines.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

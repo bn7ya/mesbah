@@ -16,6 +16,8 @@ import { firstValueFrom } from 'rxjs';
 
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { EmptyState } from '@shared/empty-state/empty-state';
+import { Note } from '@shared/note/note';
 import { ExportItem } from '../../components/export-item/export-item';
 import type { VersionDialogData } from '../../data/versions.types';
 import { VersionsStore } from '../../state/versions.store';
@@ -25,6 +27,7 @@ import { ExportVersionDialog } from '../export-version/export-version';
 @Component({
   selector: 'app-version-exports',
   imports: [
+    EmptyState,
     ExportItem,
     MatButton,
     MatDialogActions,
@@ -33,6 +36,7 @@ import { ExportVersionDialog } from '../export-version/export-version';
     MatDialogTitle,
     MatIcon,
     MatProgressBar,
+    Note,
     TranslatePipe,
   ],
   templateUrl: './version-exports.html',

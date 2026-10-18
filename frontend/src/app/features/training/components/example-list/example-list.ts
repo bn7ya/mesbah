@@ -1,19 +1,30 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { MatButton } from '@angular/material/button';
-import { MatCard } from '@angular/material/card';
 import { MatIcon } from '@angular/material/icon';
 import { MatPaginator, type PageEvent } from '@angular/material/paginator';
 import { MatProgressBar } from '@angular/material/progress-bar';
 import { RouterLink } from '@angular/router';
 
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { EmptyState } from '@shared/empty-state/empty-state';
+import { Note } from '@shared/note/note';
 import { EXAMPLE_PAGE_SIZES } from '../../data/training.types';
 import { TrainingStore } from '../../state/training.store';
 import { ExampleCard } from '../example-card/example-card';
 
 @Component({
   selector: 'app-example-list',
-  imports: [ExampleCard, MatButton, MatCard, MatIcon, MatPaginator, MatProgressBar, RouterLink, TranslatePipe],
+  imports: [
+    EmptyState,
+    ExampleCard,
+    MatButton,
+    MatIcon,
+    MatPaginator,
+    MatProgressBar,
+    Note,
+    RouterLink,
+    TranslatePipe,
+  ],
   templateUrl: './example-list.html',
   styleUrl: './example-list.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

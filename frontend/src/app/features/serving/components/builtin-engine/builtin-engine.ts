@@ -7,17 +7,19 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { CodeBlock } from '@shared/code-block/code-block';
 import { confirmAction } from '@shared/confirm-dialog/confirm-dialog';
+import { Status } from '@shared/status/status';
 import { Term } from '@shared/term/term';
 import { deviceOf } from '../../data/device';
 import { START_COMMANDS, type Engine } from '../../data/serving.types';
 import { ServingStore } from '../../state/serving.store';
-import { CodeBlock } from '../code-block/code-block';
+import { CopyButton } from '../copy-button/copy-button';
 import { LoadedVersions } from '../loaded-versions/loaded-versions';
 
 @Component({
   selector: 'app-builtin-engine',
-  imports: [CodeBlock, LoadedVersions, MatButton, MatCard, MatIcon, Term, TranslatePipe],
+  imports: [CodeBlock, CopyButton, LoadedVersions, MatButton, MatCard, MatIcon, Status, Term, TranslatePipe],
   templateUrl: './builtin-engine.html',
   styleUrl: './builtin-engine.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

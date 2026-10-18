@@ -20,13 +20,16 @@ import { RouterLink } from '@angular/router';
 import type { ApiError } from '@core/http/api.types';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { EmptyState } from '@shared/empty-state/empty-state';
 import { formatNumber } from '@shared/format/format';
+import { Note } from '@shared/note/note';
 import { NAME_MAX, type Source, type TrainDialogData, type TrainStarted } from '../../data/architect.types';
 import { ArchitectStore } from '../../state/architect.store';
 
 @Component({
   selector: 'app-train',
   imports: [
+    EmptyState,
     FormsModule,
     MatButton,
     MatDialogActions,
@@ -44,6 +47,7 @@ import { ArchitectStore } from '../../state/architect.store';
     MatListOption,
     MatProgressBar,
     MatSelectionList,
+    Note,
     RouterLink,
     TranslatePipe,
   ],

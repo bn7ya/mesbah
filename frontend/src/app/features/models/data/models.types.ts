@@ -103,11 +103,3 @@ export const FIT_USES: readonly FitUse[] = ['chat', 'chat_full', 'training'];
 export const DOWNLOAD_FAILURES: readonly string[] = ['gated', 'not_found', 'disk_full', 'network'];
 
 export const POPULAR: HubQuery = { search: '', task: 'text-generation' };
-
-export const FIT_ICONS: Readonly<Record<FitVerdict, string>> = {
-  fits: 'fa-circle-check',
-  tight: 'fa-triangle-exclamation',
-  too_large: 'fa-circle-xmark',
-  cpu_only: 'fa-microchip',
-  unknown: 'fa-circle-question',
-};

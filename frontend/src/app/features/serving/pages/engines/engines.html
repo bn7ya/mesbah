@@ -7,15 +7,12 @@
 </header>
 
 @if (error(); as failure) {
-  <div class="engines__failure" role="alert">
-    <p>
-      <mat-icon fontIcon="fa-circle-exclamation" />
-      {{ failure.message }}
-    </p>
-    @if (!loaded()) {
+  <app-note kind="error">{{ failure.message }}</app-note>
+  @if (!loaded()) {
+    <div>
       <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
-    }
-  </div>
+    </div>
+  }
 }
 
 <div class="engines__engines" [attr.aria-busy]="loading()">

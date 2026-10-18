@@ -6,10 +6,7 @@
   }
 
   @if (loadFailure(); as problem) {
-    <p class="details__failure" role="alert">
-      <mat-icon fontIcon="fa-circle-exclamation" />
-      {{ problem.message }}
-    </p>
+    <app-note kind="error">{{ problem.message }}</app-note>
     <div>
       <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
     </div>
@@ -113,13 +110,10 @@
       </dl>
 
       @if (model.gated) {
-        <p class="details__note">
-          <mat-icon fontIcon="fa-lock" />
-          <span>
-            {{ 'models.details.gated' | t }}
-            <a routerLink="/system">{{ 'models.tokenLink' | t }}</a>
-          </span>
-        </p>
+        <app-note icon="fa-lock">
+          {{ 'models.details.gated' | t }}
+          <a routerLink="/system">{{ 'models.tokenLink' | t }}</a>
+        </app-note>
       }
     </section>
 
@@ -127,10 +121,7 @@
       <h3 id="details-fit">{{ 'models.fit.title' | t }}</h3>
 
       @if (noGpu()) {
-        <p class="details__note">
-          <mat-icon fontIcon="fa-microchip" />
-          <span>{{ 'models.fit.noGpu' | t }}</span>
-        </p>
+        <app-note icon="fa-microchip">{{ 'models.fit.noGpu' | t }}</app-note>
       } @else {
         <p class="details__lead">
           <app-term key="vram" />
@@ -148,7 +139,7 @@
                 <app-term key="qlora" />
               }
             </span>
-            <app-fit-verdict [verdict]="fit.verdict" />
+            <app-fit-verdict [verdict]="fit.verdict">{{ 'models.fit.verdict.' + fit.verdict | t }}</app-fit-verdict>
             <span class="text-secondary">
               @if (fit.required_bytes === null) {
                 {{ 'models.fit.needUnknown' | t }}
@@ -169,10 +160,7 @@
 </mat-dialog-content>
 
 @if (failure(); as problem) {
-  <p class="details__failure details__failure--footer" role="alert">
-    <mat-icon fontIcon="fa-circle-exclamation" />
-    {{ problem.message }}
-  </p>
+  <app-note kind="error" class="details__footer-note">{{ problem.message }}</app-note>
 }
 
 <mat-dialog-actions align="end">

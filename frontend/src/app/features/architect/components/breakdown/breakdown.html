@@ -13,7 +13,7 @@
   </div>
 
   <div class="breakdown__where">
-    <h3 class="breakdown__heading">{{ 'architect.breakdown.where' | t }}</h3>
+    <h4>{{ 'architect.breakdown.where' | t }}</h4>
 
     <div class="breakdown__bar" role="img" [attr.aria-label]="summary()">
       @for (row of rows(); track row.key) {
@@ -34,9 +34,8 @@
   </div>
 
   @if (note() === 'embeddings_dominate') {
-    <p class="breakdown__note" role="note">
-      <mat-icon fontIcon="fa-lightbulb" />
-      <span>{{ 'architect.breakdown.embeddings_dominate' | t: { share: vocabularyShare() } }}</span>
-    </p>
+    <app-note icon="fa-lightbulb">
+      {{ 'architect.breakdown.embeddings_dominate' | t: { share: vocabularyShare() } }}
+    </app-note>
   }
 </section>

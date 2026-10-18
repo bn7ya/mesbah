@@ -1,0 +1,9 @@
+<figure class="code">
+  <figcaption class="code__bar">
+    @if (label(); as caption) {
+      <span class="code__label">{{ caption }}</span>
+    }
+    <ng-content />
+  </figcaption>
+  <pre class="code__body" dir="ltr"><code>{{ code() }}</code></pre>
+</figure>

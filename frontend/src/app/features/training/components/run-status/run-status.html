@@ -1,4 +1,1 @@
-<span class="status" [class]="'status--' + look().tone">
-  <mat-icon [fontIcon]="look().icon" />
-  <span class="status__text">{{ key() | t: values() }}</span>
-</span>
+<app-status [icon]="look().icon" [tone]="look().tone" [prominent]="prominent()">{{ key() | t: values() }}</app-status>

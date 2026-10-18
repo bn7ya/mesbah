@@ -12,11 +12,14 @@ import { RouterLink } from '@angular/router';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { UiModeStore } from '@core/ui/ui-mode.store';
+import { CodeBlock } from '@shared/code-block/code-block';
 import { confirmAction } from '@shared/confirm-dialog/confirm-dialog';
 import { BytesPipe } from '@shared/format/bytes.pipe';
 import { CompactPipe } from '@shared/format/compact.pipe';
 import { DateTimePipe } from '@shared/format/datetime.pipe';
 import { formatNumber, formatPercent, formatSignificant } from '@shared/format/format';
+import { Note } from '@shared/note/note';
+import { Status } from '@shared/status/status';
 import { Term } from '@shared/term/term';
 import { RunChart } from '../../components/run-chart/run-chart';
 import { RunStatus } from '../../components/run-status/run-status';
@@ -41,6 +44,7 @@ import { settingValue, shownSettings } from '../../state/run-settings';
   selector: 'app-run-page',
   imports: [
     BytesPipe,
+    CodeBlock,
     CompactPipe,
     DateTimePipe,
     MatButton,
@@ -50,9 +54,11 @@ import { settingValue, shownSettings } from '../../state/run-settings';
     MatExpansionPanelTitle,
     MatIcon,
     MatProgressBar,
+    Note,
     RouterLink,
     RunChart,
     RunStatus,
+    Status,
     Term,
     TranslatePipe,
     VersionRef,

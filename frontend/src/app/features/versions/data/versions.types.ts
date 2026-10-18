@@ -130,6 +130,8 @@ export const NOTES_MAX = 4000;
 
 export const SLIVER = 0.001;
 
+export const MAX_INDENT_DEPTH = 4;
+
 export const EXPORT_FORMATS: readonly ExportFormat[] = ['lora', 'merged', 'gguf'];
 
 export const EXPORT_QUALITIES: readonly ExportQuality[] = ['f16', 'bf16', 'q8_0'];

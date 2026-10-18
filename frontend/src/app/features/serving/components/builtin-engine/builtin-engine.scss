@@ -39,29 +39,15 @@
   align-items: center;
 }
 
-.builtin__state {
-  display: inline-flex;
-  gap: var(--app-space-2);
-  align-items: center;
-  font: var(--mat-sys-title-medium);
-}
-
-.builtin__tag {
-  display: inline-flex;
-  gap: var(--app-space-1);
-  align-items: center;
-  font: var(--mat-sys-label-large);
-  color: var(--mat-sys-on-surface-variant);
-}
-
 .builtin__stopped {
   display: flex;
   flex-direction: column;
   gap: var(--app-space-2);
-}
 
-.builtin__note-title {
-  font: var(--mat-sys-title-medium);
+  h3,
+  p {
+    margin: 0;
+  }
 }
 
 .builtin__steps {

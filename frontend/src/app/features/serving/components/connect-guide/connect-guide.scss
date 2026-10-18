@@ -37,10 +37,6 @@
   flex-direction: column;
   gap: var(--app-space-4);
   min-inline-size: 0;
-
-  h3 {
-    font: var(--mat-sys-title-medium);
-  }
 }
 
 .guide__models {
@@ -51,10 +47,6 @@
   h3,
   p {
     margin: 0;
-  }
-
-  h3 {
-    font: var(--mat-sys-title-medium);
   }
 }
 

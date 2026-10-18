@@ -1,21 +1,17 @@
-<section class="training__intro" aria-labelledby="training-title">
-  <h2 id="training-title">{{ 'training.title' | t }}</h2>
+<div class="training__top">
   <p class="text-secondary">{{ 'training.intro' | t }}</p>
-</section>
 
-@if (setupError(); as failure) {
-  <p class="training__failure" role="alert">
-    <mat-icon fontIcon="fa-circle-exclamation" />
-    {{ failure.message }}
-  </p>
-  <div>
-    <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
-  </div>
-}
+  @if (setupError(); as failure) {
+    <app-note kind="error">{{ failure.message }}</app-note>
+    <div>
+      <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
+    </div>
+  }
+</div>
 
-<mat-card appearance="outlined" class="training__learns" aria-labelledby="training-learns" [attr.aria-busy]="planLoading()">
-  <h3 id="training-learns">{{ 'training.learns.title' | t }}</h3>
-  <div class="learns__body">
+<section class="training__section" aria-labelledby="training-learns" [attr.aria-busy]="planLoading()">
+  <h2 id="training-learns">{{ 'training.learns.title' | t }}</h2>
+  <mat-card appearance="outlined" class="training__card">
     <div class="learns__figure">
       <p class="learns__label">{{ 'training.learns.label' | t }}</p>
       @if (corrections(); as count) {
@@ -43,16 +39,16 @@
         </div>
       }
     </div>
-  </div>
-</mat-card>
+  </mat-card>
+</section>
 
 @if (canWrite()) {
   <app-train-form />
 }
 
-<section class="training__views" #views aria-labelledby="training-views">
+<section class="training__section" #views aria-labelledby="training-views">
   <div class="views__head">
-    <h3 id="training-views">{{ (view() === 'runs' ? 'training.views.runsTitle' : 'training.views.examplesTitle') | t }}</h3>
+    <h2 id="training-views">{{ (view() === 'runs' ? 'training.views.runsTitle' : 'training.views.examplesTitle') | t }}</h2>
     <mat-button-toggle-group
       [attr.aria-label]="'training.views.label' | t"
       [value]="view()"

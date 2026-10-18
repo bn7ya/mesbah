@@ -17,6 +17,7 @@ import { RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { Note } from '@shared/note/note';
 import { Composer } from '../../components/composer/composer';
 import { ConversationHeader } from '../../components/conversation-header/conversation-header';
 import { ConversationList } from '../../components/conversation-list/conversation-list';
@@ -39,6 +40,7 @@ const WIDE = '(min-width: 48rem)';
     MatSidenavContainer,
     MatSidenavContent,
     MessageList,
+    Note,
     RouterLink,
     TranslatePipe,
   ],

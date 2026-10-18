@@ -6,10 +6,7 @@
       @if (canWrite()) {
         <form class="overview__form" novalidate [attr.aria-busy]="saving()" (ngSubmit)="saveAbout()">
           @if (aboutFailure(); as problem) {
-            <p class="overview__failure" role="alert">
-              <mat-icon fontIcon="fa-circle-exclamation" />
-              {{ problem.message }}
-            </p>
+            <app-note kind="error">{{ problem.message }}</app-note>
           }
 
           <mat-form-field subscriptSizing="dynamic">
@@ -104,10 +101,7 @@
       @if (canWrite()) {
         <form class="overview__form" novalidate [attr.aria-busy]="saving()" (ngSubmit)="saveReply()">
           @if (replyFailure(); as problem) {
-            <p class="overview__failure" role="alert">
-              <mat-icon fontIcon="fa-circle-exclamation" />
-              {{ problem.message }}
-            </p>
+            <app-note kind="error">{{ problem.message }}</app-note>
           }
 
           <div class="overview__field">
@@ -214,10 +208,7 @@
 
       <mat-card appearance="outlined" class="overview__card">
         @if (removeFailure(); as problem) {
-          <p class="overview__failure" role="alert">
-            <mat-icon fontIcon="fa-circle-exclamation" />
-            {{ problem.message }}
-          </p>
+          <app-note kind="error">{{ problem.message }}</app-note>
         }
         <p>{{ 'projects.overview.remove.body' | t }}</p>
         <div class="overview__actions">

@@ -5,7 +5,6 @@ import { MatCard } from '@angular/material/card';
 import type { ErrorStateMatcher } from '@angular/material/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatError, MatFormField, MatHint, MatLabel } from '@angular/material/form-field';
-import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import { MatListItemLine, MatListItemTitle, MatListOption, MatSelectionList, type MatSelectionListChange } from '@angular/material/list';
 import { MatProgressBar } from '@angular/material/progress-bar';
@@ -14,10 +13,14 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { UiModeStore } from '@core/ui/ui-mode.store';
+import { CodeBlock } from '@shared/code-block/code-block';
 import { confirmAction } from '@shared/confirm-dialog/confirm-dialog';
+import { EmptyState } from '@shared/empty-state/empty-state';
 import { BytesPipe } from '@shared/format/bytes.pipe';
 import { Meter } from '@shared/meter/meter';
 import type { MeterSegment } from '@shared/meter/meter.types';
+import { Note } from '@shared/note/note';
+import { Status } from '@shared/status/status';
 import { Term } from '@shared/term/term';
 import type { Gpu } from '../../data/system.types';
 import { SystemStore } from '../../state/system.store';
@@ -29,13 +32,14 @@ const CUDA_INSTALL = 'pip install --force-reinstall torch --index-url https://do
   selector: 'app-system-page',
   imports: [
     BytesPipe,
+    CodeBlock,
+    EmptyState,
     FormsModule,
     MatButton,
     MatCard,
     MatError,
     MatFormField,
     MatHint,
-    MatIcon,
     MatInput,
     MatLabel,
     MatListItemLine,
@@ -44,6 +48,8 @@ const CUDA_INSTALL = 'pip install --force-reinstall torch --index-url https://do
     MatProgressBar,
     MatSelectionList,
     Meter,
+    Note,
+    Status,
     Term,
     TranslatePipe,
   ],

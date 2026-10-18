@@ -12,15 +12,30 @@ import type { ApiError } from '@core/http/api.types';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { confirmAction } from '@shared/confirm-dialog/confirm-dialog';
+import { EmptyState } from '@shared/empty-state/empty-state';
 import { CompactPipe } from '@shared/format/compact.pipe';
 import { DateTimePipe } from '@shared/format/datetime.pipe';
+import { Note } from '@shared/note/note';
+import { Status } from '@shared/status/status';
 import type { Draft, Preset, SaveDialogData } from '../../data/architect.types';
 import { SaveDraftDialog } from '../../dialogs/save-draft/save-draft';
 import { ArchitectStore } from '../../state/architect.store';
 
 @Component({
   selector: 'app-starting-points',
-  imports: [CompactPipe, DateTimePipe, MatButton, MatCard, MatIcon, MatPaginator, MatProgressBar, TranslatePipe],
+  imports: [
+    CompactPipe,
+    DateTimePipe,
+    EmptyState,
+    MatButton,
+    MatCard,
+    MatIcon,
+    MatPaginator,
+    MatProgressBar,
+    Note,
+    Status,
+    TranslatePipe,
+  ],
   templateUrl: './starting-points.html',
   styleUrl: './starting-points.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

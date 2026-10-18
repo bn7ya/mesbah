@@ -6,20 +6,14 @@
   }
 
   @if (loadFailure(); as problem) {
-    <p class="changes__failure" role="alert">
-      <mat-icon fontIcon="fa-circle-exclamation" />
-      {{ problem.message }}
-    </p>
+    <app-note kind="error">{{ problem.message }}</app-note>
     <div>
       <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
     </div>
   }
 
   @if (note(); as key) {
-    <p class="changes__note">
-      <mat-icon fontIcon="fa-circle-info" />
-      {{ key | t }}
-    </p>
+    <app-note>{{ key | t }}</app-note>
   }
 
   @if (map(); as shown) {

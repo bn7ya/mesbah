@@ -16,6 +16,10 @@
   gap: var(--app-space-2);
   align-items: center;
   justify-content: space-between;
+
+  &:empty {
+    display: none;
+  }
 }
 
 .code__label {
@@ -24,13 +28,14 @@
 }
 
 .code__body {
-  padding: var(--app-space-3) var(--app-space-4);
+  padding: var(--app-space-4);
   margin: 0;
-  overflow-x: auto;
   font: var(--mat-sys-body-medium);
+  font-family: var(--app-font-mono);
   color: var(--mat-sys-on-surface);
-  white-space: pre;
-  background: var(--mat-sys-surface-container);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  background: var(--mat-sys-surface-container-high);
   border-radius: var(--mat-sys-corner-small);
 
   code {

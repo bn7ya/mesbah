@@ -1,16 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { MatIcon } from '@angular/material/icon';
 
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { CompactPipe } from '@shared/format/compact.pipe';
 import { formatPercent } from '@shared/format/format';
+import { Note } from '@shared/note/note';
 import { Term } from '@shared/term/term';
-import { PARTS, type Counts, type Family, type Note, type PartRow } from '../../data/architect.types';
+import { PARTS, type Counts, type Family, type Note as BreakdownNote, type PartRow } from '../../data/architect.types';
 
 @Component({
   selector: 'app-breakdown',
-  imports: [CompactPipe, MatIcon, Term, TranslatePipe],
+  imports: [CompactPipe, Note, Term, TranslatePipe],
   templateUrl: './breakdown.html',
   styleUrl: './breakdown.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,7 +20,7 @@ export class Breakdown {
 
   readonly counts = input.required<Counts>();
   readonly family = input.required<Family>();
-  readonly note = input.required<Note | null>();
+  readonly note = input.required<BreakdownNote | null>();
 
   readonly moe = computed(() => this.family() === 'moe_decoder');
 

@@ -133,7 +133,9 @@ rate, and the rank or the optimizer), and one setting's value, the optimizer bei
 `pretrain.optim`. **`sourcesOf()`** (`state/run-sources.ts`) — pairs the projects a run learns from
 with their names, `null` until the names are known and a `null` name for a project that is gone.
 
-**`TrainingPage`** (`pages/training/`) — the count card, the form for trainers, the Runs / Examples switch.
+**`TrainingPage`** (`pages/training/`) — a lead sentence, then three sections each titled by an `h2`
+over its card: what training learns from (the count), the form for trainers, and the Runs / Examples
+switch. The tab carries no title of its own; the tab label already names it.
 Opens the project from its `projectId` input and loads the examples when that view is chosen.
 
 **`RunPage`** (`pages/run/`) — the live run, from its `runId` input. Builds the two charts' data and the
@@ -141,15 +143,16 @@ loss sentence in the reader's language, asks before stopping and reports it in a
 LoRA run from a pretrain run: the title, the result, the failure advice, the sources and the settings
 rows each have their own wording for a new model.
 
-**`TrainForm`** (`components/train-form/`) — the new-run form. `settings`, the chosen start version and the
+**`TrainForm`** (`components/train-form/`) — the new-run section: an `h2` and its intro above the form's
+card. `settings`, the chosen start version and the
 chosen datasets are `linkedSignal`s over the plan, the versions and the library, so a reload with the same
 values keeps what was typed. Explains why Start is unavailable, starts the run and goes to it. While the
 store says there is no model it shows one sentence in place of the form, and cannot start.
 **`SimpleSettings`**, **`ExpertSettings`** — the two views of the same settings, bound with `model()`.
 **`RunList`**, **`RunRow`** — the runs and one run's card with Open, Stop and Remove; a pretrain run's card
 swaps "Started from" for "A new model, trained from nothing" and names the projects it learns from.
-**`RunStatus`** — a run's status or stage in words, with an icon; a new model's loading and saving stages
-have their own words. **`VersionRef`** — "v3" and the version's name, in their own directions.
+**`RunStatus`** — a run's status or stage in words, drawn by the shared `<app-status>` (`prominent` on
+the run page); a new model's loading and saving stages have their own words. **`VersionRef`** — "v3" and the version's name, in their own directions.
 **`ExampleList`**, **`ExampleCard`** — the examples and one conversation, the reply it learns highlighted.
 **`RunChart`** — a Chart.js line chart, loaded lazily, with colours read from the theme, axes in the reader's
 language and mirrored in RTL, redrawn when the language or colour scheme changes.

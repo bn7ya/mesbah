@@ -7,12 +7,23 @@ import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { Note } from '@shared/note/note';
 import { MESSAGE_MAX } from '../../data/chat.types';
 import { ConversationStore } from '../../state/conversation.store';
 
 @Component({
   selector: 'app-composer',
-  imports: [CdkTextareaAutosize, FormsModule, MatButton, MatFormField, MatHint, MatIcon, MatInput, TranslatePipe],
+  imports: [
+    CdkTextareaAutosize,
+    FormsModule,
+    MatButton,
+    MatFormField,
+    MatHint,
+    MatIcon,
+    MatInput,
+    Note,
+    TranslatePipe,
+  ],
   templateUrl: './composer.html',
   styleUrl: './composer.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

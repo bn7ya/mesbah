@@ -5,13 +5,10 @@
 <form novalidate (ngSubmit)="submit()">
   <mat-dialog-content class="form">
     @if (failure(); as error) {
-      <p class="form__failure" role="alert">
-        <mat-icon fontIcon="fa-circle-exclamation" />
-        {{ error.message }}
-      </p>
+      <app-note kind="error">{{ error.message }}</app-note>
     }
 
-    <mat-form-field>
+    <mat-form-field subscriptSizing="dynamic">
       <mat-label>{{ 'serving.form.name' | t }}</mat-label>
       <input
         matInput
@@ -36,7 +33,7 @@
       <mat-hint>{{ 'serving.kinds.' + kind() + '.explain' | t }}</mat-hint>
     </mat-form-field>
 
-    <mat-form-field>
+    <mat-form-field subscriptSizing="dynamic">
       <mat-label>{{ 'serving.form.address' | t }}</mat-label>
       <input
         matInput
@@ -87,10 +84,7 @@
 
     @if (keySaved) {
       @if (removeKey()) {
-        <p class="form__removal" role="status">
-          <mat-icon fontIcon="fa-circle-info" />
-          {{ 'serving.form.keyRemoved' | t }}
-        </p>
+        <app-note live>{{ 'serving.form.keyRemoved' | t }}</app-note>
         <div>
           <button matButton type="button" (click)="removeKey.set(false)">{{ 'serving.form.keepKey' | t }}</button>
         </div>

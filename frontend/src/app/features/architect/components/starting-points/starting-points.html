@@ -1,15 +1,12 @@
 <section class="starting__group" aria-labelledby="starting-presets" [attr.aria-busy]="presetsLoading()">
-  <h3 id="starting-presets">{{ 'architect.start.presets' | t }}</h3>
+  <p class="starting__caption" id="starting-presets">{{ 'architect.start.presets' | t }}</p>
 
   @if (presetsLoading()) {
     <mat-progress-bar mode="indeterminate" [attr.aria-label]="'architect.preset.loading' | t" />
   }
 
   @if (presetsError(); as problem) {
-    <p class="starting__failure" role="alert">
-      <mat-icon fontIcon="fa-circle-exclamation" />
-      {{ problem.message }}
-    </p>
+    <app-note kind="error">{{ problem.message }}</app-note>
     <div>
       <button matButton type="button" (click)="presetsAgain()">{{ 'actions.retry' | t }}</button>
     </div>
@@ -20,7 +17,7 @@
       <li>
         <mat-card appearance="outlined" class="starting__card">
           <div class="starting__card-text">
-            <h4 class="starting__name">{{ presetName(preset) }}</h4>
+            <h3 class="starting__name">{{ presetName(preset) }}</h3>
             <p class="text-secondary">{{ 'architect.family.' + preset.family + '.name' | t }}</p>
             <p class="starting__stat">{{ 'architect.preset.parameters' | t: { count: (preset.counts.total | compact) } }}</p>
             @if (preset.family === 'moe_decoder') {
@@ -39,10 +36,7 @@
               {{ 'architect.preset.use' | t }}
             </button>
             @if (startedFrom() === preset.name) {
-              <span class="starting__tag">
-                <mat-icon fontIcon="fa-circle-check" />
-                {{ 'architect.preset.loaded' | t }}
-              </span>
+              <app-status tone="ok" icon="fa-circle-check">{{ 'architect.preset.loaded' | t }}</app-status>
             }
           </div>
         </mat-card>
@@ -52,37 +46,27 @@
 </section>
 
 <section class="starting__group" aria-labelledby="starting-saved" [attr.aria-busy]="draftsLoading()">
-  <h3 id="starting-saved">{{ 'architect.start.saved' | t }}</h3>
+  <p class="starting__caption" id="starting-saved">{{ 'architect.start.saved' | t }}</p>
 
   @if (draftsLoading() && page().results.length === 0) {
     <mat-progress-bar mode="indeterminate" [attr.aria-label]="'architect.drafts.loading' | t" />
   }
 
   @if (draftsError(); as problem) {
-    <p class="starting__failure" role="alert">
-      <mat-icon fontIcon="fa-circle-exclamation" />
-      {{ problem.message }}
-    </p>
+    <app-note kind="error">{{ problem.message }}</app-note>
     <div>
       <button matButton type="button" (click)="draftsAgain()">{{ 'actions.retry' | t }}</button>
     </div>
   }
 
   @if (failure(); as problem) {
-    <p class="starting__failure" role="alert">
-      <mat-icon fontIcon="fa-circle-exclamation" />
-      {{ problem.message }}
-    </p>
+    <app-note kind="error">{{ problem.message }}</app-note>
   }
 
   @if (empty()) {
-    <mat-card appearance="outlined" class="starting__empty">
-      <mat-icon fontIcon="fa-box-open" />
-      <div class="starting__card-text">
-        <p class="starting__empty-title">{{ 'architect.drafts.empty' | t }}</p>
-        <p class="text-secondary">{{ (canWrite() ? 'architect.drafts.emptyWrite' : 'architect.drafts.emptyRead') | t }}</p>
-      </div>
-    </mat-card>
+    <app-empty-state icon="fa-box-open" [heading]="'architect.drafts.empty' | t">
+      {{ (canWrite() ? 'architect.drafts.emptyWrite' : 'architect.drafts.emptyRead') | t }}
+    </app-empty-state>
   }
 
   <ul class="starting__drafts">
@@ -90,7 +74,7 @@
       <li>
         <mat-card appearance="outlined" class="starting__row">
           <div class="starting__card-text">
-            <h4 class="starting__name"><span dir="auto">{{ draft.name }}</span></h4>
+            <h3 class="starting__name"><span dir="auto">{{ draft.name }}</span></h3>
             <p class="starting__meta text-secondary">
               <span>{{ 'architect.family.' + draft.family + '.name' | t }}</span>
               <span>{{ 'architect.preset.parameters' | t: { count: (draft.counts.total | compact) } }}</span>
@@ -103,10 +87,7 @@
 
           <div class="starting__row-actions">
             @if (current()?.id === draft.id) {
-              <span class="starting__tag">
-                <mat-icon fontIcon="fa-circle-check" />
-                {{ 'architect.drafts.current' | t }}
-              </span>
+              <app-status tone="ok" icon="fa-circle-check">{{ 'architect.drafts.current' | t }}</app-status>
             }
             <button
               matButton

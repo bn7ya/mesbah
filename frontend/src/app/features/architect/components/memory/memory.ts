@@ -1,22 +1,21 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { MatIcon } from '@angular/material/icon';
 
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { FitVerdict } from '@shared/fit-verdict/fit-verdict';
 import { BytesPipe } from '@shared/format/bytes.pipe';
+import { Note } from '@shared/note/note';
 import { Term } from '@shared/term/term';
-import { FIT_ICONS, type Memory, type MemoryOption } from '../../data/architect.types';
+import type { Memory, MemoryOption } from '../../data/architect.types';
 
 @Component({
   selector: 'app-training-memory',
-  imports: [BytesPipe, MatIcon, Term, TranslatePipe],
+  imports: [BytesPipe, FitVerdict, Note, Term, TranslatePipe],
   templateUrl: './memory.html',
   styleUrl: './memory.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TrainingMemory {
   readonly memory = input.required<Memory>();
-
-  readonly icons = FIT_ICONS;
 
   readonly options = computed<readonly MemoryOption[]>(() => {
     const memory = this.memory();

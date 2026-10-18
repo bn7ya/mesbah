@@ -24,6 +24,8 @@ import { ROLE_LADDER, type Role } from '@core/auth/roles.types';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { confirmAction } from '@shared/confirm-dialog/confirm-dialog';
+import { Note } from '@shared/note/note';
+import { Status } from '@shared/status/status';
 import type { Member } from '../../data/members.types';
 import { AddMemberDialog } from '../../dialogs/add-member/add-member';
 import { MembersStore } from '../../state/members.store';
@@ -48,6 +50,8 @@ import { MembersStore } from '../../state/members.store';
     MatRow,
     MatRowDef,
     MatTable,
+    Note,
+    Status,
     TranslatePipe,
   ],
   templateUrl: './members.html',

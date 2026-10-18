@@ -24,6 +24,7 @@ import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
 import { CompactPipe } from '@shared/format/compact.pipe';
 import { formatNumber } from '@shared/format/format';
+import { Note } from '@shared/note/note';
 import { Term } from '@shared/term/term';
 import { DatasetConversation } from '../../components/conversation/conversation';
 import {
@@ -66,6 +67,7 @@ const PREFERRED_SPLIT = 'train';
     MatProgressBar,
     MatSelect,
     MatSlideToggle,
+    Note,
     RouterLink,
     Term,
     TranslatePipe,

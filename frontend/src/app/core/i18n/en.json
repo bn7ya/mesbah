@@ -54,6 +54,7 @@
   },
   "actions": {
     "cancel": "Cancel",
+    "stop": "Stop",
     "retry": "Try again",
     "save": "Save changes"
   },

@@ -1,10 +1,7 @@
 @if (canWrite()) {
   <form class="composer" novalidate (ngSubmit)="send()">
     @if (failure(); as problem) {
-      <p class="composer__failure" role="alert">
-        <mat-icon fontIcon="fa-circle-exclamation" />
-        {{ problem.message }}
-      </p>
+      <app-note kind="error">{{ problem.message }}</app-note>
     }
 
     <div class="composer__row">

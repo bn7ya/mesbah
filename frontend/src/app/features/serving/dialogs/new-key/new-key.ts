@@ -10,11 +10,11 @@ import {
   MatDialogTitle,
 } from '@angular/material/dialog';
 import { MatError, MatFormField, MatHint, MatLabel } from '@angular/material/form-field';
-import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 
 import type { ApiError } from '@core/http/api.types';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { Note } from '@shared/note/note';
 import { CopyButton } from '../../components/copy-button/copy-button';
 import { NAME_MAX, type CreatedApiKey } from '../../data/serving.types';
 import { ServingStore } from '../../state/serving.store';
@@ -32,9 +32,9 @@ import { ServingStore } from '../../state/serving.store';
     MatError,
     MatFormField,
     MatHint,
-    MatIcon,
     MatInput,
     MatLabel,
+    Note,
     TranslatePipe,
   ],
   templateUrl: './new-key.html',

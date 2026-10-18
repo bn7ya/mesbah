@@ -9,22 +9,6 @@
   }
 }
 
-.changes__failure {
-  display: flex;
-  gap: var(--app-space-3);
-  align-items: center;
-  padding: var(--app-space-3) var(--app-space-4);
-  color: var(--mat-sys-on-error-container);
-  background: var(--mat-sys-error-container);
-  border-radius: var(--mat-sys-corner-small);
-}
-
-.changes__note {
-  display: flex;
-  gap: var(--app-space-3);
-  align-items: flex-start;
-}
-
 .changes__summary {
   display: flex;
   flex-direction: column;
@@ -74,7 +58,6 @@
 
 .changes__map-title {
   margin: 0;
-  font: var(--mat-sys-title-medium);
 }
 
 .changes__legend {

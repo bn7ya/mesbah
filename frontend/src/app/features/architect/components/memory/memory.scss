@@ -7,7 +7,6 @@
   flex-direction: column;
   gap: var(--app-space-4);
 
-  h3,
   h4,
   p {
     margin: 0;
@@ -18,10 +17,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--app-space-1);
-
-  h3 {
-    font: var(--mat-sys-title-medium);
-  }
 }
 
 .memory__options {
@@ -38,7 +33,7 @@
 }
 
 .memory__name {
-  font: var(--mat-sys-title-small);
+  font: var(--mat-sys-label-large);
   color: var(--mat-sys-on-surface-variant);
 }
 
@@ -55,17 +50,6 @@
 
 .memory__caption {
   font: var(--mat-sys-body-medium);
-}
-
-.memory__verdict {
-  display: inline-flex;
-  gap: var(--app-space-2);
-  align-items: center;
-  font: var(--mat-sys-label-large);
-}
-
-.memory__verdict--error {
-  color: var(--mat-sys-error);
 }
 
 .memory__parts {
@@ -93,16 +77,6 @@
     margin: 0;
     font-variant-numeric: tabular-nums;
   }
-}
-
-.memory__note {
-  display: flex;
-  gap: var(--app-space-3);
-  align-items: flex-start;
-  padding: var(--app-space-4);
-  color: var(--mat-sys-on-secondary-container);
-  background: var(--mat-sys-secondary-container);
-  border-radius: var(--mat-sys-corner-medium);
 }
 
 .memory__available {

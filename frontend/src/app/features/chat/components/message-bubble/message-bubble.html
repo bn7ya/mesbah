@@ -159,13 +159,13 @@
           }
           @if (item.content_edited_at) {
             <button mat-menu-item type="button" (click)="restore('content')">
-              <mat-icon fontIcon="fa-rotate-left" />
+              <mat-icon fontIcon="fa-rotate-left" class="mat-icon-rtl-mirror" />
               <span>{{ 'chat.menu.restoreReply' | t }}</span>
             </button>
           }
           @if (item.thinking_edited_at) {
             <button mat-menu-item type="button" (click)="restore('thinking')">
-              <mat-icon fontIcon="fa-rotate-left" />
+              <mat-icon fontIcon="fa-rotate-left" class="mat-icon-rtl-mirror" />
               <span>{{ 'chat.menu.restoreThinking' | t }}</span>
             </button>
           }

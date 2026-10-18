@@ -35,6 +35,14 @@ html {
       border-width: var(--app-focus-width),
     )
   );
+
+  // A panel opens inside a card or a message, so tone sets it apart rather than a shadow.
+  @include mat.expansion-overrides(
+    (
+      container-elevation-shadow: var(--mat-sys-level0),
+      container-background-color: var(--mat-sys-surface-container-low),
+    )
+  );
 }
 
 // Arabic is a joined script: tracking breaks the joins, so every type step sets it at zero.

@@ -19,6 +19,7 @@ import { firstValueFrom } from 'rxjs';
 
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { Note } from '@shared/note/note';
 import { Breakdown } from '../../components/breakdown/breakdown';
 import { DesignerForm } from '../../components/designer-form/designer-form';
 import { TrainingMemory } from '../../components/memory/memory';
@@ -38,6 +39,7 @@ import { ArchitectStore } from '../../state/architect.store';
     MatDivider,
     MatIcon,
     MatProgressBar,
+    Note,
     StartingPoints,
     TrainingMemory,
     TranslatePipe,

@@ -11,8 +11,10 @@ import { firstValueFrom } from 'rxjs';
 
 import { LocaleStore } from '@core/i18n/locale.store';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { EmptyState } from '@shared/empty-state/empty-state';
 import { CompactPipe } from '@shared/format/compact.pipe';
 import { DateTimePipe } from '@shared/format/datetime.pipe';
+import { Note } from '@shared/note/note';
 import { VersionNamePipe } from '@shared/version/version-name.pipe';
 import { NewProjectDialog } from '../../dialogs/new-project/new-project';
 import { ProjectsStore } from '../../state/projects.store';
@@ -22,11 +24,13 @@ import { ProjectsStore } from '../../state/projects.store';
   imports: [
     CompactPipe,
     DateTimePipe,
+    EmptyState,
     MatButton,
     MatCard,
     MatIcon,
     MatPaginator,
     MatProgressBar,
+    Note,
     RouterLink,
     TranslatePipe,
     VersionNamePipe,

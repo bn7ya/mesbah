@@ -29,10 +29,7 @@
         </div>
       } @else if (error(); as failure) {
         <div class="chat__choose">
-          <p class="chat__failure" role="alert">
-            <mat-icon fontIcon="fa-circle-exclamation" />
-            {{ failure.message }}
-          </p>
+          <app-note kind="error">{{ failure.message }}</app-note>
           <div class="chat__failure-actions">
             @if (failure.code !== 'not_found') {
               <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>

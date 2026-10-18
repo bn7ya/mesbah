@@ -1,7 +1,7 @@
 @use "layout" as *;
 
 :host {
-  --branch-indent: var(--app-space-3);
+  --branch-indent: var(--app-space-2);
   --branch-gap: var(--app-space-3);
   --branch-connector: var(--app-space-7);
 
@@ -17,6 +17,10 @@
   margin: 0;
   margin-inline-start: var(--branch-indent);
   list-style: none;
+}
+
+.branch__children--flat {
+  --branch-indent: 0;
 }
 
 .branch__item {
@@ -39,6 +43,11 @@
     inline-size: var(--branch-indent);
     content: "";
     border-block-start: var(--app-hairline) solid var(--mat-sys-outline-variant);
+  }
+
+  .branch__children--flat > &::before,
+  .branch__children--flat > &::after {
+    display: none;
   }
 
   &:last-child::before {

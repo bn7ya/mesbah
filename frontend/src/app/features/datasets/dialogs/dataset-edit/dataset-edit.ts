@@ -11,11 +11,11 @@ import {
   MatDialogTitle,
 } from '@angular/material/dialog';
 import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
-import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 
 import type { ApiError } from '@core/http/api.types';
 import { TranslatePipe } from '@core/i18n/translate.pipe';
+import { Note } from '@shared/note/note';
 import type { EditDialogData } from '../../data/datasets.types';
 import { DatasetsStore } from '../../state/datasets.store';
 
@@ -30,9 +30,9 @@ import { DatasetsStore } from '../../state/datasets.store';
     MatDialogTitle,
     MatError,
     MatFormField,
-    MatIcon,
     MatInput,
     MatLabel,
+    Note,
     TranslatePipe,
   ],
   templateUrl: './dataset-edit.html',

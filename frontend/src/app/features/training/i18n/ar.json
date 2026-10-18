@@ -316,8 +316,7 @@
       "optimizer": "خوارزمية التحسين",
       "warmup": "نسبة الإحماء",
       "device": "تم التدريب على",
-      "processor": "المعالج",
-      "gpu": "GPU {list}"
+      "processor": "المعالج"
     }
   },
   "errors": {

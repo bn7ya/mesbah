@@ -3,7 +3,14 @@ import { Injectable, inject } from '@angular/core';
 import type { Observable } from 'rxjs';
 
 import type { Page } from '@core/http/api.types';
-import { PAGE_SIZE, type Version, type VersionChange } from './versions.types';
+import {
+  PAGE_SIZE,
+  type NewExport,
+  type Version,
+  type VersionChange,
+  type VersionChanges,
+  type VersionExport,
+} from './versions.types';
 
 @Injectable({ providedIn: 'root' })
 export class VersionsApi {
@@ -25,5 +32,26 @@ export class VersionsApi {
 
   remove(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/${id}/`);
+  }
+
+  changes(id: string): Observable<VersionChanges> {
+    return this.http.get<VersionChanges>(`${this.base}/${id}/changes/`);
+  }
+
+  exports(version: string, page: number): Observable<Page<VersionExport>> {
+    const params = new HttpParams({ fromObject: { page, page_size: PAGE_SIZE } });
+    return this.http.get<Page<VersionExport>>(`${this.base}/${version}/exports/`, { params });
+  }
+
+  createExport(version: string, request: NewExport): Observable<VersionExport> {
+    return this.http.post<VersionExport>(`${this.base}/${version}/exports/`, request);
+  }
+
+  removeExport(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/exports/${id}/`);
+  }
+
+  downloadUrl(id: string): string {
+    return `${this.base}/exports/${id}/download/`;
   }
 }

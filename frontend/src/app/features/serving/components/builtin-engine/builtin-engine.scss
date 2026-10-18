@@ -1,0 +1,116 @@
+@use "layout" as *;
+
+:host {
+  display: block;
+}
+
+.builtin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+}
+
+.builtin__heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+
+  h2,
+  p {
+    margin: 0;
+  }
+}
+
+.builtin__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-5);
+  padding: var(--app-space-6);
+
+  p {
+    margin: 0;
+  }
+}
+
+.builtin__status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2) var(--app-space-4);
+  align-items: center;
+}
+
+.builtin__state {
+  display: inline-flex;
+  gap: var(--app-space-2);
+  align-items: center;
+  font: var(--mat-sys-title-medium);
+}
+
+.builtin__tag {
+  display: inline-flex;
+  gap: var(--app-space-1);
+  align-items: center;
+  font: var(--mat-sys-label-large);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.builtin__stopped {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+}
+
+.builtin__note-title {
+  font: var(--mat-sys-title-medium);
+}
+
+.builtin__steps {
+  display: grid;
+  gap: var(--app-space-5);
+  margin-block-start: var(--app-space-3);
+}
+
+.builtin__step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+  min-inline-size: 0;
+}
+
+.builtin__facts {
+  display: grid;
+  gap: var(--app-space-4) var(--app-space-6);
+  margin: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, #{$column-min * 2}), 1fr));
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-1);
+    min-inline-size: 0;
+  }
+
+  dt {
+    display: flex;
+    align-items: center;
+    min-block-size: calc(var(--app-icon-box) + var(--app-space-2));
+    font: var(--mat-sys-label-large);
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--app-space-1) var(--app-space-2);
+    align-items: center;
+    margin: 0;
+    font: var(--mat-sys-body-large);
+    overflow-wrap: anywhere;
+  }
+}
+
+.builtin__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+}

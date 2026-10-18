@@ -17,19 +17,18 @@
       </mat-chip-set>
     }
 
-    @if (canWrite()) {
-      <button
-        matIconButton
-        type="button"
-        class="row__menu"
-        [matMenuTriggerFor]="menu"
-        [disabled]="busy()"
-        [attr.aria-label]="'versions.row.actionsFor' | t: { name: label() }"
-      >
-        <mat-icon fontIcon="fa-ellipsis-vertical" />
-      </button>
-      <mat-menu #menu="matMenu">
-        @let blocker = removeBlocker();
+    <button
+      matIconButton
+      type="button"
+      class="row__menu"
+      [matMenuTriggerFor]="menu"
+      [disabled]="busy()"
+      [attr.aria-label]="'versions.row.actionsFor' | t: { name: label() }"
+    >
+      <mat-icon fontIcon="fa-ellipsis-vertical" />
+    </button>
+    <mat-menu #menu="matMenu">
+      @if (canWrite()) {
         <button
           mat-menu-item
           type="button"
@@ -45,6 +44,23 @@
           <mat-icon fontIcon="fa-pen" />
           <span>{{ 'versions.menu.rename' | t }}</span>
         </button>
+        <mat-divider />
+      }
+      <button mat-menu-item type="button" (click)="showChanges()">
+        <mat-icon fontIcon="fa-table-cells" />
+        <span>{{ 'versions.menu.changes' | t }}</span>
+      </button>
+      <button mat-menu-item type="button" (click)="showExports()">
+        <mat-icon fontIcon="fa-box-archive" />
+        <span>{{ 'versions.menu.exports' | t }}</span>
+      </button>
+      @if (canWrite()) {
+        @let blocker = removeBlocker();
+        <button mat-menu-item type="button" (click)="exportVersion()">
+          <mat-icon fontIcon="fa-file-export" />
+          <span>{{ 'versions.menu.export' | t }}</span>
+        </button>
+        <mat-divider />
         <button
           mat-menu-item
           type="button"
@@ -56,8 +72,8 @@
           <mat-icon fontIcon="fa-trash" />
           <span>{{ 'versions.menu.remove' | t }}</span>
         </button>
-      </mat-menu>
-    }
+      }
+    </mat-menu>
   </div>
 
   <p class="row__kind text-secondary">

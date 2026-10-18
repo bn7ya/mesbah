@@ -65,6 +65,28 @@ class VersionService:
             "created_by": version.created_by.get_username() if version.created_by else None,
         }
 
+    def changes(self, version_id: str) -> dict[str, Any]:
+        version: ModelVersion = self.find(version_id)
+        stats: dict[str, Any] = version.delta_stats or {}
+        grid: dict[int, dict[str, float]] = {}
+        modules: set[str] = set()
+        for entry in stats.get("layers", []):
+            layer: object = entry.get("layer")
+            module: object = entry.get("module")
+            norm: object = entry.get("norm")
+            if isinstance(layer, int) and isinstance(module, str) and isinstance(norm, int | float):
+                grid.setdefault(layer, {})[module] = float(norm)
+                modules.add(module)
+        return {
+            "version": version.pk,
+            "modules": sorted(modules),
+            "layers": [{"layer": layer, "norms": grid[layer]} for layer in sorted(grid)],
+            "total_norm": stats.get("total_norm"),
+            "change_from_parent": stats.get("change_from_parent"),
+            "parameters": stats.get("parameters"),
+            "rank": stats.get("rank"),
+        }
+
     def create_root(self, project: Project) -> ModelVersion:
         root: ModelVersion = self.versions.create(
             created_by=self._actor(),

@@ -64,6 +64,7 @@ LOCAL_APPS: list[str] = [
     "apps.members",
     "apps.models",
     "apps.projects",
+    "apps.serving",
     "apps.system",
     "apps.versions",
 ]
@@ -168,6 +169,14 @@ SPECTACULAR_SETTINGS: dict[str, Any] = {
     "SCHEMA_PATH_PREFIX": "/api",
     "COMPONENT_SPLIT_REQUEST": True,
     "SORT_OPERATIONS": False,
+    # Several slices have a `role` or a `status`; each set of choices gets its own name.
+    "ENUM_NAME_OVERRIDES": {
+        "ExportFormatEnum": "apps.versions.models.Export.Format",
+        "MemberRoleEnum": "apps.members.roles.LADDER",
+        "MessageRoleEnum": ["system", "user", "assistant"],
+        "ModelFamilyEnum": "apps.models.models.HubModel.Family",
+        "ModelStatusEnum": "apps.models.models.HubModel.Status",
+    },
 }
 
 
@@ -213,6 +222,9 @@ MEDIA_ROOT: Path = BASE_DIR / "media"
 MESBAH_DATA_DIR: Path = data_dir()
 # The built Angular app, served by Django itself when Mesbah runs without nginx.
 MESBAH_SPA_DIR: Path | None = None
+# The built-in engine (ADR-005): `mesbah start` picks both; compose names the `runtime` service.
+MESBAH_RUNTIME_URL: str = env("MESBAH_RUNTIME_URL", "http://127.0.0.1:8078")
+MESBAH_RUNTIME_TOKEN: str = env("MESBAH_RUNTIME_TOKEN", "")
 
 STORAGES: dict[str, Any] = {
     "default": {

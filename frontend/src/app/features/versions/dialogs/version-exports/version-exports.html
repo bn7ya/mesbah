@@ -1,0 +1,54 @@
+<h2 mat-dialog-title>{{ 'versions.exports.title' | t: { name: label } }}</h2>
+
+<mat-dialog-content class="exports">
+  <p class="text-secondary">{{ 'versions.exports.intro' | t }}</p>
+
+  @if (loadFailure(); as problem) {
+    <p class="exports__failure" role="alert">
+      <mat-icon fontIcon="fa-circle-exclamation" />
+      {{ problem.message }}
+    </p>
+    <div>
+      <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
+    </div>
+  }
+
+  @if (error(); as problem) {
+    <p class="exports__failure" role="alert">
+      <mat-icon fontIcon="fa-circle-exclamation" />
+      {{ problem.message }}
+    </p>
+  }
+
+  @if (loading() && exports().length === 0) {
+    <mat-progress-bar mode="indeterminate" [attr.aria-label]="'versions.exports.loading' | t" />
+  }
+
+  @if (empty()) {
+    <div class="exports__empty">
+      <mat-icon fontIcon="fa-box-open" />
+      <div>
+        <p>{{ 'versions.exports.empty' | t }}</p>
+        <p class="text-secondary">{{ 'versions.exports.emptyHint' | t }}</p>
+      </div>
+    </div>
+  }
+
+  <ul class="exports__list" [attr.aria-label]="'versions.exports.list' | t" [attr.aria-busy]="loading()">
+    @for (row of exports(); track row.id) {
+      <li>
+        <app-export-item [item]="row" />
+      </li>
+    }
+  </ul>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button matButton type="button" [mat-dialog-close]="false">{{ 'versions.close' | t }}</button>
+  @if (canWrite()) {
+    <button matButton="filled" type="button" (click)="newExport()">
+      <mat-icon fontIcon="fa-plus" />
+      {{ 'versions.exports.new' | t }}
+    </button>
+  }
+</mat-dialog-actions>

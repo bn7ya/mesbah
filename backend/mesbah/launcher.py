@@ -14,7 +14,7 @@ from pathlib import Path
 from types import FrameType
 from typing import TYPE_CHECKING
 
-from mesbah import __version__
+from mesbah import __version__, parts
 from mesbah.paths import ensure
 from mesbah.server import LOCAL_SETTINGS, python_path, server_root, spa_dir
 
@@ -26,6 +26,8 @@ STOP_TIMEOUT: float = 10.0
 POLL_SECONDS: float = 1.0
 MANAGE_TIMEOUT: float = 600.0
 WORKER_THREADS: int = 4
+ENGINE_PARTS: tuple[str, ...] = ("torch", "transformers", "peft", "starlette")
+OPTIONAL: frozenset[str] = frozenset({"engine"})
 
 
 @dataclass(frozen=True)
@@ -36,6 +38,7 @@ class Options:
     database_url: str | None
     open_browser: bool
     owns_database: bool = True
+    engine_port: int = 8078
 
 
 @dataclass
@@ -85,6 +88,8 @@ class Launcher:
             "DJANGO_SECRET_KEY": os.environ.get("DJANGO_SECRET_KEY") or secret_key(data),
             "DJANGO_ALLOWED_HOSTS": ",".join({self.options.host, "localhost", "127.0.0.1"}),
             "MESBAH_ORIGINS": ",".join(dict.fromkeys(origins)),
+            "MESBAH_RUNTIME_URL": f"http://127.0.0.1:{self.options.engine_port}",
+            "MESBAH_RUNTIME_TOKEN": secrets.token_urlsafe(32),
         }
         built: Path | None = spa_dir()
         if built is not None:
@@ -142,7 +147,33 @@ class Launcher:
                 "--loglevel",
                 "warning",
             ],
+            "trainer": [
+                sys.executable,
+                "-m",
+                "celery",
+                "-A",
+                "config",
+                "worker",
+                "--queues",
+                "heavy",
+                "--pool",
+                "solo",
+                "--hostname",
+                "heavy@%h",
+                "--loglevel",
+                "warning",
+            ],
         }
+        if engine_installed():
+            commands["engine"] = [
+                sys.executable,
+                "-m",
+                "mesbah.runtime",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                str(self.options.engine_port),
+            ]
         for name, command in commands.items():
             self.processes[name] = subprocess.Popen(  # noqa: S603
                 command, env=environment, cwd=server_root()
@@ -151,7 +182,11 @@ class Launcher:
     def wait_until_healthy(self) -> bool:
         deadline: float = time.monotonic() + HEALTH_TIMEOUT
         while time.monotonic() < deadline:
-            if any(process.poll() is not None for process in self.processes.values()):
+            if any(
+                process.poll() is not None
+                for name, process in self.processes.items()
+                if name not in OPTIONAL
+            ):
                 return False
             try:
                 with urllib.request.urlopen(f"{self.address}/api/health/", timeout=2) as reply:  # noqa: S310
@@ -165,6 +200,10 @@ class Launcher:
     def announce(self, environment: dict[str, str]) -> None:
         print(f"\nMesbah {__version__} is running at {self.address}")
         print(f"Data: {environment['MESBAH_DATA_DIR']}")
+        if "engine" in self.processes:
+            print(f"Built-in engine: {environment['MESBAH_RUNTIME_URL']}")
+        else:
+            print('Built-in engine: off. Install it with: pip install "mesbah[train]"')
         try:
             code: str = self.manage(environment, "setup_code")
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
@@ -178,10 +217,13 @@ class Launcher:
 
     def supervise(self) -> int:
         while True:
-            for name, process in self.processes.items():
-                if process.poll() is not None:
-                    print(f"The {name} process stopped unexpectedly.", file=sys.stderr)
+            for name, process in list(self.processes.items()):
+                if process.poll() is None:
+                    continue
+                print(f"The {name} process stopped unexpectedly.", file=sys.stderr)
+                if name not in OPTIONAL:
                     return 1
+                del self.processes[name]
             time.sleep(POLL_SECONDS)
 
     def stop(self) -> None:
@@ -200,6 +242,10 @@ class Launcher:
             if self.options.owns_database:
                 self.database.stop()
             self.database = None
+
+
+def engine_installed() -> bool:
+    return all(parts.installed(name) is not None for name in ENGINE_PARTS)
 
 
 def interrupt(signum: int, frame: FrameType | None) -> None:

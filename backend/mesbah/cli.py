@@ -15,6 +15,7 @@ from mesbah.paths import DATA_DIR_ENV, data_dir
 from mesbah.server import LOCAL_SETTINGS, python_path, server_root
 
 DEFAULT_PORT: int = 8077
+DEFAULT_ENGINE_PORT: int = 8078
 GIB: int = 1024**3
 CUDA_INDEX: str = "https://download.pytorch.org/whl/cu130"
 
@@ -56,6 +57,12 @@ def build_parser() -> argparse.ArgumentParser:
     start_parser.add_argument(
         "--no-browser", action="store_true", help="do not open a browser window"
     )
+    start_parser.add_argument(
+        "--engine-port",
+        type=int,
+        default=DEFAULT_ENGINE_PORT,
+        help="port of the built-in engine, on this machine only",
+    )
 
     doctor_parser: argparse.ArgumentParser = commands.add_parser(
         "doctor", help="check this machine and the installation"
@@ -77,6 +84,7 @@ def start(options: argparse.Namespace) -> int:
             data_dir=data_dir(),
             database_url=getattr(options, "database_url", None),
             open_browser=not getattr(options, "no_browser", False),
+            engine_port=getattr(options, "engine_port", DEFAULT_ENGINE_PORT),
         )
     )
     return launcher.run()

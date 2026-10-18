@@ -1,0 +1,60 @@
+:host {
+  display: flex;
+  flex-direction: column;
+}
+
+.map {
+  flex: 0 1 auto;
+  min-block-size: 0;
+  overflow: auto;
+}
+
+.map__table {
+  border-spacing: 0;
+  font: var(--mat-sys-label-medium);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.map__head {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+}
+
+.map__corner,
+.map__group,
+.map__module,
+.map__layer {
+  padding: var(--app-space-1) var(--app-space-2);
+  font: var(--mat-sys-label-medium);
+  color: var(--mat-sys-on-surface-variant);
+  white-space: nowrap;
+  background: var(--mat-dialog-container-color, var(--mat-sys-surface-container-high));
+}
+
+.map__module {
+  border-block-end: var(--app-hairline) solid var(--mat-sys-outline-variant);
+}
+
+.map__corner,
+.map__layer {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  text-align: start;
+}
+
+.map__cell {
+  padding: calc(var(--app-space-1) / 2);
+}
+
+.map__tile {
+  display: block;
+  min-inline-size: var(--app-space-9);
+  padding: var(--app-space-2);
+  color: var(--mat-sys-on-surface);
+  background: color-mix(in oklab, var(--mat-sys-primary) var(--tint), var(--mat-sys-surface));
+  border: var(--app-hairline) solid var(--mat-sys-outline-variant);
+  border-radius: var(--mat-sys-corner-extra-small);
+}

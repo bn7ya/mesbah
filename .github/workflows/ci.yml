@@ -130,6 +130,32 @@ jobs:
       - name: Tests
         run: pytest --cov=apps --cov-report=term-missing
 
+  # The built-in engine, the trainer and the exporters on real (tiny) models, on the CPU. The
+  # backend job runs without torch, so these are skipped there.
+  ml:
+    name: Engine, trainer and exports
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+      DJANGO_SECRET_KEY: ci-only-not-a-secret
+      POSTGRES_HOST: localhost
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install
+        run: |
+          pip install "uv>=0.9,<1"
+          uv pip install --system torch --index-url https://download.pytorch.org/whl/cpu
+          uv pip install --system -r pyproject.toml --extra dev --extra train --extra gguf
+      - name: Tests that need torch
+        run: pytest -m ml mesbah
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest

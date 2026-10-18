@@ -3,6 +3,7 @@ import { MatIconButton } from '@angular/material/button';
 import { MatCard } from '@angular/material/card';
 import { MatChip, MatChipAvatar, MatChipSet } from '@angular/material/chips';
 import { MatDialog } from '@angular/material/dialog';
+import { MatDivider } from '@angular/material/divider';
 import { MatIcon } from '@angular/material/icon';
 import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
 import { MatProgressBar } from '@angular/material/progress-bar';
@@ -19,10 +20,20 @@ import { CompactPipe } from '@shared/format/compact.pipe';
 import { DateTimePipe } from '@shared/format/datetime.pipe';
 import { formatNumber, formatPercent, formatSignificant } from '@shared/format/format';
 import { Term } from '@shared/term/term';
-import { VersionNamePipe, versionName } from '@shared/version/version-name.pipe';
-import { SLIVER, type RenameDialogData, type SizeShare, type Version } from '../../data/versions.types';
+import { VersionNamePipe } from '@shared/version/version-name.pipe';
+import {
+  SLIVER,
+  type RenameDialogData,
+  type SizeShare,
+  type Version,
+  type VersionDialogData,
+} from '../../data/versions.types';
+import { ExportVersionDialog } from '../../dialogs/export-version/export-version';
 import { RenameVersionDialog } from '../../dialogs/rename-version/rename-version';
+import { VersionChangesDialog } from '../../dialogs/version-changes/version-changes';
+import { VersionExportsDialog } from '../../dialogs/version-exports/version-exports';
 import { VersionsStore } from '../../state/versions.store';
+import { versionLabel } from '../../state/version-label';
 
 @Component({
   selector: 'app-version-row',
@@ -34,6 +45,7 @@ import { VersionsStore } from '../../state/versions.store';
     MatChip,
     MatChipAvatar,
     MatChipSet,
+    MatDivider,
     MatIcon,
     MatIconButton,
     MatMenu,
@@ -63,7 +75,7 @@ export class VersionRow {
   readonly expert = this.ui.expert;
 
   readonly busy = computed(() => this.store.working().includes(this.version().id));
-  readonly label = computed(() => `v${this.version().number} · ${versionName(this.version(), this.locale)}`);
+  readonly label = computed(() => versionLabel(this.version(), this.locale));
 
   readonly share = computed<SizeShare | null>(() => {
     const { size_bytes, full_size_bytes } = this.version();
@@ -120,6 +132,41 @@ export class VersionRow {
     });
     if (await firstValueFrom(reference.afterClosed())) {
       this.report('versions.renamed');
+    }
+  }
+
+  showChanges(): void {
+    this.dialog.open<VersionChangesDialog, VersionDialogData>(VersionChangesDialog, {
+      injector: this.injector,
+      data: { version: this.version() },
+      width: '52rem',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      autoFocus: 'dialog',
+    });
+  }
+
+  showExports(): void {
+    this.dialog.open<VersionExportsDialog, VersionDialogData>(VersionExportsDialog, {
+      injector: this.injector,
+      data: { version: this.version() },
+      width: '44rem',
+      maxWidth: '95vw',
+      autoFocus: 'dialog',
+    });
+  }
+
+  async exportVersion(): Promise<void> {
+    const reference = this.dialog.open<ExportVersionDialog, VersionDialogData, boolean>(ExportVersionDialog, {
+      injector: this.injector,
+      data: { version: this.version() },
+      width: '40rem',
+      maxWidth: '95vw',
+      autoFocus: 'first-tabbable',
+    });
+    if (await firstValueFrom(reference.afterClosed())) {
+      this.report('versions.export.started');
+      this.showExports();
     }
   }
 

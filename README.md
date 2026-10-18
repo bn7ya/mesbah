@@ -67,14 +67,48 @@ anywhere in this project — which is exactly how production behaves behind ngin
 `--watch` gives both sides hot reload: Angular rebuilds on a `src/` change,
 Django restarts on a Python change, and a dependency change rebuilds the image.
 
+Chatting with a model and training need the built-in engine and the trainer, which carry torch.
+They are the `ml` profile, on the CPU; the GPU overlay puts them on the NVIDIA GPUs (with the
+NVIDIA Container Toolkit installed):
+
+```bash
+docker compose --profile ml up --watch --build                    # CPU
+docker compose -f compose.yaml -f compose.gpu.yaml up --watch --build   # GPU
+```
+
 Production:
 
 ```bash
 docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+docker compose -f compose.yaml -f compose.prod.yaml -f compose.gpu.yaml up -d --build
 ```
 
 Angular is built once into a volume; nginx serves it and proxies the API. One
 origin, one port.
+
+## Using a version from other tools
+
+Every project is a model on Mesbah's OpenAI- and Ollama-compatible APIs: `support-assistant`
+is its active version, `support-assistant:v3` a particular one. Make an API key on the Engines
+page, then:
+
+```python
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:8077/v1", api_key="msb_…")
+client.chat.completions.create(model="support-assistant", messages=[{"role": "user", "content": "مرحبا"}])
+```
+
+```python
+import ollama
+
+client = ollama.Client(host="http://localhost:8077/ollama", headers={"Authorization": "Bearer msb_…"})
+client.chat(model="support-assistant", messages=[{"role": "user", "content": "مرحبا"}])
+```
+
+A version also exports as a LoRA folder (vLLM, PEFT), merged weights (any engine) or a GGUF file
+with a Modelfile (llama.cpp, Ollama), and vLLM, Ollama, llama.cpp or any OpenAI-compatible server
+can be connected as the engine that answers in the chat.
 
 ## The design pattern
 

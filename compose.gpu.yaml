@@ -1,0 +1,33 @@
+# GPU overlay: the built-in engine and the trainer on this machine's NVIDIA GPUs, with a CUDA
+# build of torch.
+# Needs the NVIDIA Container Toolkit.
+#
+#   docker compose -f compose.yaml -f compose.gpu.yaml up --watch --build
+#   docker compose -f compose.yaml -f compose.prod.yaml -f compose.gpu.yaml up -d --build
+
+services:
+  runtime:
+    profiles: !reset []
+    build:
+      args:
+        TORCH_INDEX: https://download.pytorch.org/whl/cu130
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  worker-heavy:
+    profiles: !reset []
+    build:
+      args:
+        TORCH_INDEX: https://download.pytorch.org/whl/cu130
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

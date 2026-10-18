@@ -10,7 +10,7 @@ import { errorInterceptor } from '@core/http/error.interceptor';
 import { LocaleStore } from '@core/i18n/locale.store';
 import { ActiveVersionChanges } from '@shared/version/active-version-changes';
 import type { ActiveVersionChange } from '@shared/version/version.types';
-import type { Version } from '../data/versions.types';
+import type { Version, VersionChanges, VersionExport } from '../data/versions.types';
 import ar from '../i18n/ar.json';
 import en from '../i18n/en.json';
 import { VersionsStore } from './versions.store';
@@ -42,6 +42,41 @@ function version(id: string, number: number, parent: string | null, overrides: P
 function page(rows: Version[], overrides: Partial<Page<Version>> = {}): Page<Version> {
   return { count: rows.length, next: null, previous: null, results: rows, ...overrides };
 }
+
+function exportRow(id: string, status: VersionExport['status'], overrides: Partial<VersionExport> = {}): VersionExport {
+  return {
+    id,
+    version: 'v1',
+    format: 'gguf',
+    out_type: 'q8_0',
+    status,
+    error_code: '',
+    path: status === 'ready' ? `/data/exports/${id}/model.gguf` : '',
+    size_bytes: status === 'ready' ? 14_000_000 : 0,
+    downloadable: status === 'ready',
+    created_at: '2026-10-18T10:00:00Z',
+    finished_at: status === 'ready' ? '2026-10-18T10:01:00Z' : null,
+    created_by: 'tariq',
+    ...overrides,
+  };
+}
+
+function exportsPage(rows: VersionExport[]): Page<VersionExport> {
+  return { count: rows.length, next: null, previous: null, results: rows };
+}
+
+const CHANGES: VersionChanges = {
+  version: 'v1',
+  modules: ['down_proj', 'k_proj', 'q_proj'],
+  layers: [
+    { layer: 0, norms: { down_proj: 0.1, k_proj: 0.4, q_proj: 0.8 } },
+    { layer: 1, norms: { down_proj: 0.2, k_proj: 0.5, q_proj: 1.0 } },
+  ],
+  total_norm: 1.4,
+  change_from_parent: null,
+  parameters: 54_016,
+  rank: 16,
+};
 
 const TREE: Version[] = [
   version('v0', 0, null, { is_active: true }),
@@ -265,5 +300,242 @@ describe('VersionsStore', () => {
   it('lets trainers and above change the tree, and no one below', () => {
     expect(store.canWrite()).toBe(true);
     expect(asked).toEqual([['trainers', 'admins']]);
+  });
+  describe('what changed', () => {
+    it('loads the change of the version being looked at and draws it as a map', async () => {
+      store.showChanges('v1');
+      await settle();
+      expect(store.changesLoading()).toBe(true);
+      backend.expectOne('/api/versions/v1/changes/').flush(CHANGES);
+      await settle();
+
+      expect(store.changesLoading()).toBe(false);
+      expect(store.versionChanges()?.rank).toBe(16);
+      expect(store.changeMap()?.modules).toEqual(['q_proj', 'k_proj', 'down_proj']);
+      expect(store.changeMap()?.rows).toHaveLength(2);
+    });
+
+    it('forgets the change when the dialog closes', async () => {
+      store.showChanges('v1');
+      await settle();
+      backend.expectOne('/api/versions/v1/changes/').flush(CHANGES);
+      await settle();
+
+      store.forgetChanges();
+      await settle();
+
+      expect(store.versionChanges()).toBeNull();
+      expect(store.changeMap()).toBeNull();
+    });
+
+    it('reports a change that could not load and loads again on request', async () => {
+      store.showChanges('v1');
+      await settle();
+      backend
+        .expectOne('/api/versions/v1/changes/')
+        .flush({ error: { code: 'not_found', message: 'Not found.' } }, { status: 404, statusText: 'Not Found' });
+      await settle();
+
+      expect(store.changesLoadError()?.code).toBe('not_found');
+
+      store.reloadChanges();
+      await settle();
+      backend.expectOne('/api/versions/v1/changes/').flush(CHANGES);
+      await settle();
+
+      expect(store.changesLoadError()).toBeNull();
+      expect(store.changeMap()?.rows).toHaveLength(2);
+    });
+  });
+
+  describe('exports', () => {
+    const EXPORTS = '/api/versions/v1/exports/';
+
+    function exportsList(): TestRequest {
+      return backend.expectOne((request) => request.url === EXPORTS && request.method === 'GET');
+    }
+
+    async function showExports(rows: VersionExport[]): Promise<void> {
+      store.showExports('v1');
+      await settle();
+      exportsList().flush(exportsPage(rows));
+      await settle();
+    }
+
+    it('lists the exports of the version being looked at', async () => {
+      store.showExports('v1');
+      await settle();
+      const request = exportsList();
+      expect(request.request.params.get('page_size')).toBe('200');
+      expect(store.exportsLoading()).toBe(true);
+      request.flush(exportsPage([exportRow('e1', 'ready'), exportRow('e2', 'queued')]));
+      await settle();
+
+      expect(store.exportsLoading()).toBe(false);
+      expect(store.exportsLoaded()).toBe(true);
+      expect(store.exports().map((row) => row.id)).toEqual(['e1', 'e2']);
+      expect(store.unfinishedExports()).toBe(true);
+    });
+
+    it('starts an export and puts it at the top of the open list', async () => {
+      await showExports([exportRow('e1', 'ready')]);
+
+      const creating = store.createExport(TREE[1], { format: 'gguf', out_type: 'q8_0' });
+      const request = backend.expectOne((r) => r.method === 'POST');
+      expect(request.request.url).toBe(EXPORTS);
+      expect(request.request.body).toEqual({ format: 'gguf', out_type: 'q8_0' });
+      request.flush(exportRow('e2', 'queued'), { status: 202, statusText: 'Accepted' });
+
+      expect(await creating).toBeNull();
+      expect(store.exports().map((row) => row.id)).toEqual(['e2', 'e1']);
+      expect(store.unfinishedExports()).toBe(true);
+    });
+
+    it('sends only the format for a LoRA export', async () => {
+      const creating = store.createExport(TREE[1], { format: 'lora' });
+      const request = backend.expectOne((r) => r.method === 'POST');
+      expect(request.request.body).toEqual({ format: 'lora' });
+      request.flush(exportRow('e3', 'queued', { format: 'lora', out_type: '' }), { status: 202, statusText: 'Accepted' });
+
+      expect(await creating).toBeNull();
+    });
+
+    it('hands a refused export back to the dialog in the reader\'s language', async () => {
+      const locale = TestBed.inject(LocaleStore);
+      locale.register({ en, ar });
+      locale.setLocale('en');
+
+      const creating = store.createExport(TREE[0], { format: 'lora' });
+      backend
+        .expectOne((r) => r.method === 'POST')
+        .flush({ error: { code: 'not_exportable', message: 'raw' } }, { status: 409, statusText: 'Conflict' });
+
+      const failure = await creating;
+      expect(failure?.code).toBe('not_exportable');
+      expect(failure?.message).toBe(en.errors.not_exportable);
+    });
+
+    it('polls every three seconds while an export is unfinished, and stops when it is done', async () => {
+      await showExports([exportRow('e1', 'running')]);
+      const watching = store.watchExports().subscribe();
+      await settle();
+
+      await vi.advanceTimersByTimeAsync(2999);
+      backend.expectNone(EXPORTS);
+
+      await vi.advanceTimersByTimeAsync(1);
+      exportsList().flush(exportsPage([exportRow('e1', 'running')]));
+      await settle();
+      expect(store.exports()[0].status).toBe('running');
+
+      await vi.advanceTimersByTimeAsync(3000);
+      exportsList().flush(exportsPage([exportRow('e1', 'ready')]));
+      await settle();
+      expect(store.exports()[0].status).toBe('ready');
+      expect(store.unfinishedExports()).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(9000);
+      backend.expectNone(EXPORTS);
+      watching.unsubscribe();
+    });
+
+    it('does not poll when everything is finished', async () => {
+      await showExports([exportRow('e1', 'ready'), exportRow('e2', 'failed', { error_code: 'out_of_memory' })]);
+      const watching = store.watchExports().subscribe();
+      await settle();
+
+      await vi.advanceTimersByTimeAsync(9000);
+
+      backend.expectNone(EXPORTS);
+      watching.unsubscribe();
+    });
+
+    it('stops polling when the page leaves', async () => {
+      await showExports([exportRow('e1', 'queued')]);
+      const watching = store.watchExports().subscribe();
+      await settle();
+
+      watching.unsubscribe();
+      await vi.advanceTimersByTimeAsync(9000);
+
+      backend.expectNone(EXPORTS);
+    });
+
+    it('keeps the list when a poll fails and tries again at the next tick', async () => {
+      await showExports([exportRow('e1', 'running')]);
+      const watching = store.watchExports().subscribe();
+      await settle();
+
+      await vi.advanceTimersByTimeAsync(3000);
+      exportsList().flush({ error: { code: 'unknown', message: 'x' } }, { status: 500, statusText: 'Server Error' });
+      await settle();
+      expect(store.exports()).toHaveLength(1);
+      expect(store.exportsLoadError()).toBeNull();
+
+      await vi.advanceTimersByTimeAsync(3000);
+      exportsList().flush(exportsPage([exportRow('e1', 'ready')]));
+      await settle();
+      expect(store.exports()[0].status).toBe('ready');
+      watching.unsubscribe();
+    });
+
+    it('removes an export from the list and calls the server', async () => {
+      await showExports([exportRow('e1', 'ready'), exportRow('e2', 'ready')]);
+
+      const removing = store.removeExport(store.exports()[0]);
+      expect(store.exportsWorking()).toEqual(['e1']);
+      const request = backend.expectOne((r) => r.method === 'DELETE');
+      expect(request.request.url).toBe('/api/versions/exports/e1/');
+      request.flush(null, { status: 204, statusText: 'No Content' });
+
+      expect(await removing).toBe(true);
+      expect(store.exports().map((row) => row.id)).toEqual(['e2']);
+      expect(store.exportsWorking()).toEqual([]);
+    });
+
+    it('keeps the export and the reason when a removal is refused', async () => {
+      await showExports([exportRow('e1', 'ready')]);
+
+      const removing = store.removeExport(store.exports()[0]);
+      backend
+        .expectOne((r) => r.method === 'DELETE')
+        .flush({ error: { code: 'not_found', message: 'Not found.' } }, { status: 404, statusText: 'Not Found' });
+
+      expect(await removing).toBe(false);
+      expect(store.exportsError()?.code).toBe('not_found');
+      expect(store.exports()).toHaveLength(1);
+      expect(store.exportsWorking()).toEqual([]);
+    });
+
+    it('ignores a poll that began before a removal', async () => {
+      await showExports([exportRow('e1', 'running'), exportRow('e2', 'ready')]);
+      const watching = store.watchExports().subscribe();
+      await settle();
+
+      await vi.advanceTimersByTimeAsync(3000);
+      const stale = exportsList();
+      const removing = store.removeExport(store.exports()[1]);
+      backend.expectOne((r) => r.method === 'DELETE').flush(null, { status: 204, statusText: 'No Content' });
+      expect(await removing).toBe(true);
+      stale.flush(exportsPage([exportRow('e1', 'running'), exportRow('e2', 'ready')]));
+      await settle();
+
+      expect(store.exports().map((row) => row.id)).toEqual(['e1']);
+      watching.unsubscribe();
+    });
+
+    it('points a download at the file endpoint', () => {
+      expect(store.downloadUrl(exportRow('e1', 'ready'))).toBe('/api/versions/exports/e1/download/');
+    });
+
+    it('reports exports that could not load', async () => {
+      store.showExports('v1');
+      await settle();
+      exportsList().flush({ error: { code: 'not_found', message: 'Not found.' } }, { status: 404, statusText: 'Not Found' });
+      await settle();
+
+      expect(store.exportsLoadError()?.code).toBe('not_found');
+      expect(store.exports()).toEqual([]);
+    });
   });
 });

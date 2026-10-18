@@ -15,6 +15,9 @@ class HubModelRepository(BaseRepository[HubModel]):
     def find_by_repo(self, repo_id: str) -> HubModel | None:
         return self.active().filter(repo_id__iexact=repo_id).first()
 
+    def find_by_local_path(self, path: str) -> HubModel | None:
+        return self.active().filter(local_path=path).first()
+
     def by_repo(self, repo_ids: list[str]) -> dict[str, HubModel]:
         return {row.repo_id.lower(): row for row in self.active().filter(repo_id__in=repo_ids)}
 

@@ -66,6 +66,7 @@
     "open": "Open the menu",
     "projects": "Projects",
     "models": "Models",
+    "engines": "Engines",
     "system": "System",
     "members": "Members"
   },
@@ -150,6 +151,34 @@
     "adapter": {
       "term": "adapter",
       "explain": "The small file that holds a version's change. It is applied on top of the base model when the version runs."
+    },
+    "engine": {
+      "term": "Engine",
+      "explain": "A server that loads a model and answers messages. Mesbah has its own and can use others."
+    },
+    "quantization": {
+      "term": "Quantization",
+      "explain": "Stores the model's numbers with fewer bits, so it takes less memory. 4-bit needs about a quarter of the memory of 16-bit, with a small loss of quality."
+    },
+    "api_key": {
+      "term": "API key",
+      "explain": "A secret text that lets a tool use Mesbah. It works with the role of the person who made it."
+    },
+    "openai_api": {
+      "term": "OpenAI API",
+      "explain": "The request format many tools and libraries already use. Tools made for it work with Mesbah after changing the address and the key."
+    },
+    "gguf": {
+      "term": "GGUF",
+      "explain": "A single-file model format that Ollama and llama.cpp load. A version is exported to it before Ollama can run it."
+    },
+    "vllm": {
+      "term": "vLLM",
+      "explain": "A fast model server for GPUs. It can run on another machine, and Mesbah connects to it by its address."
+    },
+    "ollama": {
+      "term": "Ollama",
+      "explain": "A program that runs language models on a personal computer. Mesbah connects to it by its address."
     }
   },
   "paginator": {

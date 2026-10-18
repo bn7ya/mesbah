@@ -1,0 +1,26 @@
+:host {
+  display: block;
+  min-inline-size: 0;
+}
+
+.loaded {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.loaded__item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-3);
+  align-items: baseline;
+}
+
+.loaded__version {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+}

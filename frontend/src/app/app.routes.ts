@@ -47,6 +47,10 @@ export const routes: Routes = [
         loadChildren: () => import('@features/models/models.routes').then((m) => m.routes),
       },
       {
+        path: 'engines',
+        loadChildren: () => import('@features/serving/serving.routes').then((m) => m.routes),
+      },
+      {
         path: 'system',
         loadChildren: () => import('@features/system/system.routes').then((m) => m.routes),
       },

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from django.db.models import Count, Max, Q, QuerySet
 
 from apps.common.repositories import BaseRepository
@@ -29,6 +31,15 @@ class VersionRepository(BaseRepository[ModelVersion]):
             .aggregate(highest=Max("number"))["highest"]
         )
         return 0 if highest is None else highest + 1
+
+    def with_ids(self, ids: list[str]) -> QuerySet[ModelVersion]:
+        valid: list[UUID] = []
+        for value in ids:
+            try:
+                valid.append(UUID(value))
+            except ValueError:
+                continue
+        return self.active().filter(pk__in=valid).select_related("project")
 
     def children_of(self, version: ModelVersion) -> QuerySet[ModelVersion]:
         return self.active().filter(parent=version)

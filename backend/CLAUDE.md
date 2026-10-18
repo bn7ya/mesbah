@@ -150,20 +150,25 @@ counts as one; every scheduled backup is then pushed offsite, keeping
 
 ## Classes and methods in `config/`
 
-**`settings/base.py`** — everything every environment shares. `env()`, `env_bool()` and
-`env_list()` read the environment with a default. **`settings/dev.py`** adds the debug
-toolbar (`show_debug_toolbar()` reads `DEBUG` at request time) and console email;
-**`settings/prod.py`** adds the TLS, cookie and SMTP settings behind nginx.
+**`settings/base.py`** — everything every environment shares, Mesbah's data folder and the
+built-in engine's address and token (`MESBAH_RUNTIME_URL`, `MESBAH_RUNTIME_TOKEN`) included.
+`env()`, `env_bool()` and `env_list()` read the environment with a default.
+**`settings/dev.py`** adds the debug toolbar (`show_debug_toolbar()` reads `DEBUG` at request
+time) and console email; **`settings/prod.py`** adds the TLS, cookie and SMTP settings behind
+nginx.
 
-**`urls.py`** — every API path under `/api/`, one prefix per app, plus the schema views
-and the admin, which carries the backup panel at `/admin/dbs/`.
+**`urls.py`** — every API path under `/api/`, one prefix per app, plus the schema views,
+the admin (which carries the backup panel at `/admin/dbs/`), and the OpenAI- and
+Ollama-compatible APIs at `/v1/` and `/ollama/` (`apps/serving/compat_urls.py`).
 
 **`settings/local.py`** (Mesbah) — `mesbah start`: the database from `DATABASE_URL`, a file
 cache and a filesystem broker in the data folder, the built Angular app served by WhiteNoise.
-**`spa.py`** — `index()`, index.html for every path that is not the API, the admin or a file.
+**`spa.py`** — `index()`, index.html for every path that is not the API, the compatible APIs,
+the admin or a file.
 
 **`celery.py`** — the Celery app, configured from Django settings under `CELERY_`; tasks go to
-the `default` queue, one at a time per worker thread, acknowledged when done.
+the `default` queue, one at a time per worker thread, acknowledged when done — except those that
+name the `heavy` queue (merging, converting), which one solo worker serves in turn.
 **`asgi.py`** — the entry point uvicorn serves (ADR-006), with static files in `DEBUG`.
 **`wsgi.py`** — kept for tools that want WSGI; nothing in Mesbah serves it.
 

@@ -101,6 +101,43 @@ services:
           ignore: [.venv/, __pycache__/, staticfiles/, media/]
     restart: unless-stopped
 
+  # The built-in engine (ADR-005): one base model in memory, each version an adapter on it.
+  # Off unless asked for: `docker compose --profile ml up` runs it and the trainer on the CPU,
+  # and compose.gpu.yaml runs both on the GPUs.
+  runtime:
+    build:
+      context: ./backend
+      target: ml
+    profiles: [ml]
+    env_file: [.env]
+    volumes:
+      - mesbah-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8078/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+  # Training runs one at a time: one worker on the `heavy` queue, with torch, beside the engine.
+  worker-heavy:
+    build:
+      context: ./backend
+      target: ml
+    profiles: [ml]
+    entrypoint: ["./entrypoint.sh"]
+    command: ["celery", "-A", "config", "worker", "--queues=heavy", "--pool=solo", "-l", "info"]
+    env_file: [.env]
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+    volumes:
+      - mesbah-data:/data
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    restart: unless-stopped
+
   beat:
     build:
       context: ./backend

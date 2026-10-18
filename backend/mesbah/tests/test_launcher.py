@@ -57,3 +57,36 @@ def test_a_built_app_is_found_beside_the_package(
 
     assert server.spa_dir() == tmp_path / "_spa"
     assert server.server_root() == tmp_path / "_server"
+
+
+def test_the_web_side_gets_the_engine_address_and_a_fresh_token(tmp_path: Path) -> None:
+    first: dict[str, str] = launcher(tmp_path).prepare()
+    second: dict[str, str] = launcher(tmp_path).prepare()
+
+    assert first["MESBAH_RUNTIME_URL"] == "http://127.0.0.1:8078"
+    assert len(first["MESBAH_RUNTIME_TOKEN"]) > 30
+    assert first["MESBAH_RUNTIME_TOKEN"] != second["MESBAH_RUNTIME_TOKEN"]
+
+
+class Recorder:
+    def __init__(self) -> None:
+        self.commands: list[list[str]] = []
+
+    def __call__(self, command: list[str], **options: object) -> Recorder:
+        self.commands.append(command)
+        return self
+
+
+@pytest.mark.parametrize("installed", [True, False])
+def test_the_engine_starts_only_with_the_training_parts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, installed: bool
+) -> None:
+    recorder: Recorder = Recorder()
+    monkeypatch.setattr("subprocess.Popen", recorder)
+    monkeypatch.setattr("mesbah.launcher.engine_installed", lambda: installed)
+
+    launcher(tmp_path).start({})
+
+    modules: list[str] = [command[2] for command in recorder.commands]
+    assert ("mesbah.runtime" in modules) is installed
+    assert {"uvicorn", "celery"} <= set(modules)

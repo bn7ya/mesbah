@@ -11,7 +11,7 @@ PARTS: tuple[tuple[str, str], ...] = (
     ("accelerate", "training"),
     ("bitsandbytes", "quantization"),
     ("unsloth", "speed"),
-    ("gguf", "gguf"),
+    ("sentencepiece", "gguf"),
 )
 
 

@@ -19,5 +19,15 @@
     "target": "http://backend:8000",
     "secure": false,
     "changeOrigin": false
+  },
+  "/v1": {
+    "target": "http://backend:8000",
+    "secure": false,
+    "changeOrigin": false
+  },
+  "/ollama": {
+    "target": "http://backend:8000",
+    "secure": false,
+    "changeOrigin": false
   }
 }

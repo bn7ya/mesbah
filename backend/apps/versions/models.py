@@ -44,3 +44,32 @@ class ModelVersion(BaseModel):
 
     def __str__(self) -> str:
         return self.name or f"v{self.number}"
+
+
+class Export(BaseModel):
+    class Format(models.TextChoices):
+        LORA = "lora"
+        MERGED = "merged"
+        GGUF = "gguf"
+
+    class Status(models.TextChoices):
+        QUEUED = "queued"
+        RUNNING = "running"
+        READY = "ready"
+        FAILED = "failed"
+
+    version = models.ForeignKey(ModelVersion, on_delete=models.CASCADE, related_name="exports")
+    format = models.CharField(max_length=20, choices=Format.choices)
+    out_type = models.CharField(max_length=10, blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.QUEUED)
+    error_code = models.CharField(max_length=40, blank=True)
+    error_detail = models.TextField(blank=True)
+    path = models.TextField(blank=True)
+    size_bytes = models.BigIntegerField(default=0)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta(BaseModel.Meta):
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.version} as {self.format}"

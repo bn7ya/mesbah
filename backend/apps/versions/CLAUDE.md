@@ -17,12 +17,20 @@ link records where a version was trained from. The backend half of the version t
 | `PATCH` | `/api/versions/<id>/` | trainer | the version; name and notes |
 | `DELETE` | `/api/versions/<id>/` | trainer | `204`; its children move up to its parent; `409 root_version_kept`, `409 active_version_kept` |
 | `POST` | `/api/versions/<id>/activate/` | trainer | the version, now active — rolling back is activating an older one |
+| `GET` | `/api/versions/<id>/changes/` | viewer | how much each layer and module changed: `modules`, `layers[{layer, norms}]`, totals |
+| `GET` | `/api/versions/<id>/exports/` | viewer | a page of the version's exports |
+| `POST` | `/api/versions/<id>/exports/` | trainer | `202` an export: `lora`, `merged` or `gguf` (`out_type` f16, bf16, q8_0); `409 not_exportable` |
+| `GET` | `/api/versions/exports/<id>/` | viewer | one export, with its status and where it is |
+| `DELETE` | `/api/versions/exports/<id>/` | trainer | `204`; deletes its files |
+| `GET` | `/api/versions/exports/<id>/download/` | viewer | the zip or the GGUF file; `409 export_not_ready` |
 
 ## Layers
 
 ```
 views.py → services/version_service.py → repositories/version_repository.py → ModelVersion
                                         └→ apps.projects ProjectRepository (the active version)
+         → services/export_service.py → repositories/export_repository.py → Export
+tasks.py ─┘                         └→ `python -m mesbah.export` (merged, GGUF)
 ```
 
 ## Classes and methods
@@ -41,10 +49,24 @@ version, and moving children to another parent.
   active and a summary of its delta.
 - `create_root()` — the base version, number 0, made active; called when a project is created.
 - `activate()` — makes a version the one conversations use.
+- `changes()` — the trainer's per-module norms as a grid of layers by module, for the map.
 - `change()` — name and notes; `remove()` refuses the root and the active version and moves the
   children up before soft-deleting.
 
-**`RootVersionKept`**, **`ActiveVersionKept`** (`services/errors.py`) — the two refusals.
+**`Export`** — a version in another format: `lora` (the adapter zipped with a README for vLLM
+and PEFT), `merged` (full weights with the change folded in), `gguf` (one file for llama.cpp
+and Ollama, beside a Modelfile); its status, where it is and its size.
+**`ExportRepository`** — a version's exports, one with its version and project loaded.
+
+**`ExportService`** — `listing()`, `find()`, `describe()` (a merged folder is not offered as a
+download: it is as large as the model), `create()` (a LoRA or merged export needs a trained
+version; the task is queued after the commit), `remove()` (files too), `download()`, and `run()`,
+the tasks' body: zips the adapter, or writes a config and runs `mesbah.export`, then reads its
+status. **`package`** / **`convert`** (`tasks.py`) — the zip on the default queue; merging and
+converting on the `heavy` queue, because they load the whole model.
+
+**`RootVersionKept`**, **`ActiveVersionKept`**, **`NotExportable`**, **`ExportNotReady`**
+(`services/errors.py`) — the refusals.
 
 ## Decisions worth not re-litigating
 

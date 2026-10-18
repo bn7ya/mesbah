@@ -1,0 +1,153 @@
+@use "layout" as *;
+
+:host {
+  display: block;
+}
+
+.others {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+}
+
+.others__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-4);
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.others__heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+
+  h2,
+  p {
+    margin: 0;
+  }
+}
+
+.others__note {
+  display: flex;
+  flex-direction: row;
+  gap: var(--app-space-4);
+  align-items: flex-start;
+  padding: var(--app-space-6);
+}
+
+.others__note-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+
+  p {
+    margin: 0;
+  }
+}
+
+.others__note-title {
+  font: var(--mat-sys-title-medium);
+}
+
+.others__grid {
+  display: grid;
+  gap: var(--app-space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, #{$column-min * 2.4}), 1fr));
+}
+
+.engine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+  block-size: 100%;
+  padding: var(--app-space-5);
+
+  p {
+    margin: 0;
+  }
+}
+
+.engine__top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+}
+
+.engine__name {
+  margin: 0;
+  font: var(--mat-sys-title-medium);
+  overflow-wrap: anywhere;
+}
+
+.engine__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-4);
+  align-items: center;
+}
+
+.engine__state {
+  display: inline-flex;
+  gap: var(--app-space-2);
+  align-items: center;
+  font: var(--mat-sys-label-large);
+}
+
+.engine__tag {
+  display: inline-flex;
+  gap: var(--app-space-1);
+  align-items: center;
+  font: var(--mat-sys-label-large);
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.engine__kind {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+}
+
+.engine__kind-name {
+  font: var(--mat-sys-label-large);
+}
+
+.engine__facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+  margin: 0;
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-1);
+    min-inline-size: 0;
+  }
+
+  dt {
+    font: var(--mat-sys-label-large);
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    margin: 0;
+    font: var(--mat-sys-body-large);
+    overflow-wrap: anywhere;
+  }
+}
+
+.engine__hint {
+  font: var(--mat-sys-body-medium);
+}
+
+.engine__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+  margin-block-start: auto;
+}

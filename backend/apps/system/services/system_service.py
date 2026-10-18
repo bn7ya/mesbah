@@ -63,6 +63,11 @@ class SystemService:
         chosen: list[int] = self._chosen_indices(machine.gpus)
         return sum(gpu.memory_bytes for gpu in self._effective(machine.gpus, chosen))
 
+    def selected_gpu_indices(self) -> list[int]:
+        machine: hardware.Machine = hardware.machine()
+        chosen: list[int] = self._chosen_indices(machine.gpus)
+        return [gpu.index for gpu in self._effective(machine.gpus, chosen)]
+
     def huggingface_token(self) -> str | None:
         secret: Secret | None = self.secrets.find_by_name(HUGGINGFACE_TOKEN)
         return None if secret is None else self.box.open(secret.ciphertext)

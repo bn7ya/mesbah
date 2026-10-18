@@ -43,3 +43,11 @@ class ViewersReadTrainersWrite(BasePermission):
     def has_permission(self, request: Request, view: APIView) -> bool:
         needed: RoleAtLeast = IsViewer() if request.method in SAFE_METHODS else IsTrainer()
         return needed.has_permission(request, view)
+
+
+class ViewersReadAdminsWrite(BasePermission):
+    message: str = "You don't have access to this."
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        needed: RoleAtLeast = IsViewer() if request.method in SAFE_METHODS else IsAdministrator()
+        return needed.has_permission(request, view)

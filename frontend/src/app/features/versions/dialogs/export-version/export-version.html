@@ -1,0 +1,85 @@
+<h2 mat-dialog-title>{{ 'versions.export.title' | t: { name: label } }}</h2>
+
+<mat-dialog-content class="export">
+  <p class="text-secondary">{{ 'versions.export.intro' | t }}</p>
+
+  @if (failure(); as problem) {
+    <p class="export__failure" role="alert">
+      <mat-icon fontIcon="fa-circle-exclamation" />
+      {{ problem.message }}
+    </p>
+  }
+
+  <mat-radio-group
+    class="export__formats"
+    [value]="format()"
+    [attr.aria-label]="'versions.export.formatLabel' | t"
+    (change)="format.set($event.value)"
+  >
+    @for (choice of choices; track choice.format) {
+      @let blocked = choice.blocker !== null;
+      <mat-card [appearance]="format() === choice.format ? 'filled' : 'outlined'" class="choice">
+        <mat-radio-button
+          [value]="choice.format"
+          [disabled]="blocked || busy()"
+          [aria-describedby]="'export-note-' + choice.format"
+        >
+          {{ 'versions.export.' + choice.format + '.name' | t }}
+        </mat-radio-button>
+
+        <div class="choice__body" [id]="'export-note-' + choice.format">
+          <p>{{ 'versions.export.' + choice.format + '.explain' | t }}</p>
+          @if (choice.blocker; as reason) {
+            <p class="choice__reason">
+              <mat-icon fontIcon="fa-circle-info" />
+              {{ reason | t }}
+            </p>
+          } @else if (choice.format === 'lora' && data.version.size_bytes > 0) {
+            <p class="text-secondary">
+              {{ 'versions.export.lora.size' | t: { size: (data.version.size_bytes | bytes) } }}
+            </p>
+          } @else if (choice.format === 'merged' && data.version.full_size_bytes > 0) {
+            <p class="text-secondary">
+              {{ 'versions.export.merged.size' | t: { size: (data.version.full_size_bytes | bytes) } }}
+            </p>
+          }
+        </div>
+      </mat-card>
+    }
+  </mat-radio-group>
+
+  @if (format() === 'gguf') {
+    <div class="quality">
+      <div class="quality__head">
+        <h3 id="export-quality" class="quality__title">{{ 'versions.export.quality.label' | t }}</h3>
+        <app-term key="quantization" />
+      </div>
+      <mat-radio-group
+        class="quality__options"
+        aria-labelledby="export-quality"
+        [value]="quality()"
+        (change)="quality.set($event.value)"
+      >
+        @for (option of qualities; track option) {
+          <mat-radio-button [value]="option" [disabled]="busy()">
+            {{ 'versions.export.quality.' + option | t }}
+            <span class="quality__code text-secondary" dir="ltr">{{ option }}</span>
+          </mat-radio-button>
+        }
+      </mat-radio-group>
+    </div>
+  }
+
+  <p class="export__terms text-secondary">
+    <span>{{ 'versions.terms' | t }}</span>
+    <app-term key="lora" />
+    <app-term key="gguf" />
+  </p>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button matButton type="button" [mat-dialog-close]="false">{{ 'actions.cancel' | t }}</button>
+  <button matButton="filled" type="button" [disabled]="busy()" [attr.aria-busy]="busy()" (click)="start()">
+    {{ (busy() ? 'versions.export.starting' : 'versions.export.start') | t }}
+  </button>
+</mat-dialog-actions>

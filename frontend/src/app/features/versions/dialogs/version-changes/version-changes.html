@@ -1,0 +1,96 @@
+<h2 mat-dialog-title>{{ 'versions.changes.title' | t: { name: label } }}</h2>
+
+<mat-dialog-content class="changes">
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" [attr.aria-label]="'versions.changes.loading' | t" />
+  }
+
+  @if (loadFailure(); as problem) {
+    <p class="changes__failure" role="alert">
+      <mat-icon fontIcon="fa-circle-exclamation" />
+      {{ problem.message }}
+    </p>
+    <div>
+      <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
+    </div>
+  }
+
+  @if (note(); as key) {
+    <p class="changes__note">
+      <mat-icon fontIcon="fa-circle-info" />
+      {{ key | t }}
+    </p>
+  }
+
+  @if (map(); as shown) {
+    @if (shown.rows.length > 0) {
+      <section class="changes__summary" [attr.aria-label]="'versions.changes.summary' | t">
+        @if (shown.leading; as leading) {
+          <p class="changes__finding">{{ 'versions.changes.leading.' + leading | t }}</p>
+        }
+
+        <dl class="changes__facts">
+          @if (shown.topLayers.length > 0) {
+            <div>
+              <dt>{{ 'versions.changes.topLayers' | t }}</dt>
+              <dd>{{ topLayers() }}</dd>
+            </div>
+          }
+          @if (changes(); as total) {
+            @if (total.parameters !== null) {
+              <div>
+                <dt>{{ 'versions.expert.parameters' | t }}</dt>
+                <dd>{{ total.parameters | compact }}</dd>
+              </div>
+            }
+            @if (total.rank !== null) {
+              <div>
+                <dt>{{ 'versions.changes.rank' | t }}</dt>
+                <dd>{{ count(total.rank) }}</dd>
+              </div>
+            }
+            @if (expert()) {
+              @if (total.total_norm !== null) {
+                <div>
+                  <dt>{{ 'versions.expert.size' | t }}</dt>
+                  <dd>{{ significant(total.total_norm) }}</dd>
+                </div>
+              }
+              @if (total.change_from_parent !== null) {
+                <div>
+                  <dt>{{ 'versions.expert.fromParent' | t }}</dt>
+                  <dd>{{ significant(total.change_from_parent) }}</dd>
+                </div>
+              }
+            }
+          }
+        </dl>
+      </section>
+
+      <section class="changes__map" aria-labelledby="changes-map-title">
+        <h3 id="changes-map-title" class="changes__map-title">{{ 'versions.changes.mapTitle' | t }}</h3>
+        <p class="text-secondary">{{ 'versions.changes.intro' | t }}</p>
+        <div class="changes__legend" aria-hidden="true">
+          <span>{{ 'versions.changes.less' | t }}</span>
+          @for (tint of legend; track tint) {
+            <span class="changes__swatch" [style.--tint]="tint + '%'"></span>
+          }
+          <span>{{ 'versions.changes.more' | t }}</span>
+        </div>
+        <app-change-map [map]="shown" />
+      </section>
+
+      <p class="changes__terms text-secondary">
+        <span>{{ 'versions.terms' | t }}</span>
+        <app-term key="attention" />
+        <app-term key="feed_forward" />
+        <app-term key="rank" />
+        <app-term key="parameters" />
+      </p>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button matButton="filled" type="button" [mat-dialog-close]="false">{{ 'versions.close' | t }}</button>
+</mat-dialog-actions>

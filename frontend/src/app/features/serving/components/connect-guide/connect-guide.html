@@ -1,0 +1,45 @@
+<section class="guide" aria-labelledby="engines-guide">
+  <div class="guide__heading">
+    <h2 id="engines-guide">{{ 'serving.guide.title' | t }}</h2>
+    <p class="text-secondary">{{ 'serving.guide.lead' | t }}</p>
+  </div>
+
+  <div class="guide__apis">
+    @for (api of apis(); track api.id) {
+      <article class="guide__api" [attr.aria-labelledby]="'guide-' + api.id">
+        <div class="guide__api-heading">
+          <h3 [id]="'guide-' + api.id">{{ 'serving.guide.' + api.id + 'Title' | t }}</h3>
+          <p class="text-secondary">
+            {{ 'serving.guide.' + api.id + 'Body' | t }}
+            @if (api.id === 'openai') {
+              <app-term key="openai_api" />
+            } @else {
+              <app-term key="ollama" />
+            }
+          </p>
+        </div>
+
+        <app-code-block [label]="'serving.guide.address' | t" [code]="api.address" />
+
+        @for (snippet of api.snippets; track snippet.id) {
+          <app-code-block [label]="snippet.labelKey | t" [code]="snippet.code" />
+        }
+      </article>
+    }
+  </div>
+
+  <div class="guide__models">
+    <h3>{{ 'serving.guide.modelsTitle' | t }}</h3>
+    <p class="text-secondary">{{ 'serving.guide.modelsLead' | t }}</p>
+    <dl class="guide__names">
+      <div>
+        <dt dir="ltr">{{ slug() }}</dt>
+        <dd>{{ 'serving.guide.modelActive' | t }}</dd>
+      </div>
+      <div>
+        <dt dir="ltr">{{ slug() }}:v3</dt>
+        <dd>{{ 'serving.guide.modelVersion' | t }}</dd>
+      </div>
+    </dl>
+  </div>
+</section>

@@ -37,6 +37,11 @@ services:
       DJANGO_DEBUG: "0"
     develop: !reset null
 
+  worker-heavy:
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      DJANGO_DEBUG: "0"
+
   beat:
     build:
       target: prod

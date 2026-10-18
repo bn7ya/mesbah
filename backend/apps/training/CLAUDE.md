@@ -52,9 +52,10 @@ tokens, step of total, epoch, loss, a shortened sequence length after running ou
 the GPUs, its folder, how many event lines were read, the error, times and the cancel flag.
 **`TrainingMetric`** — one logged step: epoch, loss, learning rate, gradient norm.
 
-**`RunRepository`** — a project's runs, one with its project and base model, the unfinished
-ones, the cancel flag. **`MetricRepository`** — a run's steps after one step, and recording
-new ones (a step already recorded is skipped).
+**`RunRepository`** — live runs are those of a live project; a project's runs, one with its
+project and base model, the unfinished ones, and the cancel flag, which a removed project also
+raises. **`MetricRepository`** — live steps are those of a live run and project; a run's steps
+after one step, and recording new ones (a step already recorded is skipped).
 
 **`TrainingService`**, for the acting user:
 - `plan()` — `defaults()` for this machine and model (rank 16, alpha 32, two epochs, a longer

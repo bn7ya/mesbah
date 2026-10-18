@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 
 from apps.common.repositories import BaseRepository
 from apps.training.models import TrainingRun
@@ -14,6 +14,9 @@ FINISHED: tuple[str, ...] = (
 
 class RunRepository(BaseRepository[TrainingRun]):
     model = TrainingRun
+
+    def active(self) -> QuerySet[TrainingRun]:
+        return super().active().filter(project__deleted_at__isnull=True)
 
     def of_project(self, project_id: str) -> QuerySet[TrainingRun]:
         return (
@@ -35,4 +38,5 @@ class RunRepository(BaseRepository[TrainingRun]):
         return self.active().exclude(status__in=FINISHED)
 
     def cancel_requested(self, run_id: str) -> bool:
-        return self.active().filter(pk=run_id, cancel_requested=True).exists()
+        stopping: Q = Q(cancel_requested=True) | Q(project__deleted_at__isnull=False)
+        return super().active().filter(stopping, pk=run_id).exists()

@@ -11,6 +11,13 @@ from apps.training.models import TrainingMetric
 class MetricRepository(BaseRepository[TrainingMetric]):
     model = TrainingMetric
 
+    def active(self) -> QuerySet[TrainingMetric]:
+        return (
+            super()
+            .active()
+            .filter(run__deleted_at__isnull=True, run__project__deleted_at__isnull=True)
+        )
+
     def of_run(self, run_id: str, after_step: int = 0) -> QuerySet[TrainingMetric]:
         return self.active().filter(run_id=UUID(run_id), step__gt=after_step).order_by("step")
 

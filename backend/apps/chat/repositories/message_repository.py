@@ -9,6 +9,16 @@ from apps.common.repositories import BaseRepository
 class MessageRepository(BaseRepository[Message]):
     model = Message
 
+    def active(self) -> QuerySet[Message]:
+        return (
+            super()
+            .active()
+            .filter(
+                conversation__deleted_at__isnull=True,
+                conversation__project__deleted_at__isnull=True,
+            )
+        )
+
     def of_conversation(self, conversation_id: str) -> QuerySet[Message]:
         return (
             self.active()

@@ -11,6 +11,9 @@ from apps.versions.models import ModelVersion
 class VersionRepository(BaseRepository[ModelVersion]):
     model = ModelVersion
 
+    def active(self) -> QuerySet[ModelVersion]:
+        return super().active().filter(project__deleted_at__isnull=True)
+
     def of_project(self, project_id: str) -> QuerySet[ModelVersion]:
         rows: QuerySet[ModelVersion] = (
             self.active()

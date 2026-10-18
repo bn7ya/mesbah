@@ -11,6 +11,13 @@ from apps.versions.models import Export, ModelVersion
 class ExportRepository(BaseRepository[Export]):
     model = Export
 
+    def active(self) -> QuerySet[Export]:
+        return (
+            super()
+            .active()
+            .filter(version__deleted_at__isnull=True, version__project__deleted_at__isnull=True)
+        )
+
     def of_version(self, version_id: str) -> QuerySet[Export]:
         return self.active().filter(version_id=UUID(version_id)).select_related("created_by")
 

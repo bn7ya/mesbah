@@ -40,9 +40,9 @@ tasks.py ─┘                         └→ `python -m mesbah.export` (merged
 with (rank, alpha, rsLoRA, target modules, biases), its size on disk beside the full model's,
 what changed (`delta_stats`) and how training went (`metrics`).
 
-**`VersionRepository`** — a project's versions with their child counts, its root, the next
-number (counting removed versions, so numbers are never reused), versions by id, children of a
-version, and moving children to another parent.
+**`VersionRepository`** — live versions are those of a live project; a project's versions with their
+child counts, its root, the next number (counting removed versions, so numbers are never reused),
+versions by id, children of a version, and moving children to another parent.
 
 **`VersionService`**, for the acting user:
 - `record_trained()` — a new delta version from a finished run, numbered next.
@@ -58,7 +58,8 @@ version, and moving children to another parent.
 **`Export`** — a version in another format: `lora` (the adapter zipped with a README for vLLM
 and PEFT), `merged` (full weights with the change folded in), `gguf` (one file for llama.cpp
 and Ollama, beside a Modelfile); its status, where it is and its size.
-**`ExportRepository`** — a version's exports, one with its version and project loaded.
+**`ExportRepository`** — live exports are those of a live version and project; a version's
+exports, one with its version and project loaded.
 
 **`ExportService`** — `listing()`, `find()`, `describe()` (a merged folder is not offered as a
 download: it is as large as the model), `create()` (a LoRA or merged export needs a trained

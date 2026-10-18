@@ -208,7 +208,7 @@ class RunnerService:
         except (OSError, ContractError, ValueError):
             self._end(run, TrainingRun.Status.FAILED, "trainer_crashed", _tail(run))
             return
-        if outcome.status == "cancelled":
+        if outcome.status == "cancelled" or self.runs.with_project(str(run.pk)) is None:
             self._end(run, TrainingRun.Status.CANCELLED)
             return
         if outcome.status == "completed" and outcome.model_dir is not None:

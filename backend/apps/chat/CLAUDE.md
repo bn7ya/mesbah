@@ -46,10 +46,11 @@ project's. **`Message`** — one turn: position, role, status (`streaming`, `com
 times, the version and engine that answered, the finish reason or error code, token counts,
 latency, and whether it is approved and used for training.
 
-**`ConversationRepository`** — a project's conversations with their message counts, one locked
-for a new turn, one with its project loaded. **`MessageRepository`** — a conversation's messages,
-its history for the engine (failed and unfinished replies left out), one locked for a
-correction, the next position.
+**`ConversationRepository`** — live conversations are those of a live project; a project's
+conversations with their message counts, one locked for a new turn, one with its project loaded.
+**`MessageRepository`** — live messages are those of a live conversation and project; a
+conversation's messages, its history for the engine (failed and unfinished replies left out), one
+locked for a correction, the next position.
 
 **`ConversationService`** — `listing()`, `find()`, `describe()`, `create()`, `change()` (a version
 must belong to the project, an engine must be on), `remove()`, `messages_of()`. **`describe_message()`** — a message as

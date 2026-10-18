@@ -9,6 +9,9 @@ from apps.common.repositories import BaseRepository
 class ConversationRepository(BaseRepository[Conversation]):
     model = Conversation
 
+    def active(self) -> QuerySet[Conversation]:
+        return super().active().filter(project__deleted_at__isnull=True)
+
     def of_project(self, project_id: str) -> QuerySet[Conversation]:
         rows: QuerySet[Conversation] = (
             self.active()

@@ -41,7 +41,8 @@ version, whether a slug is taken (besides one project), and a lookup by slug.
 - `create_scratch()` — a project for a model trained from nothing: no base yet, thinking off.
 - `adopt()` — gives a scratch project its newly trained model as the base and makes the root
   version (`scratch_root`, stored where the model is).
-- `change()` — a new name gets a new slug; `remove()` soft-deletes.
+- `change()` — a new name gets a new slug; `remove()` soft-deletes, and everything under the
+  project goes with it (below).
 - `describe()` — one project as the API shows it, its active version by id, number and name.
 
 **`BaseModelNotReady`** (`services/errors.py`) — `409 base_model_not_ready`.
@@ -50,6 +51,12 @@ version, whether a slug is taken (besides one project), and a lookup by slug.
 
 **The slug is ASCII.** It names the project in the OpenAI- and Ollama-compatible APIs, where
 clients expect plain names; an Arabic name falls back to `project`, numbered when taken.
+
+**A removed project takes its rows with it by reading, not by writing.** Conversations,
+messages, versions, exports, runs and metrics are read through repositories whose `active()`
+leaves out rows under a removed project (or conversation, version, run), so nothing is touched on
+removal and a restore brings everything back. A run still training reads as cancelled and stops at
+its next step.
 
 **A model a project uses can't be removed** (`apps.models` checks `projects`), because every
 version of the project is a delta on that model's weights.

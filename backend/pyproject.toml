@@ -20,6 +20,12 @@ dependencies = [
     "gunicorn==23.*",
     "whitenoise==6.*",
     "python-dotenv==1.*",
+    "cryptography>=46,<51",
+    "httpx2>=2,<3",
+    "huggingface-hub>=2.2,<3",
+    "nvidia-ml-py>=13,<14",
+    "platformdirs>=4,<5",
+    "psutil>=7,<8",
 ]
 
 [project.optional-dependencies]
@@ -33,6 +39,7 @@ dev = [
     "django-stubs[compatible-mypy]==5.2.*",
     "djangorestframework-stubs[compatible-mypy]==3.16.*",
     "django-debug-toolbar==5.*",
+    "types-psutil>=7,<8",
 ]
 
 [tool.setuptools]
@@ -44,7 +51,7 @@ packages = []
 DJANGO_SETTINGS_MODULE = "config.settings.dev"
 python_files = ["test_*.py", "*_test.py"]
 addopts = "--reuse-db --strict-markers"
-testpaths = ["apps"]
+testpaths = ["apps", "mesbah"]
 
 [tool.ruff]
 line-length = 100
@@ -76,7 +83,7 @@ ignore = [
 allow-star-arg-any = true
 
 [tool.ruff.lint.isort]
-known-first-party = ["apps", "config"]
+known-first-party = ["apps", "config", "mesbah"]
 
 [tool.mypy]
 python_version = "3.13"
@@ -85,7 +92,7 @@ plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
 exclude = ["/migrations/"]
 
 [[tool.mypy.overrides]]
-module = ["celery.*", "django_celery_beat.*", "dbs.*", "debug_toolbar.*", "pgvector.*", "whitenoise.*"]
+module = ["celery.*", "django_celery_beat.*", "dbs.*", "debug_toolbar.*", "pgvector.*", "whitenoise.*", "pynvml.*"]
 ignore_missing_imports = true
 
 [tool.django-stubs]

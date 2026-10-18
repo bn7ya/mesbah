@@ -28,6 +28,10 @@ Template-owned files, so `/template-sync` conflicts in them are expected:
 `frontend/src/app/core/i18n/{en,ar}.json`, `frontend/src/app/core/i18n/locale.store{,.spec}.ts`,
 `frontend/src/app/core/CLAUDE.md`, `frontend/CLAUDE.md`, `frontend/angular.json`,
 `frontend/package.json`, `.claude/docs/interface.md`, `.gitignore`,
+`frontend/src/app/app.{html,scss,routes.ts}`, `frontend/src/app/core/http/error.interceptor.ts`,
+`frontend/src/app/core/auth/pages/sign-in/sign-in.html`, `frontend/src/app/shared/status-page/`,
+`frontend/src/app/shared/CLAUDE.md`, `frontend/src/styles/{_theme,_tokens,_layout,_base}.scss`,
+`backend/pyproject.toml`, `backend/config/urls.py`, `backend/CLAUDE.md`,
 `.claude/docs/language.md`, `README.md` and this file.
 
 Mesbah handles no money. `MoneyField`, `<app-money>` and the rial font stay because they

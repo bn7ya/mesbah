@@ -1,0 +1,231 @@
+<header class="system__header">
+  <h1>{{ 'system.title' | t }}</h1>
+  <p class="text-secondary">{{ 'system.subtitle' | t }}</p>
+</header>
+
+@if (loading() && !overview()) {
+  <mat-progress-bar mode="indeterminate" [attr.aria-label]="'system.loading' | t" />
+}
+
+@if (error(); as failure) {
+  <p class="system__failure" role="alert">
+    <mat-icon fontIcon="fa-circle-exclamation" />
+    {{ failure.message }}
+  </p>
+}
+
+@if (overview(); as view) {
+  <section class="system__section" aria-labelledby="system-gpus">
+    <h2 id="system-gpus">{{ 'system.gpus.title' | t }}</h2>
+
+    @if (gpus().length === 0) {
+      <mat-card appearance="outlined" class="system__note">
+        <mat-icon fontIcon="fa-triangle-exclamation" />
+        <div class="system__note-text">
+          <p class="system__note-title">{{ 'system.gpus.none' | t }}</p>
+          <p class="text-secondary">{{ 'system.gpus.noneBody' | t }}</p>
+        </div>
+      </mat-card>
+    } @else {
+      <mat-card appearance="outlined" class="system__card">
+        <p class="system__lead">
+          <app-term key="vram" />
+          <span>{{ 'system.gpus.usable' | t: { size: (view.usable_vram_bytes | bytes) } }}</span>
+        </p>
+        <p class="text-secondary">
+          {{ (view.gpu_choice === 'automatic' ? 'system.gpus.automatic' : 'system.gpus.chosen') | t }}
+          <span dir="ltr">{{ selectedNames() }}</span>
+        </p>
+
+        @if (canManage()) {
+          <mat-selection-list
+            class="system__gpus"
+            [attr.aria-label]="'system.gpus.pick' | t"
+            (selectionChange)="pick($event)"
+          >
+            @for (gpu of gpus(); track gpu.index) {
+              <mat-list-option [value]="gpu.index" [selected]="isPicked(gpu)">
+                <span matListItemTitle dir="ltr">{{ gpu.name }}</span>
+                <span matListItemLine>
+                  {{ 'system.gpus.memory' | t: { size: (gpu.memory_bytes | bytes) } }}
+                  @if (expert() && gpu.compute_capability) {
+                    · {{ 'system.gpus.capability' | t: { value: gpu.compute_capability } }}
+                  }
+                </span>
+              </mat-list-option>
+            }
+          </mat-selection-list>
+
+          @if (pickedNone()) {
+            <p class="system__hint" role="status">{{ 'system.gpus.noneSelected' | t }}</p>
+          }
+
+          <div class="system__actions">
+            <button
+              matButton="filled"
+              type="button"
+              [disabled]="saving() || pickedNone()"
+              [attr.aria-busy]="saving()"
+              (click)="useGpus()"
+            >
+              {{ 'system.gpus.save' | t }}
+            </button>
+            @if (view.gpu_choice === 'chosen') {
+              <button matButton type="button" [disabled]="saving()" (click)="chooseAutomatically()">
+                {{ 'system.gpus.reset' | t }}
+              </button>
+            }
+          </div>
+        } @else {
+          <ul class="system__list">
+            @for (gpu of gpus(); track gpu.index) {
+              <li>
+                <span dir="ltr">{{ gpu.name }}</span>
+                <span class="text-secondary">
+                  {{ 'system.gpus.memory' | t: { size: (gpu.memory_bytes | bytes) } }}
+                </span>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (expert() && view.machine.driver) {
+          <p class="text-secondary">{{ 'system.gpus.driver' | t: { version: view.machine.driver } }}</p>
+        }
+      </mat-card>
+    }
+  </section>
+
+  <section class="system__section" aria-labelledby="system-memory">
+    <h2 id="system-memory">{{ 'system.memory.title' | t }}</h2>
+    <mat-card appearance="outlined" class="system__card">
+      <dl class="system__facts">
+        <div>
+          <dt><app-term key="ram" /></dt>
+          <dd>{{ view.machine.ram_bytes | bytes }}</dd>
+        </div>
+        <div>
+          <dt><app-term key="cpu" /></dt>
+          <dd>{{ 'system.memory.cores' | t: { count: view.machine.cpu_count } }}</dd>
+        </div>
+        @if (expert()) {
+          <div>
+            <dt>{{ 'system.memory.software' | t }}</dt>
+            <dd dir="ltr">{{ view.machine.system }} · Python {{ view.machine.python }}</dd>
+          </div>
+        }
+      </dl>
+
+      <app-meter
+        [label]="'system.memory.disk' | t"
+        [totalBytes]="view.storage.total_bytes"
+        [segments]="diskSegments()"
+      />
+
+      @if (expert()) {
+        <p class="text-secondary">
+          {{ 'system.memory.folder' | t }}
+          <code dir="ltr">{{ view.storage.path }}</code>
+        </p>
+      }
+    </mat-card>
+  </section>
+
+  <section class="system__section" aria-labelledby="system-hf">
+    <h2 id="system-hf">{{ 'system.hf.title' | t }}</h2>
+    <mat-card appearance="outlined" class="system__card">
+      <p class="text-secondary">{{ 'system.hf.why' | t }}</p>
+
+      @if (view.huggingface.configured) {
+        <p class="system__status">
+          <mat-icon fontIcon="fa-circle-check" />
+          <span>{{ 'system.hf.configured' | t: { account: view.huggingface.account, hint: view.huggingface.hint } }}</span>
+        </p>
+      } @else {
+        <p class="system__status">
+          <mat-icon fontSet="fa-regular" fontIcon="fa-circle" />
+          <span>{{ 'system.hf.missing' | t }}</span>
+        </p>
+      }
+
+      @if (canManage()) {
+        <form class="system__form" novalidate (ngSubmit)="saveToken()">
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>{{ 'system.hf.token' | t }}</mat-label>
+            <input
+              matInput
+              name="token"
+              type="password"
+              autocomplete="off"
+              dir="ltr"
+              [errorStateMatcher]="tokenErrors"
+              [ngModel]="token()"
+              (ngModelChange)="token.set($event)"
+            />
+            <mat-hint>{{ 'system.hf.tokenHint' | t }}</mat-hint>
+            <mat-error>{{ 'system.hf.required' | t }}</mat-error>
+          </mat-form-field>
+
+          <div class="system__actions">
+            <button matButton="filled" type="submit" [disabled]="saving()" [attr.aria-busy]="saving()">
+              {{ (saving() ? 'system.hf.saving' : 'system.hf.save') | t }}
+            </button>
+            @if (view.huggingface.configured) {
+              <button matButton type="button" [disabled]="saving()" (click)="removeToken()">
+                {{ 'system.hf.remove' | t }}
+              </button>
+            }
+          </div>
+        </form>
+      } @else {
+        <p class="text-secondary">{{ 'system.hf.adminOnly' | t }}</p>
+      }
+    </mat-card>
+  </section>
+
+  <section class="system__section" aria-labelledby="system-parts">
+    <h2 id="system-parts">{{ 'system.parts.title' | t }}</h2>
+    <mat-card appearance="outlined" class="system__card">
+      @if (trainingReady()) {
+        <p class="system__status">
+          <mat-icon fontIcon="fa-circle-check" />
+          <span>{{ 'system.parts.ready' | t }}</span>
+        </p>
+      } @else {
+        <p class="system__status">
+          <mat-icon fontIcon="fa-circle-info" />
+          <span>{{ 'system.parts.missing' | t }}</span>
+        </p>
+        <pre class="system__command" dir="ltr"><code>{{ trainInstall }}</code></pre>
+      }
+
+      @if (torchWithoutCuda()) {
+        <p class="system__status">
+          <mat-icon fontIcon="fa-triangle-exclamation" />
+          <span>{{ 'system.parts.cpuTorch' | t }}</span>
+        </p>
+        <pre class="system__command" dir="ltr"><code>{{ cudaInstall }}</code></pre>
+      }
+
+      @if (expert()) {
+        <dl class="system__facts system__parts">
+          @for (part of view.parts; track part.name) {
+            <div>
+              <dt dir="ltr">{{ part.name }}</dt>
+              <dd>
+                <span>{{ 'system.parts.purpose.' + part.purpose | t }}</span>
+                <span class="text-secondary">
+                  @if (part.version) {
+                    {{ 'system.parts.installed' | t: { version: part.version } }}
+                  } @else {
+                    {{ 'system.parts.notInstalled' | t }}
+                  }
+                </span>
+              </dd>
+            </div>
+          }
+        </dl>
+      }
+    </mat-card>
+  </section>
+}

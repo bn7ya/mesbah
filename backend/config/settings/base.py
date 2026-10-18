@@ -6,6 +6,8 @@ from typing import Any
 
 import django_stubs_ext
 
+from mesbah.paths import data_dir
+
 django_stubs_ext.monkeypatch()
 
 BASE_DIR: Path = Path(__file__).resolve().parents[2]
@@ -59,6 +61,7 @@ THIRD_PARTY_APPS: list[str] = [
 LOCAL_APPS: list[str] = [
     "apps.common",
     "apps.accounts",
+    "apps.system",
 ]
 
 INSTALLED_APPS: list[str] = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -196,6 +199,9 @@ STATIC_URL: str = "/static/"
 STATIC_ROOT: Path = BASE_DIR / "staticfiles"
 MEDIA_URL: str = "/media/"
 MEDIA_ROOT: Path = BASE_DIR / "media"
+
+# Models, datasets, version deltas and exports live outside the code, in one directory.
+MESBAH_DATA_DIR: Path = data_dir()
 
 STORAGES: dict[str, Any] = {
     "default": {

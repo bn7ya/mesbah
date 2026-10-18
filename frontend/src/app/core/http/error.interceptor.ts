@@ -44,7 +44,9 @@ function toApiError(response: unknown, locale: LocaleStore): ApiError {
 
   const body = response.error as ApiErrorResponse | null;
   if (body?.error?.message) {
-    return body.error;
+    const key = `errors.${body.error.code}`;
+    const translated = locale.translate(key);
+    return translated === key ? body.error : { ...body.error, message: translated };
   }
 
   return { code: 'unknown', message: locale.translate('errors.generic') };

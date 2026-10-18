@@ -1,0 +1,67 @@
+{
+  "system": {
+    "title": "System",
+    "subtitle": "What this machine offers for training and chat.",
+    "loading": "Loading the system details",
+    "gpus": {
+      "title": "GPUs",
+      "none": "No NVIDIA GPU found",
+      "noneBody": "Training and chat run on the CPU, which is much slower. Small models still work.",
+      "usable": "available to Mesbah: {size}",
+      "automatic": "Chosen automatically, the GPU with the most memory:",
+      "chosen": "Chosen by an administrator:",
+      "pick": "GPUs Mesbah uses",
+      "memory": "{size} of memory",
+      "capability": "compute capability {value}",
+      "driver": "Driver {version}",
+      "noneSelected": "Choose at least one GPU.",
+      "save": "Use these GPUs",
+      "reset": "Choose automatically",
+      "saved": "GPU choice saved."
+    },
+    "memory": {
+      "title": "Memory and storage",
+      "cores": "Cores: {count}",
+      "software": "Software",
+      "disk": "Disk space",
+      "used": "Used",
+      "folder": "Data folder:"
+    },
+    "hf": {
+      "title": "HuggingFace account",
+      "why": "Gated models and private datasets need a token from a HuggingFace account.",
+      "configured": "Saved for {account}. Ends with {hint}.",
+      "missing": "No token saved.",
+      "token": "Token",
+      "tokenHint": "Starts with hf_. Create one in HuggingFace settings, under Access Tokens.",
+      "required": "Enter a token.",
+      "save": "Save token",
+      "saving": "Checking…",
+      "remove": "Remove token",
+      "removeTitle": "Remove the HuggingFace token?",
+      "removeBody": "Gated models already downloaded keep working. Downloading new gated models needs a token again.",
+      "saved": "Token saved.",
+      "removed": "Token removed.",
+      "adminOnly": "Only an administrator can change the token."
+    },
+    "parts": {
+      "title": "Training parts",
+      "ready": "Everything training needs is installed.",
+      "missing": "Training needs extra parts. Install them, then restart Mesbah:",
+      "cpuTorch": "The installed training parts can't use the GPU. Reinstall the CUDA build:",
+      "installed": "Installed: {version}",
+      "notInstalled": "Not installed",
+      "purpose": {
+        "training": "Training and the built-in engine",
+        "quantization": "Compressed models for QLoRA",
+        "speed": "Faster training",
+        "gguf": "GGUF export"
+      }
+    }
+  },
+  "errors": {
+    "hf_token_rejected": "This token isn't valid on HuggingFace. Check it and try again.",
+    "hf_unreachable": "HuggingFace can't be reached right now. Try again later.",
+    "unknown_gpu": "That GPU isn't on this machine."
+  }
+}

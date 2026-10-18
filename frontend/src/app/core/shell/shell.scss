@@ -1,0 +1,75 @@
+@use "layout" as *;
+
+:host {
+  display: flex;
+  flex: 1;
+}
+
+.shell {
+  flex: 1;
+  min-block-size: 100dvh;
+}
+
+.shell__nav {
+  inline-size: var(--app-nav-width);
+  padding-block: var(--app-space-4);
+}
+
+.shell__drawer-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+  align-items: flex-start;
+  padding: var(--app-space-6);
+}
+
+.shell__brand {
+  padding: var(--app-space-2) var(--app-space-6) var(--app-space-5);
+}
+
+.shell__name {
+  font: var(--mat-sys-title-large);
+  color: var(--mat-sys-primary);
+}
+
+.shell__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.shell__bar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--app-layer-bar);
+  gap: var(--app-space-2);
+  background: var(--mat-sys-surface);
+  border-block-end: var(--app-hairline) solid var(--mat-sys-outline-variant);
+}
+
+.shell__spacer {
+  flex: 1;
+}
+
+.shell__controls {
+  display: none;
+  gap: var(--app-space-3);
+  align-items: center;
+
+  @include from($screen-md) {
+    display: flex;
+  }
+}
+
+.shell__content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  inline-size: 100%;
+  max-inline-size: $content-max;
+  padding: var(--app-space-6) var(--app-space-4) var(--app-space-9);
+  margin-inline: auto;
+
+  @include from($screen-md) {
+    padding-inline: var(--app-space-7);
+  }
+}

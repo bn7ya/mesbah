@@ -25,6 +25,11 @@ a {
   outline-offset: var(--app-focus-width);
 }
 
+code,
+pre {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
 .text-secondary {
   color: var(--mat-sys-on-surface-variant);
 }

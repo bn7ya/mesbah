@@ -10,23 +10,34 @@ export const routes: Routes = [
       import('@core/auth/pages/sign-in/sign-in').then((m) => m.SignInPage),
   },
   {
-    path: 'forbidden',
-    canActivate: [authGuard],
-    data: { titleKey: 'errors.forbidden', bodyKey: 'errors.forbiddenBody' },
-    loadComponent: () =>
-      import('@shared/status-page/status-page').then((m) => m.StatusPage),
-  },
-  {
     path: '',
-    pathMatch: 'full',
-    // No guard: the router rejects canActivate beside redirectTo (NG04014).
-    redirectTo: 'sign-in',
-  },
-  {
-    path: '**',
     canActivate: [authGuard],
-    data: { titleKey: 'errors.notFound', bodyKey: 'errors.notFoundBody' },
-    loadComponent: () =>
-      import('@shared/status-page/status-page').then((m) => m.StatusPage),
+    loadComponent: () => import('@core/shell/shell').then((m) => m.Shell),
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        // No guard: the router rejects canActivate beside redirectTo (NG04014).
+        redirectTo: 'system',
+      },
+      {
+        path: 'system',
+        loadChildren: () => import('@features/system/system.routes').then((m) => m.routes),
+      },
+      {
+        path: 'forbidden',
+        canActivate: [authGuard],
+        data: { titleKey: 'errors.forbidden', bodyKey: 'errors.forbiddenBody' },
+        loadComponent: () =>
+          import('@shared/status-page/status-page').then((m) => m.StatusPage),
+      },
+      {
+        path: '**',
+        canActivate: [authGuard],
+        data: { titleKey: 'errors.notFound', bodyKey: 'errors.notFoundBody' },
+        loadComponent: () =>
+          import('@shared/status-page/status-page').then((m) => m.StatusPage),
+      },
+    ],
   },
 ];

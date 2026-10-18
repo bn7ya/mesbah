@@ -17,6 +17,7 @@ backend/
     common/                 BaseModel, BaseRepository, pagination, errors, health
     accounts/               identity and sessions — /api/auth/
     <feature>/              one app per frontend page (rule 13)
+  mesbah/                   code that runs outside Django; never imports apps (ADR-008)
 ```
 
 A feature app:

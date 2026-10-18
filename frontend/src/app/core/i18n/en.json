@@ -45,5 +45,38 @@
   },
   "money": {
     "currency": "Omani rials"
+  },
+  "nav": {
+    "label": "Main",
+    "open": "Open the menu",
+    "system": "System"
+  },
+  "mode": {
+    "label": "Detail",
+    "simple": "Simple",
+    "expert": "Expert"
+  },
+  "meter": {
+    "free": "Free",
+    "ofTotal": "of {total}"
+  },
+  "glossary": {
+    "whatIs": "What is {term}?",
+    "gpu": {
+      "term": "GPU",
+      "explain": "The graphics card. It does the heavy maths of training and chat far faster than the main processor."
+    },
+    "vram": {
+      "term": "VRAM",
+      "explain": "The memory on the GPU. A model and its training must fit in it, so it decides which models this machine can train."
+    },
+    "ram": {
+      "term": "RAM",
+      "explain": "The computer's main memory. Parts of a model can move here when the GPU is full. That works, but more slowly."
+    },
+    "cpu": {
+      "term": "CPU",
+      "explain": "The computer's main processor. It can run small models, slowly."
+    }
   }
 }

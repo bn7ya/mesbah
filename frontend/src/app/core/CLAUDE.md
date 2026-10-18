@@ -27,7 +27,12 @@ core/
   http/
     api.types.ts            Page<T>, PageQuery, ApiError
     csrf.interceptor.ts     X-CSRFToken on unsafe requests
-    error.interceptor.ts    every failure normalised to ApiError
+    error.interceptor.ts    every failure normalised to ApiError, its message in the reader's language
+  shell/                    the frame every signed-in page renders in
+    navigation.ts           the side menu's destinations
+  ui/
+    ui-mode.store.ts        Simple or Expert, persisted
+    ui-mode-switcher/       the two-mode toggle
 ```
 
 Its backend counterpart is `backend/apps/accounts/` — mounted at `/api/auth/`.
@@ -65,10 +70,21 @@ text already on screen. **`provideTranslations()`** registers a feature's bundle
 route activates. **`LocaleSwitcher`** — the two-language toggle, a Material button-toggle
 group with each option in its own language.
 
+**`Shell`** (`shell/`) — the frame of every signed-in page: a side menu (`NAVIGATION`) that
+stays open on wide screens and slides over on narrow ones, a top bar with the Simple/Expert
+switch, the language switch and the user's menu, and the `<main id="main">` the skip link
+targets. On narrow screens the switches and sign-out move into the side menu.
+
+**`UiModeStore`** (`ui/`) — Simple or Expert, persisted like the language; Simple until someone
+chooses. `expert` is the `computed` pages read to show more technical detail.
+**`UiModeSwitcher`** — the two-mode toggle, a Material button-toggle group.
+
 **`csrfInterceptor`** (`http/`) — sends Django's CSRF token on unsafe requests. Auth is a
 same-origin session cookie, so CSRF is the price, and the built-in Angular option skips
 absolute URLs and uses other names. **`errorInterceptor`** — turns every failure into an
-`ApiError`, and sends the user to sign in when a session has gone.
+`ApiError`, and sends the user to sign in when a session has gone. When a bundle has
+`errors.<code>` for the error's code, that text replaces the server's English message, so a
+feature adds its error codes to its own bundle and every store keeps reading `message`.
 
 ## Decisions worth not re-litigating
 

@@ -145,11 +145,11 @@ outside a signal will not render. That is the point.
 
 ## Classes and methods at the root
 
-**`App`** (`app/app.ts`) — the shell: the skip link, the direction on the content, the
-router outlet. **`appConfig`** — zoneless change detection, the router with component input
+**`App`** (`app/app.ts`) — the skip link, the direction on the content and the router outlet.
+Signed-in pages render inside `core/shell/`; sign-in renders alone. **`appConfig`** — zoneless change detection, the router with component input
 binding, HTTP with the CSRF and error interceptors, and Font Awesome as `mat-icon`'s
-default font set. **`routes`** — sign-in, the status pages and the redirect; each feature
-adds one lazy entry. Per-module descriptions live in `core/`, `shared/` and each feature's
+default font set. **`routes`** — sign-in on its own, then the shell with every signed-in page as a child:
+the start redirect, one lazy entry per feature and the status pages. Per-module descriptions live in `core/`, `shared/` and each feature's
 `CLAUDE.md`.
 
 ## Commands

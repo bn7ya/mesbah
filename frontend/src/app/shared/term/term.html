@@ -1,0 +1,29 @@
+<span class="term__word" dir="auto">{{ word() }}</span>
+<button
+  matIconButton
+  type="button"
+  class="app-term__button"
+  cdkOverlayOrigin
+  #origin="cdkOverlayOrigin"
+  [attr.aria-label]="buttonLabel()"
+  [attr.aria-expanded]="open()"
+  [attr.aria-controls]="open() ? panelId : null"
+  (click)="toggle()"
+>
+  <mat-icon fontSet="fa-regular" fontIcon="fa-circle-question" />
+</button>
+
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="origin"
+  [cdkConnectedOverlayOpen]="open()"
+  [cdkConnectedOverlayPositions]="positions"
+  (overlayOutsideClick)="close()"
+  (overlayKeydown)="closeOnEscape($event)"
+  (detach)="close()"
+>
+  <div class="term__panel" role="note" [id]="panelId">
+    <p class="term__title" dir="auto">{{ word() }}</p>
+    <p>{{ explanation() }}</p>
+  </div>
+</ng-template>

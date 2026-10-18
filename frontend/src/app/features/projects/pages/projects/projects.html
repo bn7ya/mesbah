@@ -1,0 +1,117 @@
+<header class="projects__header">
+  <div class="projects__heading">
+    <h1>{{ 'projects.title' | t }}</h1>
+    <p class="text-secondary">{{ 'projects.subtitle' | t }}</p>
+  </div>
+  @if (canWrite()) {
+    <button matButton="filled" type="button" (click)="newProject()">
+      <mat-icon fontIcon="fa-plus" />
+      {{ 'projects.new.open' | t }}
+    </button>
+  }
+</header>
+
+@if (error(); as failure) {
+  <p class="projects__failure" role="alert">
+    <mat-icon fontIcon="fa-circle-exclamation" />
+    {{ failure.message }}
+  </p>
+}
+
+<section class="projects__section" [attr.aria-busy]="loading()">
+  @if (loading() && page().results.length === 0) {
+    <mat-progress-bar mode="indeterminate" [attr.aria-label]="'projects.loading' | t" />
+  }
+
+  @if (empty()) {
+    <mat-card appearance="outlined" class="projects__empty">
+      <mat-icon fontIcon="fa-folder-open" />
+      <div class="projects__empty-text">
+        <p class="projects__empty-title">{{ 'projects.empty.title' | t }}</p>
+        @switch (emptyMode()) {
+          @case ('read') {
+            <p class="text-secondary">{{ 'projects.empty.read' | t }}</p>
+          }
+          @case ('start') {
+            <p class="text-secondary">{{ 'projects.empty.write' | t }}</p>
+            <div>
+              <button matButton="filled" type="button" (click)="newProject()">
+                <mat-icon fontIcon="fa-plus" />
+                {{ 'projects.new.open' | t }}
+              </button>
+            </div>
+          }
+          @case ('download') {
+            <p class="text-secondary">{{ 'projects.empty.noModel' | t }}</p>
+            <div>
+              <a matButton="filled" routerLink="/models">
+                <mat-icon fontIcon="fa-cube" />
+                {{ 'projects.empty.models' | t }}
+              </a>
+            </div>
+          }
+        }
+      </div>
+    </mat-card>
+  }
+
+  <ul class="projects__grid">
+    @for (project of page().results; track project.id) {
+      <li>
+        <mat-card appearance="outlined" class="projects__card">
+          <div class="projects__top">
+            <h2 class="projects__name" dir="auto">{{ project.name }}</h2>
+            @if (project.base_model; as model) {
+              <p class="projects__model text-secondary">
+                <mat-icon fontIcon="fa-cube" />
+                <span dir="ltr">{{ model.repo_id }}</span>
+                @if (model.parameters !== null) {
+                  <span>{{ 'projects.parameters' | t: { count: (model.parameters | compact) } }}</span>
+                }
+              </p>
+            }
+          </div>
+
+          @if (project.description) {
+            <p class="projects__description" dir="auto">{{ project.description }}</p>
+          } @else {
+            <p class="projects__description text-secondary">{{ 'projects.noDescription' | t }}</p>
+          }
+
+          <p class="projects__facts text-secondary">
+            @if (project.active_version; as version) {
+              <span class="projects__version">
+                <span>{{ 'projects.activeVersion' | t }}</span>
+                <span dir="ltr">v{{ version.number }}</span>
+                <span dir="auto">{{ version | versionName }}</span>
+              </span>
+            }
+            <span>{{ 'projects.updated' | t }} {{ project.updated_at | datetime }}</span>
+          </p>
+
+          <div class="projects__actions">
+            <a
+              matButton
+              [routerLink]="['/projects', project.id]"
+              [attr.aria-label]="'projects.openFor' | t: { name: project.name }"
+            >
+              {{ 'projects.open' | t }}
+              <mat-icon fontIcon="fa-arrow-right" class="mat-icon-rtl-mirror" iconPositionEnd />
+            </a>
+          </div>
+        </mat-card>
+      </li>
+    }
+  </ul>
+
+  @if (paged()) {
+    <mat-paginator
+      [length]="page().count"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="[24, 48, 96]"
+      [attr.aria-label]="'projects.pages' | t"
+      (page)="turnPage($event)"
+    />
+  }
+</section>

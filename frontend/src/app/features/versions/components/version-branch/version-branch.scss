@@ -1,0 +1,48 @@
+@use "layout" as *;
+
+:host {
+  --branch-indent: var(--app-space-3);
+  --branch-gap: var(--app-space-3);
+  --branch-connector: var(--app-space-7);
+
+  display: block;
+
+  @include from($screen-sm) {
+    --branch-indent: var(--app-space-5);
+  }
+}
+
+.branch__children {
+  padding: 0;
+  margin: 0;
+  margin-inline-start: var(--branch-indent);
+  list-style: none;
+}
+
+.branch__item {
+  position: relative;
+  padding-block-start: var(--branch-gap);
+  padding-inline-start: var(--branch-indent);
+
+  &::before {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    content: "";
+    border-inline-start: var(--app-hairline) solid var(--mat-sys-outline-variant);
+  }
+
+  &::after {
+    position: absolute;
+    inset-block-start: calc(var(--branch-gap) + var(--branch-connector));
+    inset-inline-start: 0;
+    inline-size: var(--branch-indent);
+    content: "";
+    border-block-start: var(--app-hairline) solid var(--mat-sys-outline-variant);
+  }
+
+  &:last-child::before {
+    inset-block-end: auto;
+    block-size: calc(var(--branch-gap) + var(--branch-connector));
+  }
+}

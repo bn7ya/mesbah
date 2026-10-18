@@ -1,0 +1,75 @@
+<header class="frame__header">
+  <a matButton routerLink="/projects" class="frame__back">
+    <mat-icon fontIcon="fa-arrow-left" class="mat-icon-rtl-mirror" />
+    {{ 'projects.back' | t }}
+  </a>
+
+  @if (project(); as current) {
+    <h1 class="frame__title" dir="auto">{{ current.name }}</h1>
+
+    <div class="frame__facts text-secondary">
+      @if (current.base_model; as model) {
+        <span class="frame__model">
+          <mat-icon fontIcon="fa-cube" />
+          <span dir="ltr">{{ model.repo_id }}</span>
+        </span>
+        @if (model.parameters !== null) {
+          <span>{{ 'projects.parameters' | t: { count: (model.parameters | compact) } }}</span>
+        }
+      }
+    </div>
+
+    @if (activeVersion(); as version) {
+      <mat-chip-set [attr.aria-label]="'projects.activeVersion' | t">
+        <mat-chip highlighted disableRipple>
+          <mat-icon matChipAvatar fontIcon="fa-circle-check" />
+          <span class="frame__version">
+            <span>{{ 'projects.activeVersion' | t }}</span>
+            <span dir="ltr">v{{ version.number }}</span>
+            <span dir="auto">{{ version | versionName }}</span>
+          </span>
+        </mat-chip>
+      </mat-chip-set>
+    }
+  }
+</header>
+
+@if (loading() && !project()) {
+  <mat-progress-bar mode="indeterminate" [attr.aria-label]="'projects.overview.loading' | t" />
+}
+
+@if (error(); as failure) {
+  <p class="frame__failure" role="alert">
+    <mat-icon fontIcon="fa-circle-exclamation" />
+    {{ failure.message }}
+  </p>
+  @if (failure.code !== 'not_found') {
+    <div>
+      <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
+    </div>
+  }
+}
+
+@if (project()) {
+  <nav mat-tab-nav-bar [tabPanel]="panel" [mat-stretch-tabs]="false" [attr.aria-label]="'projects.tabs.label' | t">
+    @for (tab of tabs(); track tab.path) {
+      <a
+        mat-tab-link
+        [routerLink]="tab.path || '.'"
+        routerLinkActive
+        #link="routerLinkActive"
+        [routerLinkActiveOptions]="{ exact: tab.path === '' }"
+        [active]="link.isActive"
+      >
+        <mat-icon [fontIcon]="tab.icon" class="frame__tab-icon" />
+        {{ tab.labelKey | t }}
+      </a>
+    }
+  </nav>
+}
+
+<mat-tab-nav-panel #panel class="frame__panel">
+  @if (project()) {
+    <router-outlet />
+  }
+</mat-tab-nav-panel>

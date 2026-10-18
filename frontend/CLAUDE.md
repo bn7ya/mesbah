@@ -147,10 +147,17 @@ outside a signal will not render. That is the point.
 
 **`App`** (`app/app.ts`) — the skip link, the direction on the content and the router outlet.
 Signed-in pages render inside `core/shell/`; sign-in renders alone. **`appConfig`** — zoneless change detection, the router with component input
-binding, HTTP with the CSRF and error interceptors, Font Awesome as `mat-icon`'s
+binding and `paramsInheritanceStrategy: 'always'` (a page under `projects/:projectId` receives
+`projectId` as an input), HTTP with the CSRF and error interceptors, Font Awesome as `mat-icon`'s
 default font set, and the paginator's labels in the reader's language. **`routes`** — sign-in on its own, then the shell with every signed-in page as a child:
-the start redirect, one lazy entry per feature and the status pages. Per-module descriptions live in `core/`, `shared/` and each feature's
+the start redirect (to Projects), one lazy entry per feature and the status pages. A project's
+pages are the one place the app composes features: `projects/:projectId` loads the project
+frame through `projectFrame()` and passes it the tabs the other features own (`versions`), so
+features never import each other. Per-module descriptions live in `core/`, `shared/` and each feature's
 `CLAUDE.md`.
+
+A route's `providers` are created once and kept, not once per visit — a store provided there
+outlives its page, so a page that shows server data asks for it again when it opens.
 
 ## Commands
 

@@ -1,0 +1,68 @@
+{
+  "versions": {
+    "title": "Versions",
+    "intro": {
+      "first": "The first version is the model as downloaded.",
+      "each": "Each version below it stores only what its training changed.",
+      "any": "Any version can be made active at any time. Rolling back is making an older version active."
+    },
+    "terms": "Terms:",
+    "loading": "Loading versions",
+    "tree": "Version tree",
+    "onlyBase": "Train the model to add versions here.",
+    "activated": "{name} is now the active version.",
+    "renamed": "Version renamed.",
+    "removed": "Version removed.",
+    "active": "Active",
+    "kind": {
+      "base": "Base model, as downloaded",
+      "scratch_root": "Model designed from scratch",
+      "lora": "Change on top of the base"
+    },
+    "size": {
+      "change": "{size}, which is {percent} of the full model",
+      "sliver": "{size}, under {percent} of the full model",
+      "changeOnly": "{size}",
+      "root": "{size}, stored once and not copied",
+      "rootUnknown": "Stored once and not copied."
+    },
+    "row": {
+      "created": "Created:",
+      "by": "By:",
+      "actionsFor": "Actions for {name}"
+    },
+    "expert": {
+      "rank": "Rank: {rank}",
+      "biases": "Trains biases",
+      "yes": "Yes",
+      "no": "No",
+      "parameters": "Parameters changed",
+      "size": "Size of the change",
+      "fromParent": "Change from the parent version"
+    },
+    "menu": {
+      "activate": "Make active",
+      "activateHint": "Conversations will use this version. Rolling back is making an older version active.",
+      "alreadyActive": "This is the active version.",
+      "rename": "Rename",
+      "remove": "Remove"
+    },
+    "rename": {
+      "title": "Rename version",
+      "name": "Name",
+      "nameRequired": "Enter a name for the version.",
+      "notes": "Notes",
+      "notesHint": "What changed, or why. Optional.",
+      "working": "Saving…"
+    },
+    "remove": {
+      "title": "Remove {name}?",
+      "body": "The version is removed from the tree. Versions trained from it move up to its parent.",
+      "confirm": "Remove"
+    }
+  },
+  "errors": {
+    "root_version_kept": "The base model stays in the project.",
+    "active_version_kept": "The active version stays. Make another version active first."
+  }
+}

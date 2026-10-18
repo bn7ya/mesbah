@@ -1,0 +1,138 @@
+<h2 mat-dialog-title>{{ 'projects.new.title' | t }}</h2>
+
+<form novalidate (ngSubmit)="submit()">
+  <mat-dialog-content class="new-project">
+    @if (loadingModels()) {
+      <mat-progress-bar mode="indeterminate" [attr.aria-label]="'projects.new.loadingModels' | t" />
+    }
+
+    @if (modelsFailure(); as problem) {
+      <p class="new-project__failure" role="alert">
+        <mat-icon fontIcon="fa-circle-exclamation" />
+        {{ problem.message }}
+      </p>
+      <div>
+        <button matButton type="button" (click)="tryModelsAgain()">{{ 'actions.retry' | t }}</button>
+      </div>
+    }
+
+    @if (noModel()) {
+      <div class="new-project__note">
+        <mat-icon fontIcon="fa-box-open" />
+        <div class="new-project__note-text">
+          <p class="new-project__note-title">{{ 'projects.new.noModel' | t }}</p>
+          <p class="text-secondary">{{ 'projects.new.noModelBody' | t }}</p>
+          <div>
+            <a matButton routerLink="/models" mat-dialog-close>
+              <mat-icon fontIcon="fa-cube" />
+              {{ 'projects.new.toModels' | t }}
+            </a>
+          </div>
+        </div>
+      </div>
+    } @else {
+      @if (failure(); as problem) {
+        <p class="new-project__failure" role="alert">
+          <mat-icon fontIcon="fa-circle-exclamation" />
+          {{ problem.message }}
+        </p>
+      }
+
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>{{ 'projects.new.name' | t }}</mat-label>
+        <input
+          matInput
+          name="name"
+          dir="auto"
+          autocomplete="off"
+          [maxlength]="nameMax"
+          [errorStateMatcher]="nameErrors"
+          [ngModel]="name()"
+          (ngModelChange)="name.set($event)"
+        />
+        <mat-error>{{ 'projects.new.nameRequired' | t }}</mat-error>
+      </mat-form-field>
+
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>{{ 'projects.new.model' | t }}</mat-label>
+        <mat-select
+          name="model"
+          [value]="modelId()"
+          [disabled]="models().length === 0"
+          [errorStateMatcher]="modelErrors"
+          (valueChange)="modelId.set($event)"
+        >
+          <mat-select-trigger>
+            <span dir="ltr">{{ selected()?.repo_id }}</span>
+          </mat-select-trigger>
+          @for (model of models(); track model.id) {
+            <mat-option [value]="model.id">
+              <span class="new-project__option">
+                <span dir="ltr">{{ model.repo_id }}</span>
+                @if (model.parameters !== null) {
+                  <span class="text-secondary">{{ 'projects.parameters' | t: { count: (model.parameters | compact) } }}</span>
+                }
+              </span>
+            </mat-option>
+          }
+        </mat-select>
+        <mat-hint>{{ 'projects.new.modelHint' | t }}</mat-hint>
+        <mat-error>{{ 'projects.new.modelRequired' | t }}</mat-error>
+      </mat-form-field>
+
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>{{ 'projects.new.description' | t }}</mat-label>
+        <textarea
+          matInput
+          name="description"
+          dir="auto"
+          cdkTextareaAutosize
+          cdkAutosizeMinRows="2"
+          cdkAutosizeMaxRows="6"
+          [maxlength]="descriptionMax"
+          [ngModel]="description()"
+          (ngModelChange)="description.set($event)"
+        ></textarea>
+      </mat-form-field>
+
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>{{ 'projects.reply.instructions' | t }}</mat-label>
+        <textarea
+          matInput
+          name="systemPrompt"
+          dir="auto"
+          cdkTextareaAutosize
+          cdkAutosizeMinRows="3"
+          cdkAutosizeMaxRows="8"
+          [maxlength]="promptMax"
+          [ngModel]="systemPrompt()"
+          (ngModelChange)="systemPrompt.set($event)"
+        ></textarea>
+        <mat-hint>{{ 'projects.reply.instructionsHint' | t }}</mat-hint>
+      </mat-form-field>
+
+      <div class="new-project__thinking">
+        <mat-slide-toggle
+          aria-describedby="new-project-thinking"
+          [checked]="thinking()"
+          [disabled]="!canThink()"
+          (change)="thinking.set($event.checked)"
+        >
+          {{ 'projects.reply.thinking' | t }}
+        </mat-slide-toggle>
+        <p class="new-project__thinking-hint text-secondary" id="new-project-thinking">
+          {{ (selected() && !canThink() ? 'projects.reply.thinkingUnsupported' : 'projects.reply.thinkingHint') | t }}
+        </p>
+      </div>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button matButton type="button" mat-dialog-close>{{ 'actions.cancel' | t }}</button>
+    @if (!noModel()) {
+      <button matButton="filled" type="submit" [disabled]="creating() || loadingModels()" [attr.aria-busy]="creating()">
+        {{ (creating() ? 'projects.new.working' : 'projects.new.submit') | t }}
+      </button>
+    }
+  </mat-dialog-actions>
+</form>

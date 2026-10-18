@@ -63,6 +63,11 @@ alone.
 
 **`modelsGuard`** (`guards/`) — viewers and above.
 
+## Errors
+
+Removing a model a project is built on answers `409 model_in_use`; `errors.model_in_use` in this
+bundle says so in the reader's language and the page shows it in its alert.
+
 ## Decisions worth not re-litigating
 
 **Polling is a stream the page owns, not an effect in the store.** The page subscribes with

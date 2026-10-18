@@ -1,0 +1,49 @@
+<section class="versions__intro" aria-labelledby="versions-title">
+  <h2 id="versions-title">{{ 'versions.title' | t }}</h2>
+  <p class="text-secondary">
+    {{ 'versions.intro.first' | t }}
+    {{ 'versions.intro.each' | t }}
+    {{ 'versions.intro.any' | t }}
+  </p>
+  <p class="versions__terms text-secondary">
+    <span>{{ 'versions.terms' | t }}</span>
+    <app-term key="version" />
+    <app-term key="adapter" />
+  </p>
+</section>
+
+@if (loadError(); as failure) {
+  <p class="versions__failure" role="alert">
+    <mat-icon fontIcon="fa-circle-exclamation" />
+    {{ failure.message }}
+  </p>
+  <div>
+    <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
+  </div>
+}
+
+@if (error(); as failure) {
+  <p class="versions__failure" role="alert">
+    <mat-icon fontIcon="fa-circle-exclamation" />
+    {{ failure.message }}
+  </p>
+}
+
+@if (loading() && tree().length === 0) {
+  <mat-progress-bar mode="indeterminate" [attr.aria-label]="'versions.loading' | t" />
+}
+
+<ul class="versions__tree" [attr.aria-label]="'versions.tree' | t" [attr.aria-busy]="loading()">
+  @for (root of tree(); track root.version.id) {
+    <li>
+      <app-version-branch [node]="root" />
+    </li>
+  }
+</ul>
+
+@if (onlyBase()) {
+  <p class="versions__note text-secondary">
+    <mat-icon fontIcon="fa-circle-info" />
+    {{ 'versions.onlyBase' | t }}
+  </p>
+}

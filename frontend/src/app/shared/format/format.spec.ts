@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatBytes, formatCompact, formatNumber } from './format';
+import { formatBytes, formatCompact, formatDateTime, formatNumber, formatPercent, formatSignificant } from './format';
 
 const GIB = 1024 ** 3;
 
@@ -51,5 +51,40 @@ describe('formatCompact', () => {
 
   it('writes the unit in Arabic with Latin digits', () => {
     expect(formatCompact(8_190_735_360, 'ar')).toBe('8.2\u00a0مليار');
+  });
+});
+
+describe('formatSignificant', () => {
+  it('keeps two significant digits of a small number', () => {
+    expect(formatSignificant(0.012345, 'en')).toBe('0.012');
+  });
+
+  it('rounds a large number to two significant digits', () => {
+    expect(formatSignificant(1234.5, 'en')).toBe('1,200');
+  });
+
+  it('uses Latin digits in Arabic', () => {
+    expect(formatSignificant(0.82, 'ar')).toBe('0.82');
+  });
+});
+
+describe('formatPercent', () => {
+  it('keeps one decimal below ten percent', () => {
+    expect(plain(formatPercent(0.0534, 'en'))).toBe('5.3%');
+  });
+
+  it('rounds from ten percent up', () => {
+    expect(plain(formatPercent(0.347, 'en'))).toBe('35%');
+  });
+
+  it('keeps the number before its sign in an Arabic sentence', () => {
+    expect(formatPercent(0.5, 'ar')).toBe('\u206650%\u2069');
+  });
+});
+
+describe('formatDateTime', () => {
+  it('writes the day and the time in the reader\'s language with Latin digits', () => {
+    expect(formatDateTime('2026-10-18T14:30:00Z', 'en')).toMatch(/2026/);
+    expect(formatDateTime('2026-10-18T14:30:00Z', 'ar')).toMatch(/2026/);
   });
 });

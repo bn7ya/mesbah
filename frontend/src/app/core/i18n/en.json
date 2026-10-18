@@ -64,9 +64,13 @@
   "nav": {
     "label": "Main",
     "open": "Open the menu",
+    "projects": "Projects",
     "models": "Models",
     "system": "System",
     "members": "Members"
+  },
+  "version": {
+    "baseName": "Base model"
   },
   "mode": {
     "label": "Detail",
@@ -118,6 +122,34 @@
     "token": {
       "term": "token",
       "explain": "A piece of text the model reads and writes at a time, such as a short word or part of a word."
+    },
+    "temperature": {
+      "term": "Temperature",
+      "explain": "How varied the model's word choices are. A low value gives steady, predictable replies. A high value gives more varied ones."
+    },
+    "top_p": {
+      "term": "top_p",
+      "explain": "Limits the next word to the most likely choices. At 0.9 the model picks only among the words that together cover 90% of the likelihood. A lower value gives safer replies."
+    },
+    "system_prompt": {
+      "term": "System prompt",
+      "explain": "The instructions every conversation starts with, before anyone types. They set the model's role, tone and rules."
+    },
+    "version": {
+      "term": "Version",
+      "explain": "One saved state of the model. The first is the base model as downloaded. Each training adds another, stored as a small change on top of the base."
+    },
+    "lora": {
+      "term": "LoRA",
+      "explain": "A way to customise a model by training a small add-on on top of it. The add-on is small, so a version needs little disk space and switches quickly."
+    },
+    "delta": {
+      "term": "delta",
+      "explain": "Only what training changed in the model's weights, stored on its own. The base model is not copied."
+    },
+    "adapter": {
+      "term": "adapter",
+      "explain": "The small file that holds a version's change. It is applied on top of the base model when the version runs."
     }
   },
   "paginator": {

@@ -1,0 +1,123 @@
+@use "layout" as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-8);
+  max-inline-size: $reading-max;
+}
+
+.overview__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+
+  h2,
+  p {
+    margin: 0;
+  }
+}
+
+.overview__heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+}
+
+.overview__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-5);
+  padding: var(--app-space-6);
+
+  p {
+    margin: 0;
+  }
+}
+
+.overview__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-5);
+}
+
+.overview__failure {
+  display: flex;
+  gap: var(--app-space-3);
+  align-items: center;
+  padding: var(--app-space-3) var(--app-space-4);
+  color: var(--mat-sys-on-error-container);
+  background: var(--mat-sys-error-container);
+  border-radius: var(--mat-sys-corner-small);
+}
+
+.overview__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+}
+
+.overview__head {
+  display: flex;
+  gap: var(--app-space-4);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.overview__label {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-3);
+  align-items: center;
+  font: var(--mat-sys-label-large);
+}
+
+.overview__value {
+  font: var(--mat-sys-title-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.overview__hint {
+  font: var(--mat-sys-body-medium);
+}
+
+.overview__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-3);
+}
+
+.overview__facts {
+  display: grid;
+  gap: var(--app-space-4);
+  margin: 0;
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-1);
+  }
+
+  dt {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--app-space-1) var(--app-space-3);
+    align-items: center;
+    font: var(--mat-sys-label-large);
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--app-space-1) var(--app-space-4);
+    align-items: center;
+    margin: 0;
+    font: var(--mat-sys-body-large);
+  }
+}
+
+.overview__text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

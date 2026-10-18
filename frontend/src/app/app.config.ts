@@ -6,7 +6,7 @@ import {
 } from '@angular/core';
 import { MAT_ICON_DEFAULT_OPTIONS } from '@angular/material/icon';
 import { MatPaginatorIntl } from '@angular/material/paginator';
-import { provideRouter, withComponentInputBinding, withViewTransitions } from '@angular/router';
+import { provideRouter, withComponentInputBinding, withRouterConfig, withViewTransitions } from '@angular/router';
 
 import { csrfInterceptor } from '@core/http/csrf.interceptor';
 import { errorInterceptor } from '@core/http/error.interceptor';
@@ -22,6 +22,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(
       routes,
       withComponentInputBinding(),
+      withRouterConfig({ paramsInheritanceStrategy: 'always' }),
       withViewTransitions(),
     ),
 

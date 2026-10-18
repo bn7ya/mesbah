@@ -5,9 +5,9 @@ signed-in user sees it; administrators choose the GPUs and save the HuggingFace 
 
 ## Route and guard
 
-`/system`, the start page after signing in. `systemGuard` lets any signed-in user in; the
-backend decides who may change anything (`CanManageSystem`), and the page hides the controls
-from everyone else (`SystemStore.canManage`).
+`/system`. `systemGuard` lets any signed-in user in; the backend decides who may change anything
+(`CanManageSystem`), and the page hides the controls from everyone else (`SystemStore.canManage`).
+The start page after signing in is Projects now, and the menu lists System after Models.
 
 ## Backend counterpart
 

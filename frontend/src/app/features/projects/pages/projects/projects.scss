@@ -1,0 +1,135 @@
+@use "layout" as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-6);
+}
+
+.projects__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-4);
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.projects__heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+  max-inline-size: $reading-max;
+
+  h1,
+  p {
+    margin: 0;
+  }
+}
+
+.projects__failure {
+  display: flex;
+  gap: var(--app-space-3);
+  align-items: center;
+  padding: var(--app-space-3) var(--app-space-4);
+  margin: 0;
+  color: var(--mat-sys-on-error-container);
+  background: var(--mat-sys-error-container);
+  border-radius: var(--mat-sys-corner-small);
+}
+
+.projects__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+}
+
+.projects__empty {
+  display: flex;
+  flex-direction: row;
+  gap: var(--app-space-4);
+  align-items: flex-start;
+  padding: var(--app-space-6);
+}
+
+.projects__empty-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+
+  p {
+    margin: 0;
+  }
+}
+
+.projects__empty-title {
+  font: var(--mat-sys-title-medium);
+}
+
+.projects__grid {
+  display: grid;
+  gap: var(--app-space-4);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, #{$column-min * 2}), 1fr));
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.projects__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+  block-size: 100%;
+  padding: var(--app-space-5);
+
+  p {
+    margin: 0;
+  }
+}
+
+.projects__top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+}
+
+.projects__name {
+  margin: 0;
+  font: var(--mat-sys-title-medium);
+  overflow-wrap: anywhere;
+}
+
+.projects__model {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-3);
+  align-items: center;
+  font: var(--mat-sys-body-medium);
+  overflow-wrap: anywhere;
+}
+
+.projects__description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+}
+
+.projects__facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+  font: var(--mat-sys-body-medium);
+}
+
+.projects__actions {
+  display: flex;
+  margin-block-start: auto;
+}
+
+.projects__version {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-2);
+}

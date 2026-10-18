@@ -23,7 +23,24 @@ export const routes: Routes = [
         path: '',
         pathMatch: 'full',
         // No guard: the router rejects canActivate beside redirectTo (NG04014).
-        redirectTo: 'system',
+        redirectTo: 'projects',
+      },
+      {
+        path: 'projects',
+        pathMatch: 'full',
+        loadChildren: () => import('@features/projects/projects.routes').then((m) => m.routes),
+      },
+      {
+        path: 'projects/:projectId',
+        loadChildren: async () => {
+          const { projectFrame } = await import('@features/projects/projects.routes');
+          return projectFrame([
+            {
+              path: 'versions',
+              loadChildren: () => import('@features/versions/versions.routes').then((m) => m.routes),
+            },
+          ]);
+        },
       },
       {
         path: 'models',

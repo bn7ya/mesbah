@@ -19,6 +19,7 @@ way and turns a shared component into a feature's private one.
 | `meter/` | Memory and disk shown as a bar with a legend |
 | `format/` | Sizes and numbers in the reader's language, Latin digits |
 | `confirm-dialog/` | Asking before an action that removes or replaces something |
+| `version/` | A version's label and its name in words, and the announcement that keeps the project frame's chip current (projects and versions) |
 
 `StatusPage` takes `titleKey` and `bodyKey` as translation keys, bound straight
 from route `data` by `withComponentInputBinding()`. A new status page is a route
@@ -42,11 +43,20 @@ has no popover.
 segments plus the free remainder, with a legend that carries the same numbers in text and an
 `aria-label` that reads them all.
 
-**`formatBytes()`**, **`formatNumber()`**, **`formatCompact()`**, **`BytesPipe`**,
-**`CompactPipe`** (`format/`) — sizes in binary units labelled B…PB, wrapped in Unicode isolates
+**`formatBytes()`**, **`formatNumber()`**, **`formatCompact()`**, **`formatSignificant()`**,
+**`formatPercent()`**, **`formatDateTime()`**, **`BytesPipe`**, **`CompactPipe`**,
+**`DateTimePipe`** (`format/`) — sizes in binary units labelled B…PB, wrapped in Unicode isolates
 so "16 GB" keeps its order in an Arabic sentence; numbers with Latin digits in both languages;
-and counts shortened the way the language writes them ("8.2B", "9.1M" in English, "8.2 مليار"
-in Arabic).
+counts shortened the way the language writes them ("8.2B", "9.1M" in English, "8.2 مليار"
+in Arabic); a number to a set count of significant digits; a ratio as an isolated percentage;
+and a timestamp as a long date with the time, in the reader's language.
+
+**`ActiveVersionChanges`** (`version/`) — a root service the versions page announces the
+active version on (`announce()`, a project id and a `VersionLabel`), and the project frame
+listens to (`changes`); nothing is replayed to a late listener. **`VersionNamePipe`** and
+**`versionName()`** — a version's name for display: the backend's seeded `base` on version 0
+reads "Base model" in the reader's language, any other name stays. `VersionLabel` is the shape
+a project carries its active version in.
 
 **`ConfirmDialog`**, **`confirmAction()`** (`confirm-dialog/`) — a `MatDialog` that asks one
 question with translation keys and resolves to `true` only on the confirming button; a

@@ -34,6 +34,12 @@ class AlreadyInLibrary(APIException):
     default_detail = "This model is already in the library."
 
 
+class ModelInUse(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_code = "model_in_use"
+    default_detail = "A project is built on this model. Remove the project first."
+
+
 class NotEnoughDisk(APIException):
     status_code = status.HTTP_507_INSUFFICIENT_STORAGE
     default_code = "disk_full"

@@ -1,0 +1,132 @@
+@let item = version();
+
+<mat-card [appearance]="item.is_active ? 'filled' : 'outlined'" class="row" [attr.aria-busy]="busy()">
+  <div class="row__head">
+    <mat-chip-set>
+      <mat-chip disableRipple><span dir="ltr">v{{ item.number }}</span></mat-chip>
+    </mat-chip-set>
+
+    <h3 class="row__name"><span dir="auto">{{ item | versionName }}</span></h3>
+
+    @if (item.is_active) {
+      <mat-chip-set>
+        <mat-chip highlighted disableRipple>
+          <mat-icon matChipAvatar fontIcon="fa-circle-check" />
+          {{ 'versions.active' | t }}
+        </mat-chip>
+      </mat-chip-set>
+    }
+
+    @if (canWrite()) {
+      <button
+        matIconButton
+        type="button"
+        class="row__menu"
+        [matMenuTriggerFor]="menu"
+        [disabled]="busy()"
+        [attr.aria-label]="'versions.row.actionsFor' | t: { name: label() }"
+      >
+        <mat-icon fontIcon="fa-ellipsis-vertical" />
+      </button>
+      <mat-menu #menu="matMenu">
+        @let blocker = removeBlocker();
+        <button
+          mat-menu-item
+          type="button"
+          disabledInteractive
+          [disabled]="item.is_active"
+          [matTooltip]="activateHint() | t"
+          (click)="makeActive()"
+        >
+          <mat-icon fontIcon="fa-circle-check" />
+          <span>{{ 'versions.menu.activate' | t }}</span>
+        </button>
+        <button mat-menu-item type="button" (click)="rename()">
+          <mat-icon fontIcon="fa-pen" />
+          <span>{{ 'versions.menu.rename' | t }}</span>
+        </button>
+        <button
+          mat-menu-item
+          type="button"
+          disabledInteractive
+          [disabled]="blocker !== null"
+          [matTooltip]="blocker ? (blocker | t) : ''"
+          (click)="remove()"
+        >
+          <mat-icon fontIcon="fa-trash" />
+          <span>{{ 'versions.menu.remove' | t }}</span>
+        </button>
+      </mat-menu>
+    }
+  </div>
+
+  <p class="row__kind text-secondary">
+    <span>{{ 'versions.kind.' + item.kind | t }}</span>
+    @if (item.kind === 'lora') {
+      <app-term key="delta" />
+    }
+  </p>
+
+  @if (item.notes) {
+    <p class="row__notes" dir="auto">{{ item.notes }}</p>
+  }
+
+  <div class="row__size">
+    @if (item.kind === 'lora') {
+      @if (share(); as shared) {
+        <mat-progress-bar mode="determinate" aria-hidden="true" [value]="shared.ratio * 100" />
+        <p>{{ shared.key | t: { size: (item.size_bytes | bytes), percent: shared.percent } }}</p>
+      } @else {
+        <p>{{ 'versions.size.changeOnly' | t: { size: (item.size_bytes | bytes) } }}</p>
+      }
+    } @else if (item.full_size_bytes > 0) {
+      <p>{{ 'versions.size.root' | t: { size: (item.full_size_bytes | bytes) } }}</p>
+    } @else {
+      <p>{{ 'versions.size.rootUnknown' | t }}</p>
+    }
+  </div>
+
+  <p class="row__meta text-secondary">
+    <span>{{ 'versions.row.created' | t }} {{ item.created_at | datetime }}</span>
+    @if (item.created_by) {
+      <span>{{ 'versions.row.by' | t }} <span dir="ltr">{{ item.created_by }}</span></span>
+    }
+  </p>
+
+  @if (expert() && hasExpertDetails()) {
+    <dl class="row__expert">
+      @if (item.lora_rank !== null) {
+        <div>
+          <dt><app-term key="lora" /></dt>
+          <dd>{{ 'versions.expert.rank' | t: { rank: count(item.lora_rank) } }}</dd>
+        </div>
+      }
+      @if (item.kind === 'lora') {
+        <div>
+          <dt>{{ 'versions.expert.biases' | t }}</dt>
+          <dd>{{ (item.trains_biases ? 'versions.expert.yes' : 'versions.expert.no') | t }}</dd>
+        </div>
+      }
+      @if (item.delta; as delta) {
+        @if (delta.parameters !== null) {
+          <div>
+            <dt>{{ 'versions.expert.parameters' | t }}</dt>
+            <dd>{{ delta.parameters | compact }}</dd>
+          </div>
+        }
+        @if (delta.total_norm !== null) {
+          <div>
+            <dt>{{ 'versions.expert.size' | t }}</dt>
+            <dd>{{ significant(delta.total_norm) }}</dd>
+          </div>
+        }
+        @if (delta.change_from_parent !== null) {
+          <div>
+            <dt>{{ 'versions.expert.fromParent' | t }}</dt>
+            <dd>{{ significant(delta.change_from_parent) }}</dd>
+          </div>
+        }
+      }
+    </dl>
+  }
+</mat-card>

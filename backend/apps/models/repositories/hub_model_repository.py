@@ -18,6 +18,9 @@ class HubModelRepository(BaseRepository[HubModel]):
     def by_repo(self, repo_ids: list[str]) -> dict[str, HubModel]:
         return {row.repo_id.lower(): row for row in self.active().filter(repo_id__in=repo_ids)}
 
+    def in_use(self, model: HubModel) -> bool:
+        return model.projects.filter(deleted_at__isnull=True).exists()
+
     def cancel_requested(self, model_id: str) -> bool:
         return self.active().filter(pk=model_id, cancel_requested=True).exists()
 

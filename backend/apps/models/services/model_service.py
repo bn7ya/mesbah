@@ -12,7 +12,12 @@ from rest_framework.exceptions import NotFound
 
 from apps.models.models import HubModel
 from apps.models.repositories import HubModelRepository
-from apps.models.services.errors import AlreadyInLibrary, NotDownloadable, NotEnoughDisk
+from apps.models.services.errors import (
+    AlreadyInLibrary,
+    ModelInUse,
+    NotDownloadable,
+    NotEnoughDisk,
+)
 from apps.models.services.hub_client import HubClient, HubDetail, HubResult
 from apps.models.services.storage import hub_cache_dir
 from apps.system.services import SystemService
@@ -167,6 +172,8 @@ class ModelService:
 
     def remove(self, model_id: str) -> None:
         row: HubModel = self.find(model_id)
+        if self.models.in_use(row):
+            raise ModelInUse
         self.models.update(row, cancel_requested=True)
         self.models.soft_delete(row)
         shutil.rmtree(repo_cache_dir(hub_cache_dir(), row.repo_id), ignore_errors=True)

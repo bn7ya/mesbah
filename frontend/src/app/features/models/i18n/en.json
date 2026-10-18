@@ -124,6 +124,7 @@
     "not_downloadable": "This repository has no model weights to load.",
     "disk_full": "There isn't enough free disk space for this model.",
     "hub_model_not_found": "HuggingFace has no model with that name.",
-    "hub_model_gated": "This model needs a HuggingFace token with access to it. Save one on the System page."
+    "hub_model_gated": "This model needs a HuggingFace token with access to it. Save one on the System page.",
+    "model_in_use": "A project is built on this model. Remove the project first."
   }
 }

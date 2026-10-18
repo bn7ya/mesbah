@@ -26,6 +26,21 @@ export function formatCompact(value: number, locale: Locale): string {
   }).format(value);
 }
 
+export function formatSignificant(value: number, locale: Locale, digits = 2): string {
+  return new Intl.NumberFormat(NUMBER_LOCALES[locale], { maximumSignificantDigits: digits }).format(value);
+}
+
+export function formatPercent(ratio: number, locale: Locale): string {
+  const percent = Math.max(0, ratio) * 100;
+  return `${LTR_START}${formatNumber(percent, locale, percent < 10 ? 1 : 0)}%${LTR_END}`;
+}
+
+export function formatDateTime(iso: string, locale: Locale): string {
+  return new Intl.DateTimeFormat(NUMBER_LOCALES[locale], { dateStyle: 'long', timeStyle: 'short' }).format(
+    new Date(iso),
+  );
+}
+
 export function formatBytes(bytes: number, locale: Locale): string {
   let value = Math.max(0, bytes);
   let unit = 0;

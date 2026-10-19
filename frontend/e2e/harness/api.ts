@@ -26,9 +26,12 @@ export class MesbahApi {
   ) {}
 
   static async open(baseUrl: string): Promise<MesbahApi> {
+    // Inside a test the request context takes the project's saved session unless told not
+    // to, and signing in as someone else would then end that session for every later test.
     const context = await request.newContext({
       baseURL: baseUrl,
       extraHTTPHeaders: { Referer: `${baseUrl}/` },
+      storageState: { cookies: [], origins: [] },
     });
     const api = new MesbahApi(context, baseUrl);
     await api.get('/api/auth/csrf/');

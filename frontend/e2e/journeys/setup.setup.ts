@@ -40,6 +40,8 @@ test('a fresh install is set up in Arabic with the code it printed', async ({ pa
   await expect(page).toHaveURL(/\/projects$/);
   await shot('first projects page');
   mkdirSync(dirname(stateFile('owner')), { recursive: true });
+  // The session is kept for every project; the language it was made in is not.
+  await page.evaluate(() => localStorage.clear());
   await page.context().storageState({ path: stateFile('owner') });
 });
 

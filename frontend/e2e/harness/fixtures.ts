@@ -12,7 +12,7 @@ import { readWorld, stateFile } from './world';
 
 const IGNORED_CONSOLE: readonly RegExp[] = [/^Failed to load resource/];
 
-async function startIn(page: Page, locale: UiLocale | null): Promise<void> {
+export async function startIn(page: Page, locale: UiLocale | null): Promise<void> {
   if (locale) {
     await page.addInitScript((chosen) => {
       if (!localStorage.getItem('locale')) {
@@ -20,6 +20,18 @@ async function startIn(page: Page, locale: UiLocale | null): Promise<void> {
       }
     }, locale);
   }
+}
+
+export function recordErrors(page: Page): readonly string[] {
+  const problems: string[] = [];
+  page.on('pageerror', (error) => problems.push(`page error: ${error.message}`));
+  page.on('console', (message) => {
+    const said = message.text();
+    if (message.type() === 'error' && !IGNORED_CONSOLE.some((ignored) => ignored.test(said))) {
+      problems.push(`console error: ${said}`);
+    }
+  });
+  return problems;
 }
 
 function fileName(text: string): string {
@@ -60,24 +72,17 @@ export const test = base.extend<Fixtures, WorkerFixtures>({
   shot: async ({ page }, use, testInfo) => {
     let taken = 0;
     const folder = join(RESULTS, 'screens', testInfo.project.name, fileName(testInfo.titlePath.slice(1).join(' ')));
-    await use(async (name) => {
+    await use(async (name, shown = page) => {
       taken += 1;
       mkdirSync(folder, { recursive: true });
       const path = join(folder, `${String(taken).padStart(2, '0')}-${fileName(name)}.png`);
-      await page.screenshot({ path, fullPage: true, animations: 'disabled', caret: 'hide' });
+      await shown.screenshot({ path, fullPage: true, animations: 'disabled', caret: 'hide' });
       await testInfo.attach(name, { path, contentType: 'image/png' });
     });
   },
   consoleGuard: [
     async ({ page, allowConsoleErrors }, use) => {
-      const problems: string[] = [];
-      page.on('pageerror', (error) => problems.push(`page error: ${error.message}`));
-      page.on('console', (message) => {
-        const text = message.text();
-        if (message.type() === 'error' && !IGNORED_CONSOLE.some((ignored) => ignored.test(text))) {
-          problems.push(`console error: ${text}`);
-        }
-      });
+      const problems = recordErrors(page);
       await use(undefined);
       if (!allowConsoleErrors) {
         expect(problems, 'the page logged errors').toEqual([]);

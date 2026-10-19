@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -7,6 +8,7 @@ import { FRONTEND } from './stack';
 const APP = join(FRONTEND, 'src', 'app');
 const ISOLATES = '[\\u2066-\\u2069]*';
 const PLACEHOLDER = /\{(\w+)\}/g;
+const ANY_VALUE = '[\\s\\S]+?';
 const loaded = new Map<string, ReadonlyMap<string, string>>();
 
 function folder(bundle: Bundle): string {
@@ -48,7 +50,7 @@ function escaped(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-export function template(bundle: Bundle, locale: UiLocale, key: string): string {
+function template(bundle: Bundle, locale: UiLocale, key: string): string {
   const found = dictionary(bundle, locale).get(key);
   if (found === undefined) {
     throw new Error(`${bundle}/${locale}.json has no ${key}`);
@@ -79,4 +81,26 @@ export function label(bundle: Bundle, locale: UiLocale, key: string, values: Val
 
 export function contains(bundle: Bundle, locale: UiLocale, key: string, values: Values = {}): RegExp {
   return new RegExp(source(bundle, locale, key, values));
+}
+
+export function anyValues(bundle: Bundle, locale: UiLocale, ...keys: readonly string[]): RegExp {
+  const sources = keys.map((key) =>
+    template(bundle, locale, key)
+      .split(PLACEHOLDER)
+      .map((piece, index) => (index % 2 === 0 ? escaped(piece) : ANY_VALUE))
+      .join(''),
+  );
+  return new RegExp(sources.map((one) => `(?:${one})`).join('|'));
+}
+
+export function literal(value: string): RegExp {
+  return new RegExp(escaped(value));
+}
+
+export function startsWith(value: string): RegExp {
+  return new RegExp(`^[\\s\\u2066-\\u2069]*${escaped(value)}`);
+}
+
+export function stamp(): string {
+  return `${Date.now() % 1_000_000_000}${String(randomInt(1000)).padStart(3, '0')}`;
 }

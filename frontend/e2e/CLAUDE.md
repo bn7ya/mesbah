@@ -31,6 +31,9 @@ E2E_STACK=/path/to/stack.json npm run e2e
 
 npm run e2e:smoke          # only the journeys tagged @smoke
 npm run typecheck:e2e      # what CI runs
+
+# Only the journeys in journeys/alone/, on a fresh world, without every ltr and rtl journey first.
+npm run e2e -- --no-deps --workers=1 --project=setup --project=alone-ltr --project=alone-rtl
 ```
 
 Everything a run leaves goes in `test-results/e2e/` (`E2E_RESULTS` moves it):
@@ -49,10 +52,12 @@ Everything a run leaves goes in `test-results/e2e/` (`E2E_RESULTS` moves it):
 | `setup` | `journeys/setup.setup.ts`: first run in Arabic with the printed code, then the world through the API | — |
 | `ltr` | `journeys/*.spec.ts` in English | `setup` |
 | `rtl` | the same in Arabic | `setup` |
-| `trains-ltr`, `trains-rtl` | `journeys/trains/*.spec.ts`, one at a time, English then Arabic | `ltr`, `rtl` |
+| `alone-ltr`, `alone-rtl` | `journeys/alone/*.spec.ts`, one at a time, English then Arabic | `ltr`, `rtl` |
 
-Chat refuses while any training run is past `queued`, because they would share the memory. So a
-journey that trains goes in `journeys/trains/`, which runs alone after everything that chats.
+Chat refuses while any training run is past `queued`, because they would share the memory, and
+freeing the built-in engine unloads the model every other chat is using. So a journey that
+trains, or takes the built-in engine away, goes in `journeys/alone/`, which runs after everything
+else, one test at a time.
 
 **The world** (`world.json`) is what the setup journey leaves. Its parts:
 - **People:** the owner and a reviewer, a trainer and a viewer, each with a saved session.
@@ -77,8 +82,12 @@ each other's order.
   guard.
 - **A page that logs an error fails its test.** A test that expects failed requests sets
   `test.use({ allowConsoleErrors: true })`.
-- **`shot(name)` saves a screenshot** for the release's reference artifact. Screenshots are
-  kept for people to compare, never compared pixel by pixel.
+- **`shot(name)` saves a screenshot** for the release's reference artifact, of the test's page or
+  of the page given as its second argument. Screenshots are kept for people to compare, never
+  compared pixel by pixel.
+- **A new write endpoint goes in `VIEWER_WRITES`** (`harness/roles.data.ts`), with the answer a
+  viewer gets, or `roles.spec.ts` fails: it sends every write the API schema lists as a viewer,
+  and checks the list and the schema name the same operations.
 - **Types live in `*.types.ts`**, as everywhere else (rule 30).
 
 ## Classes and methods
@@ -87,12 +96,19 @@ each other's order.
 folder, setup code, version, process ids. **`FRONTEND`**, **`BACKEND`**, **`RESULTS`**,
 **`STACK_FILE`**, **`PORT`** — where things are, from `E2E_RESULTS`, `E2E_STACK` and `E2E_PORT`.
 
-**`label()`**, **`contains()`**, **`text()`**, **`template()`** (`harness/copy.ts`):
+**`label()`**, **`contains()`**, **`anyValues()`**, **`text()`**, **`literal()`**,
+**`startsWith()`**, **`stamp()`** (`harness/copy.ts`) — text and the patterns that find it:
 - `label()` is a bundle string as a regular expression for an accessible name or a label. It is
   anchored, tolerates the bidi isolates the page puts around filled-in values, and tolerates a
   required field's asterisk.
 - `contains()` is the same, unanchored.
-- `text()` is the filled-in string, and `template()` the raw one.
+- `anyValues()` matches one or more bundle strings whatever values fill them, for text whose
+  values a journey does not know.
+- `text()` is the filled-in string.
+- `literal()` matches a value as it is written, and `startsWith()` matches text that begins with
+  it, after any whitespace or bidi isolates.
+- `stamp()` is a short number, different on every call, that makes a name a journey creates its
+  own.
 
 **`MesbahApi`** (`harness/api.ts`) — a signed-in API session over Playwright's request context:
 - `open()` primes the CSRF cookie, and `signIn()` signs in.
@@ -113,6 +129,39 @@ data they use.
 **`readWorld()`**, **`writeWorld()`**, **`stateFile()`** (`harness/world.ts`) — the world and each
 role's saved session.
 
+**`startConversation()`**, **`ask()`** (`harness/chat.ts`) — chat through the API:
+`startConversation()` opens a conversation in a project, with a title if one is given, and `ask()`
+sends a message and waits for the whole reply, failing if it does not finish.
+
+**`versionsOf()`**, **`numbered()`**, **`versionTitle()`**, **`slugOf()`**, **`repoOf()`**
+(`harness/versions.ts`) — what names a version or a model:
+- `versionsOf()` reads a project's versions, and `numbered()` picks one by its number.
+- `versionTitle()` is the title the page gives a version in a language, the seeded root under
+  its translated name.
+- `slugOf()` is the name a project is served under, and `repoOf()` a model's repository id.
+
+**`SavedSession`**, **`withKey()`**, **`readJson()`**, **`answer()`**, **`writeOperations()`**
+(`harness/access.ts`) — who the API lets in:
+- `SavedSession` is a role's API session from its saved state; `send()` sends with the CSRF
+  token, as a form when asked.
+- `withKey()` is a request context that carries an API key instead of a session.
+- `readJson()` reads a response as a JSON object, and `answer()` reads a refusal as its status
+  and error code.
+- `writeOperations()` lists every write in the API schema, each with a path a request can be sent
+  to.
+
+**`VIEWER_WRITES`** (`harness/roles.data.ts`) — the answer a viewer gets from each write
+operation, by operation id.
+
+**`choose()`**, **`pickFile()`**, **`signedOut()`**, **`settled()`**, **`horizontalOverflow()`**,
+**`estimated()`** (`harness/pages.ts`) — what a page needs beyond a click:
+- `choose()` opens a menu until its item shows, then picks it.
+- `pickFile()` answers the file picker a button opens.
+- `signedOut()` is a page in a new signed-out browser, in a language, recording its errors.
+- `settled()` waits until nothing in the page is loading.
+- `horizontalOverflow()` is how far the page is wider than the window.
+- `estimated()` waits for the Architect's estimate of a design with that many layers.
+
 **`test`**, **`expect`** (`harness/fixtures.ts`) — Playwright's, with:
 - **Options:** `uiLocale` (the language the app opens in, set before the page loads; `null`
   leaves a first visit to choose) and `allowConsoleErrors`.
@@ -121,8 +170,12 @@ role's saved session.
 - **Helpers:**
   - `owner`, the owner's `MesbahApi`;
   - `as(role)`, a page signed in as another role;
-  - `shot(name)`.
+  - `shot(name, page?)`.
 - **`consoleGuard`**, which fails a test whose page logged an error.
+
+**`startIn()`**, **`recordErrors()`** (`harness/fixtures.ts`) — `startIn()` sets the language a
+page opens in before it loads, and `recordErrors()` collects what a page logs as an error. The
+fixtures use both, and so does `signedOut()`.
 
 **`globalSetup()`** (`global-setup.ts`) — starts a stack with `tools.release.stack` unless
 `E2E_STACK` names one, and stops it afterwards.

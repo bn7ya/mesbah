@@ -11,6 +11,8 @@ const chromium = process.env['E2E_CHROMIUM'];
 const desktop = devices['Desktop Chrome'];
 const signedIn = { storageState: stateFile('owner') };
 const journeys = /journeys\/[^/]+\.spec\.ts$/;
+// Journeys that train, or take the built-in engine away, run after the rest, one at a time.
+const alone = /journeys\/alone\/.+\.spec\.ts$/;
 const reporters: ReporterDescription[] = [
   ['list'],
   ['html', { outputFolder: join(RESULTS, 'report'), open: 'never' }],
@@ -49,16 +51,16 @@ export default defineConfig<Fixtures>({
       use: { ...desktop, locale: 'ar', uiLocale: 'ar', ...signedIn },
     },
     {
-      name: 'trains-ltr',
-      testMatch: /journeys\/trains\/.+\.spec\.ts$/,
+      name: 'alone-ltr',
+      testMatch: alone,
       dependencies: ['ltr', 'rtl'],
       workers: 1,
       use: { ...desktop, locale: 'en-US', uiLocale: 'en', ...signedIn },
     },
     {
-      name: 'trains-rtl',
-      testMatch: /journeys\/trains\/.+\.spec\.ts$/,
-      dependencies: ['trains-ltr'],
+      name: 'alone-rtl',
+      testMatch: alone,
+      dependencies: ['alone-ltr'],
       workers: 1,
       use: { ...desktop, locale: 'ar', uiLocale: 'ar', ...signedIn },
     },

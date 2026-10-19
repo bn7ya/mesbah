@@ -12,7 +12,7 @@ export interface Fixtures {
   readonly t: Copy;
   readonly owner: MesbahApi;
   readonly as: (role: Role) => Promise<Page>;
-  readonly shot: (name: string) => Promise<void>;
+  readonly shot: (name: string, page?: Page) => Promise<void>;
   readonly consoleGuard: undefined;
 }
 

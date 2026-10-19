@@ -204,6 +204,27 @@ def test_a_stopped_engine_ends_the_stream_with_an_error(
 
 
 @pytest.mark.django_db
+def test_an_engine_error_midway_fails_the_reply_and_keeps_what_arrived(
+    client: APIClient, conversation: dict[str, Any], engine: FakeEngine
+) -> None:
+    engine.lines = [
+        chunk({"role": "assistant"}),
+        chunk({"content": "Hel"}),
+        'data: {"error": {"message": "The model stopped.", "code": "generation_failed"}}\n\n',
+        "data: [DONE]\n\n",
+    ]
+
+    stream: list[tuple[str, dict[str, Any]]] = events(ask(client, conversation["id"], "Hi"))
+
+    name, data = stream[-1]
+    assert name == "error"
+    assert data["code"] == "generation_failed"
+    assert data["reply"]["status"] == "failed"
+    assert data["reply"]["content"] == "Hel"
+    assert data["reply"]["error_code"] == "generation_failed"
+
+
+@pytest.mark.django_db
 def test_closing_the_stream_keeps_what_arrived(
     reviewer: User, conversation: dict[str, Any], engine: FakeEngine
 ) -> None:

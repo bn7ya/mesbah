@@ -154,6 +154,7 @@
     "model_not_on_disk": "The base model isn't downloaded yet. Download it in Models.",
     "engine_timeout": "The engine took too long to answer. Try again.",
     "engine_failed": "The engine couldn't do that. Try again.",
+    "generation_failed": "The model hit an error partway through its reply. Send the message again.",
     "engine_rejected_token": "The engine didn't accept the saved API key. Check the key and try again.",
     "needs_gguf": "This version needs a GGUF export first. Export it from Versions.",
     "engine_base_mismatch": "This engine runs a different base model from the project's. Choose another engine.",

@@ -144,6 +144,13 @@ describe('MessageBubble', () => {
     expect(text()).toContain('Failed');
   });
 
+  it('says the model failed partway when the engine reports it mid-reply', async () => {
+    await show(message({ status: 'failed', content: 'Hel', error_code: 'generation_failed' }));
+
+    expect(host().querySelector('.bubble__failure')?.textContent).toContain(en.errors.generation_failed);
+    expect(host().querySelector('a')).toBeNull();
+  });
+
   it('falls back to a plain sentence for a failure it has no words for', async () => {
     await show(message({ status: 'failed', content: '', error_code: 'something_new' }));
 

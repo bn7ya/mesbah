@@ -345,3 +345,68 @@ def test_a_revoked_key_stops_working(trainer: User, project: Project, key: str) 
     api.delete(f"/api/serving/keys/{key_id}/")
 
     assert client(key).get("/v1/models").status_code == 401
+
+
+FAILED_MIDWAY: list[str] = [
+    chunk({"role": "assistant"}),
+    chunk({"content": "Hel"}),
+    'data: {"error": {"message": "The model stopped.", "type": "server_error",'
+    ' "code": "generation_failed"}}\n\n',
+    "data: [DONE]\n\n",
+]
+
+
+def fail_midway() -> None:
+    async def chat(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, content="".join(FAILED_MIDWAY).encode())
+
+    EngineClient.async_transport = httpx2.MockTransport(chat)
+
+
+@pytest.mark.django_db
+def test_an_engine_error_midway_ends_the_openai_stream_as_an_error(
+    project: Project, key: str
+) -> None:
+    fail_midway()
+    response: StreamingHttpResponse = cast(
+        "StreamingHttpResponse",
+        client(key).post(
+            "/v1/chat/completions",
+            {"model": "tiny", "messages": CHAT, "stream": True},
+            format="json",
+        ),
+    )
+
+    events: list[str] = lines(response)
+    chunks: list[dict[str, Any]] = [json.loads(event[6:]) for event in events[:-1]]
+    assert events[-1] == "data: [DONE]"
+    assert chunks[-1]["error"]["code"] == "generation_failed"
+    assert chunks[-1]["error"]["message"] == "The model stopped."
+    assert all(c["choices"][0]["finish_reason"] is None for c in chunks if c.get("choices"))
+
+
+@pytest.mark.django_db
+def test_an_engine_error_midway_fails_a_whole_completion(project: Project, key: str) -> None:
+    fail_midway()
+
+    response: ApiResponse = client(key).post(
+        "/v1/chat/completions", {"model": "tiny", "messages": CHAT}, format="json"
+    )
+
+    assert response.status_code == 502
+    assert response.json()["error"]["code"] == "generation_failed"
+
+
+@pytest.mark.django_db
+def test_an_engine_error_midway_ends_the_ollama_stream_as_an_error(
+    project: Project, key: str
+) -> None:
+    fail_midway()
+    response: StreamingHttpResponse = cast(
+        "StreamingHttpResponse",
+        client(key).post("/ollama/api/chat", {"model": "tiny", "messages": CHAT}, format="json"),
+    )
+
+    parts: list[dict[str, Any]] = [json.loads(line) for line in lines(response)]
+    assert parts[-1] == {"error": "The model stopped."}
+    assert not any(part.get("done") for part in parts)

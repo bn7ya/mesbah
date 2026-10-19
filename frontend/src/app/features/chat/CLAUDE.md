@@ -45,7 +45,8 @@ drawer opened from the header on narrow ones. The open conversation fills the re
   thinking chain above it in a collapsible section (open while it streams, closed once done), and
   a footer: the version that answered, the time, and marks for approved, edited, thinking edited,
   stopped, failed and not used for training, each an icon and a word. A failed reply says why
-  (`errors.<code>`), with a link to Engines when the engine is not running. Expert mode adds the
+  (`errors.<code>`, `generation_failed` when the model broke off partway), with a link to
+  Engines when the engine is not running. Expert mode adds the
   engine, tokens and duration. The menu (reviewers and above): Edit reply, Edit or Add thinking,
   Approve as it is or Withdraw approval, Used for training, Restore the model's reply or thinking
   (only when edited, asks first), Copy. A reply with no text and no thinking (stopped while the

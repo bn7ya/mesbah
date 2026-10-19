@@ -158,20 +158,27 @@ def _refusal(response: httpx2.Response) -> EngineError:
         payload = None
     error: object = payload.get("error") if isinstance(payload, dict) else None
     if isinstance(error, dict):
-        code: object = error.get("code")
-        message: object = error.get("message")
-        return EngineError(
-            code if isinstance(code, str) and code else "engine_failed",
-            message if isinstance(message, str) else "",
-        )
+        return _failure(cast(Json, error))
     if response.status_code == httpx2.codes.UNAUTHORIZED:
         return EngineError("engine_rejected_token")
     return EngineError("engine_failed", f"HTTP {response.status_code}")
 
 
+def _failure(error: Json) -> EngineError:
+    code: object = error.get("code")
+    message: object = error.get("message")
+    return EngineError(
+        code if isinstance(code, str) and code else "engine_failed",
+        message if isinstance(message, str) else "",
+    )
+
+
 def _pieces(chunk: object, splitter: ThinkingStream) -> list[Piece]:
     if not isinstance(chunk, dict):
         return []
+    failed: object = chunk.get("error")
+    if isinstance(failed, dict):
+        raise _failure(cast(Json, failed))
     pieces: list[Piece] = []
     choices: object = chunk.get("choices")
     first: object = choices[0] if isinstance(choices, list) and choices else None

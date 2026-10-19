@@ -71,7 +71,9 @@ owner's keys, a key by digest.
 streamed chunks into `Piece`s — thinking (`reasoning_content`, `reasoning`, or a `<think>` block
 in the content, split with `mesbah.think`), content, the finish reason and the token counts.
 Failures become `EngineError` with a code: `engine_unreachable`, `engine_timeout`,
-`engine_rejected_token`, or the engine's own. Tests swap `transport` / `async_transport`.
+`engine_rejected_token`, or the engine's own, whether it refuses the request or sends an
+`error` event partway through a stream (`generation_failed` from the built-in engine). Tests
+swap `transport` / `async_transport`.
 
 **`DeploymentService`**, for the acting user:
 - `target()` — the engine (the conversation's, else the default) and model name to send a

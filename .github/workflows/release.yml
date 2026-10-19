@@ -1,62 +1,100 @@
 name: Release
 
-# A tag `vX.Y.Z` publishes that commit to PyPI as `mesbah`, with the Angular app inside the wheel.
-# PyPI trusts this workflow directly (trusted publishing): the `pypi` environment must be set
-# up once on pypi.org for this repository; no token is stored here.
+# A candidate first, then the release, on the same commit (ADR-010, .claude/docs/releasing.md).
+#   vX.Y.Z-rc.N  runs the release bundle, publishes to TestPyPI, then makes a GitHub
+#                pre-release carrying the bundle's reference artifact.
+#   vX.Y.Z       is refused unless a candidate on this same commit has that pre-release; runs
+#                the bundle again on its own wheel, publishes to PyPI (the `pypi` environment's
+#                reviewers approve it), then makes the GitHub Release.
+# PyPI and TestPyPI trust this workflow directly (trusted publishing), so publishing stays here:
+# neither accepts a reusable workflow as the publisher. Run it by hand with `dry_run` to rehearse
+# everything but the publishing.
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The tag to rehearse, e.g. v0.1.0-rc.1"
+        required: true
+        type: string
+      dry_run:
+        description: "Run the checks and the bundle, publish nothing"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
-  build:
-    name: Build and check the wheel
+  check:
+    name: May this tag be released?
     runs-on: ubuntu-latest
+    outputs:
+      kind: ${{ steps.check.outputs.kind }}
+      tag: ${{ steps.check.outputs.tag }}
+      semver: ${{ steps.check.outputs.semver }}
+      final: ${{ steps.check.outputs.final }}
+      latest: ${{ steps.check.outputs.latest }}
+      publish: ${{ steps.publish.outputs.publish }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
         with:
-          node-version: "24"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      # The tag's form, its version and changelog section, the branch it is on, that it was never
+      # released, and for a release a candidate on this commit whose pre-release exists.
+      - name: Check the tag
+        id: check
+        working-directory: backend
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+          REHEARSAL: ${{ github.event_name == 'workflow_dispatch' && '--commit HEAD' || '' }}
+          GH_TOKEN: ${{ github.token }}
+        run: python -m tools.release.tags check "$TAG" $REHEARSAL --github-output "$GITHUB_OUTPUT"
+      - name: Publish, or only rehearse?
+        id: publish
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: echo "publish=$([ "$DRY_RUN" = true ] && echo false || echo true)" >> "$GITHUB_OUTPUT"
 
-      - name: The tag matches the package version
-        shell: bash
-        run: |
-          version=$(sed -n 's/^__version__: str = "\(.*\)"$/\1/p' backend/mesbah/__init__.py)
-          [ "v$version" = "$GITHUB_REF_NAME" ] || { echo "::error::tag $GITHUB_REF_NAME, package $version"; exit 1; }
+  bundle:
+    name: Release bundle
+    needs: check
+    uses: ./.github/workflows/release-bundle.yml
+    with:
+      tag: ${{ needs.check.outputs.tag }}
 
-      - name: Build the frontend, the wheel and the source archive
-        run: |
-          pip install "build>=1.3,<2"
-          python backend/tools/build_wheel.py
-
-      - name: Install the wheel where nothing else is, and start it
-        shell: bash
-        run: |
-          python -m venv "$RUNNER_TEMP/clean"
-          "$RUNNER_TEMP/clean/bin/pip" install backend/dist/*.whl
-          "$RUNNER_TEMP/clean/bin/mesbah" doctor
-          "$RUNNER_TEMP/clean/bin/mesbah" --data-dir "$RUNNER_TEMP/data" start --no-browser &
-          mesbah=$!
-          for attempt in $(seq 1 60); do
-            curl -fs http://127.0.0.1:8077/api/health/ && break
-            sleep 2
-          done
-          curl -fs http://127.0.0.1:8077/projects | grep '<app-root>'
-          kill -TERM "$mesbah"
-          wait "$mesbah"
-
-      - uses: actions/upload-artifact@v4
+  testpypi:
+    name: Publish the candidate to TestPyPI
+    needs: [check, bundle]
+    if: needs.check.outputs.kind == 'candidate' && needs.check.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
         with:
           name: dist
-          path: backend/dist/
+          path: dist/
+      - name: Keep the checksums for the GitHub release, not the index
+        run: rm dist/SHA256SUMS
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
 
-  publish:
-    name: Publish to PyPI
-    needs: build
+  pypi:
+    name: Publish the release to PyPI
+    needs: [check, bundle]
+    if: needs.check.outputs.kind == 'stable' && needs.check.outputs.publish == 'true'
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -66,4 +104,48 @@ jobs:
         with:
           name: dist
           path: dist/
+      - name: Keep the checksums for the GitHub release, not the index
+        run: rm dist/SHA256SUMS
       - uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    name: Make the GitHub release
+    needs: [check, bundle, testpypi, pypi]
+    if: >-
+      always() && needs.check.outputs.publish == 'true' && needs.bundle.result == 'success' &&
+      (needs.testpypi.result == 'success' || needs.pypi.result == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: actions/download-artifact@v4
+        with:
+          name: reference
+          path: reference/
+      - name: Write the notes from the changelog and the bundle
+        working-directory: backend
+        env:
+          FINAL: ${{ needs.check.outputs.final }}
+        run: |
+          python -m tools.release.version notes "$FINAL" > "$RUNNER_TEMP/notes.md"
+          tar -xzOf "$GITHUB_WORKSPACE"/reference/*.tar.gz --wildcards '*/summary.md' \
+            >> "$RUNNER_TEMP/notes.md"
+      - name: Release it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.check.outputs.tag }}
+          SEMVER: ${{ needs.check.outputs.semver }}
+          KIND: ${{ needs.check.outputs.kind }}
+          LATEST: ${{ needs.check.outputs.latest }}
+        run: |
+          if [ "$KIND" = candidate ]; then which=--prerelease; else which="--latest=$LATEST"; fi
+          gh release create "$TAG" dist/* reference/*.tar.gz --verify-tag \
+            --title "Mesbah $SEMVER" --notes-file "$RUNNER_TEMP/notes.md" "$which"

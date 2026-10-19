@@ -64,7 +64,21 @@ the wheel and the source archive into `backend/dist/`.
 
 **`release/tags.py`** — **`tags()`** lists the `v*` tags in git; **`releases()`** keeps the release
 tags among them, in version order; **`previous()`** is the last stable release before a version. `main()` is
-`python -m tools.release.tags previous <tag>`, which prints that release's tag or nothing.
+`python -m tools.release.tags previous <tag>`, which prints that release's tag or nothing, and
+`python -m tools.release.tags check <tag> [--commit] [--github-output]`.
+
+**`check_tag()`** decides whether a tag may be released, against a **`Repository`** (the tags,
+**`commit_of()`**, **`contains()`** and **`released()`**, which wrap git and `gh`). It requires:
+- the tag's version and changelog section;
+- the right branch: `main` for `X.Y.0`, `release/X.Y` for a patch;
+- that the tag was never released;
+- for a release, a candidate of the same version on the same commit whose GitHub pre-release
+  passes **`candidate_problem()`**: published, not a draft, made by `github-actions[bot]`, and
+  carrying `SHA256SUMS` and its reference tarball.
+
+It returns **`Checked`**, whose `outputs()` are what `release.yml` reads (`kind`, `tag`,
+`semver`, `pep440`, `final`, `commit`, `latest`). `latest` is false for a patch to an older line.
+**`git()`** runs git in the repository.
 
 **`release/contracts.py`** — `python -m tools.release.contracts --previous <tag> --tag <tag> --out
 <folder> [--report-only]`. **`snapshots()`** reads `backend/contracts/` at a git ref, or in the

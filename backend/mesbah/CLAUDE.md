@@ -24,6 +24,7 @@ mesbah/
     app.py        the HTTP API over the engine (Starlette)
     specs.py      the request bodies, parsed and checked
     errors.py     each failure with its error code and HTTP status
+    fake.py       an engine without torch, for the release journeys
     __main__.py   the command
   train/        the training subprocess, `python -m mesbah.train --config <run>/config.json`
     contract.py   the files Django and the trainer exchange: config, events, status
@@ -143,8 +144,18 @@ the bodies the runtime takes; each `from_json()` checks one and raises `InvalidR
 `InvalidRequest` 400, `UnknownModel` 404, `NotLoaded` 409, `LoadFailed` and
 `GenerationFailed` 500, `MissingParts` 503.
 
-**`main()`** (`runtime/__main__.py`) — `python -m mesbah.runtime [--host] [--port]` serves a
-fresh engine with uvicorn, behind the token in `MESBAH_RUNTIME_TOKEN`.
+**`main()`** (`runtime/__main__.py`) — `python -m mesbah.runtime [--host] [--port] [--fake]`
+serves a fresh engine with uvicorn, behind the token in `MESBAH_RUNTIME_TOKEN`.
+
+**`FakeEngine`** (`runtime/fake.py`) — the engine's interface with no model, behind the same HTTP
+app, so Django cannot tell it from the real one. `load()` checks that the base folder and each
+adapter's `adapter_config.json` exist, and `status()` echoes what was loaded. A reply is
+scripted by **`script()`**: `<think>Thinking about: <question></think>` unless thinking is off,
+then `Reply from <model>: <question>` (**`answer()`**), so a reply names the version that gave it.
+A question holding `[long]` gets 600 more words, and `[fail]` breaks off with `generation_failed`
+after three pieces. **`FakeGeneration`** streams it word by word, every
+`MESBAH_FAKE_ENGINE_DELAY` seconds (0.05 by default), and stops at `max_tokens` with `length`.
+**`asked()`** — the last user message.
 
 **`TrainConfig`** (`train/contract.py`) — what one run trains: the base (`BaseModelRef`, whose
 `source` is the local snapshot or the repo id), the `ExampleSource` files, the optional parent

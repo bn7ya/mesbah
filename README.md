@@ -87,8 +87,18 @@ uv pip install -r pyproject.toml --extra dev --extra train --extra gguf
 python -m mesbah start
 ```
 
-`python backend/tools/build_wheel.py` builds the Angular app into a wheel in `backend/dist/`;
-pushing a tag `vX.Y.Z` publishes it to PyPI (`.github/workflows/release.yml`).
+`python backend/tools/build_wheel.py` builds the Angular app into a wheel in `backend/dist/`.
+
+### Releases
+
+Each release is listed in [`CHANGELOG.md`](CHANGELOG.md). Every release is first a candidate
+(`pip install --pre mesbah` from TestPyPI), then the same commit becomes the release on PyPI.
+Each one carries a reference tarball on its GitHub Release, with what it passed:
+- the API, CLI and data contracts;
+- the browser journeys in English and Arabic, with screenshots;
+- the upgrade from the release before.
+
+[`.claude/docs/releasing.md`](.claude/docs/releasing.md) is how a release is made.
 
 ## Running it with Docker
 

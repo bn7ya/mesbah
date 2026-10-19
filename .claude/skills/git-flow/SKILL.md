@@ -116,11 +116,17 @@ ruff check . && ruff format --check . && mypy . \
   && pytest --cov=apps --cov-report=term-missing
 
 # Frontend — from frontend/, or prefix each with: docker compose exec frontend
-npx ng lint && npx ng build --configuration production && npx ng test --watch=false
+npx ng lint && npm run typecheck:e2e && npx ng build --configuration production \
+  && npx ng test --watch=false
 
 # Harness — from the repo root
 python -m compileall -q .claude/hooks
 ```
+
+A failing contract test (`backend/contracts/`) means the change touches what a release promises.
+If that is meant, run `pytest --update-contracts`, read the diff, and add a line under
+`### Contracts` in `CHANGELOG.md`, all in the same commit as the code. A fix to a released line
+is made here first, then cherry-picked onto `release/X.Y` (`.claude/docs/releasing.md`).
 
 CI also checks two invariants worth confirming by eye before you push: an `ar.json`
 beside every `en.json` with an identical key set and no tashkeel (rule 22), and a `CLAUDE.md` in every

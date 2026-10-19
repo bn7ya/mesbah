@@ -35,7 +35,11 @@ Template-owned files, so `/template-sync` conflicts in them are expected:
 `backend/apps/accounts/` (setup), `frontend/src/app/core/auth/` (setup and roles),
 `backend/Dockerfile`, `compose.prod.yaml`, `.env.example`, `.github/workflows/ci.yml`,
 `backend/config/{asgi.py,settings/prod.py}`,
-`.claude/docs/language.md`, `README.md` and this file.
+`.claude/docs/language.md`, `frontend/package-lock.json`, `frontend/eslint.config.js`,
+`frontend/playwright.config.ts` and `frontend/e2e/sign-in.spec.ts` (moved to `frontend/e2e/` and
+`frontend/e2e/journeys/`),
+`.claude/skills/git-flow/SKILL.md`, `.claude/agents/user_journey_engineer.md`, `README.md` and
+this file.
 
 Mesbah handles no money. `MoneyField`, `<app-money>` and the rial font stay because they
 are the Template's, kept so sync applies cleanly; rule 5 does not remove them.
@@ -350,6 +354,29 @@ It **warns and lets you through**. One person drives every session, so the decis
 The documents live in `$XDG_RUNTIME_DIR/claude-sessions/`, never in the repository — the contention is over one machine, not one repository, and tmpfs means a reboot clears it correctly. Liveness comes from `/proc`, never from a heartbeat.
 
 `.claude/docs/sessions.md` is the full protocol and the reasoning. `CLAUDE_SESSIONS_OFF=1` turns it off; `/sessions` is the skill.
+
+## Releases
+
+A release is a candidate first, then the same commit again as stable (ADR-010):
+- `vX.Y.Z-rc.N` goes to TestPyPI and a GitHub pre-release.
+- `vX.Y.Z` goes to PyPI, behind the `pypi` environment's reviewers.
+
+The source always holds the final `X.Y.Z`; the candidate number comes from the tag.
+
+Every release tag runs the release bundle and blocks on it, and `main` runs it nightly:
+- CI;
+- the wheel on Python 3.12 and 3.13;
+- the contracts in `backend/contracts/` against the last release;
+- the journeys in `frontend/e2e/` in both languages;
+- the upgrade from the last release.
+
+Its reference tarball goes with every GitHub Release. Fixes to a released line ship from
+`release/X.Y`, cut from its `.0` tag, as cherry-picks of fixes made on `main` first; that is
+the one branch a change may target other than `main`.
+
+`.claude/docs/releasing.md` is the procedure, and `/release` walks it. A changed contract is
+accepted with `pytest --update-contracts`, in the same commit as the code, with a line under
+`### Contracts` in `CHANGELOG.md`.
 
 ## Template sync
 

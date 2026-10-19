@@ -34,6 +34,11 @@ Test the journey, not the unit. "Sign in, create an order, submit it, see it in 
 
 Playwright is pre-installed; Chromium lives at `/opt/pw-browsers`. Never run `playwright install`.
 
+A journey that should hold for every release goes in `frontend/e2e/journeys/`, on the harness
+`frontend/e2e/CLAUDE.md` describes. It runs against a real `mesbah start`, in both languages,
+on every release tag, so write it to the rules there: selectors through `t()`, the world the
+setup journey builds, and journeys that train only under `journeys/trains/`.
+
 - Select by role and accessible name — `getByRole('button', { name: 'Save changes' })`. Not CSS classes, not test ids scattered through the markup. If an element cannot be selected by role, that is an accessibility finding, report it.
 - Use web-first assertions (`await expect(locator).toBeVisible()`). Never `waitForTimeout`. Rule 10 is not just for application code.
 - Each test sets up its own data through the API and cleans up after itself. Tests that depend on each other's leftovers are worthless.

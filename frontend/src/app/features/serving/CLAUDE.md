@@ -67,7 +67,7 @@ freeing memory, disconnecting or revoking, and report each change in a snack bar
 
 **`LoadedVersions`** — the versions on an engine, each linking to its project's Versions tab.
 **`CopyButton`** — copies a text through the CDK clipboard and reports in a snack bar. It sits
-inside the shared `<app-code-block>` (the address, each example, each start command), which wraps
+inside the shared `<app-code-block>` (the address, each example, each start command), which sets
 the code in its own block.
 
 **`EngineFormDialog`** (`dialogs/engine-form/`) — connects an engine or edits one. The kind is a
@@ -99,9 +99,10 @@ be put back when it fails; a button states the action and the card shows the res
 **The built-in engine has no Disconnect, no Edit and no on/off.** It can only be made the default;
 the backend keeps `409 builtin_engine_kept` as the real guard.
 
-**Code is left to right, in the monospace stack, and wraps.** `<app-code-block>` (shared) sets code in
-`--app-font-mono`, the stack `code` uses everywhere, and wraps long lines inside the block, so a
-command never scrolls sideways or widens the page.
+**Code is left to right, in the monospace stack, and scrolls inside itself.** `<app-code-block>`
+(shared) sets code in `--app-font-mono`, the stack `code` uses everywhere, and keeps each line
+whole: a long command scrolls sideways inside its block, so it is copied and read as it will be
+typed, and never widens the page.
 
 **An engine card keeps its four actions on one line.** The grid of engine cards starts a column at
 36rem so Edit, Turn off, Make default and Disconnect fit beside each other; under the `sm`

@@ -33,7 +33,9 @@ Engines page.
 
 A model name on the compatible APIs is a project's slug (its active version, also `:latest`)
 or `slug:vN`. Their errors take each API's own shape — OpenAI's `{"error": {"message", "type",
-"code"}}`, Ollama's `{"error": "…"}` — and they are not paginated: clients expect the lists whole.
+"code"}}`, its `type` `server_error` for a 5xx (the engine failed, broke off or is not there)
+and `invalid_request_error` otherwise; Ollama's `{"error": "…"}` — and they are not paginated:
+clients expect the lists whole.
 
 A request with no key answers `401` `invalid_api_key`, "Send a Mesbah API key as a Bearer
 token."; a Bearer key that is wrong, revoked or its owner's deactivated answers `401`
@@ -105,8 +107,8 @@ media type, for Ollama's routes.
 **`GatewayService`** — `served()` (every project by slug and every version as `slug:vN`),
 `resolve()` a name (`UnknownModel` when nothing matches), `target()`, `thinking_default()`, and
 `stream()` / `collect()` over the engine's pieces. **`CompatView`** (`views/compat.py`) — API
-key authentication and errors in OpenAI's shape (`unauthorized()` is the 401, with the message
-for a missing or an invalid key); **`OllamaView`** — the same in Ollama's, any `Content-Type`
+key authentication and errors in OpenAI's shape (`body()` types them by status, `unauthorized()`
+is the 401, with the message for a missing or an invalid key); **`OllamaView`** — the same in Ollama's, any `Content-Type`
 read as JSON, NDJSON lines and their merge into one answer. **`ModelListView`**, **`ChatCompletionView`**,
 **`OllamaChatView`**, **`OllamaGenerateView`**, **`OllamaTagsView`**, **`OllamaShowView`**,
 **`OllamaVersionView`** — the routes above (`compat_urls.py`, mounted at `/v1/` and `/ollama/`).

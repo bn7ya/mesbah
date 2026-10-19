@@ -58,7 +58,7 @@ def _engine_body(
 class OllamaView(CompatView):
     parser_classes = [AnyMediaTypeJSONParser]
 
-    def body(self, code: str, message: str) -> dict[str, object]:
+    def body(self, code: str, message: str, status_code: int) -> dict[str, object]:
         return {"error": message}
 
     def answer(

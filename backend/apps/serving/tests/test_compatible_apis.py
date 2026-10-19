@@ -381,6 +381,7 @@ def test_an_engine_error_midway_ends_the_openai_stream_as_an_error(
     chunks: list[dict[str, Any]] = [json.loads(event[6:]) for event in events[:-1]]
     assert events[-1] == "data: [DONE]"
     assert chunks[-1]["error"]["code"] == "generation_failed"
+    assert chunks[-1]["error"]["type"] == "server_error"
     assert chunks[-1]["error"]["message"] == "The model stopped."
     assert all(c["choices"][0]["finish_reason"] is None for c in chunks if c.get("choices"))
 
@@ -395,6 +396,7 @@ def test_an_engine_error_midway_fails_a_whole_completion(project: Project, key: 
 
     assert response.status_code == 502
     assert response.json()["error"]["code"] == "generation_failed"
+    assert response.json()["error"]["type"] == "server_error"
 
 
 @pytest.mark.django_db
@@ -410,3 +412,19 @@ def test_an_engine_error_midway_ends_the_ollama_stream_as_an_error(
     parts: list[dict[str, Any]] = [json.loads(line) for line in lines(response)]
     assert parts[-1] == {"error": "The model stopped."}
     assert not any(part.get("done") for part in parts)
+
+
+@pytest.mark.django_db
+def test_an_engine_that_is_not_there_is_a_server_error(project: Project, key: str) -> None:
+    def refuse(request: httpx2.Request) -> httpx2.Response:
+        raise httpx2.ConnectError("refused", request=request)
+
+    EngineClient.transport = httpx2.MockTransport(refuse)
+
+    response: ApiResponse = client(key).post(
+        "/v1/chat/completions", {"model": "tiny", "messages": CHAT}, format="json"
+    )
+
+    assert response.status_code == 503
+    assert response.json()["error"]["type"] == "server_error"
+    assert response.json()["error"]["code"] == "engine_unreachable"

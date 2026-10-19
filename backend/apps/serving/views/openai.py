@@ -141,8 +141,9 @@ class ChatCompletionView(CompatView):
                 EngineFailed(error.code, error.detail) if isinstance(error, EngineError) else error
             )
             name: str = str(getattr(exc, "default_code", "engine_failed"))
-            message: str = failure(exc)[2]
-            yield f"data: {json.dumps(self.body(name, message), ensure_ascii=False)}\n\n"
+            failed: tuple[int, str, str] = failure(exc)
+            reported: dict[str, object] = self.body(name, failed[2], failed[0])
+            yield f"data: {json.dumps(reported, ensure_ascii=False)}\n\n"
             yield "data: [DONE]\n\n"
             return
         yield chunk({}, finish)

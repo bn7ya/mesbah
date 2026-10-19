@@ -12,6 +12,7 @@ from apps.serving.services.errors import EngineFailed
 from apps.serving.services.gateway_service import UnknownModel
 
 KEY_MISSING: str = "Send a Mesbah API key as a Bearer token."
+SERVER_ERRORS: int = 500
 
 
 def failure(exc: Exception) -> tuple[int, str, str]:
@@ -40,12 +41,14 @@ class CompatView(APIView):
     parser_classes = [JSONParser]
     renderer_classes = [JSONRenderer]
 
-    def body(self, code: str, message: str) -> dict[str, object]:
-        return {"error": {"message": message, "type": "invalid_request_error", "code": code}}
+    def body(self, code: str, message: str, status_code: int) -> dict[str, object]:
+        kind: str = "server_error" if status_code >= SERVER_ERRORS else "invalid_request_error"
+        return {"error": {"message": message, "type": kind, "code": code}}
 
     def unauthorized(self, message: str) -> Response:
         response: Response = Response(
-            self.body("invalid_api_key", message), status=status.HTTP_401_UNAUTHORIZED
+            self.body("invalid_api_key", message, status.HTTP_401_UNAUTHORIZED),
+            status=status.HTTP_401_UNAUTHORIZED,
         )
         response["WWW-Authenticate"] = 'Bearer realm="mesbah"'
         return response
@@ -61,4 +64,4 @@ class CompatView(APIView):
         code, name, message = failure(exc)
         if isinstance(exc, EngineFailed):
             name = str(exc.default_code)
-        return Response(self.body(name, message), status=code)
+        return Response(self.body(name, message, code), status=code)

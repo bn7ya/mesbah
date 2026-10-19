@@ -143,8 +143,11 @@ def version_of(command: list[str], environment: dict[str, str]) -> str:
 def start(arguments: argparse.Namespace) -> Stack:
     data: Path = arguments.data.resolve()
     out: Path = arguments.out.resolve()
-    if data.exists() and any(data.iterdir()):
+    used: bool = data.exists() and any(data.iterdir())
+    if used and not arguments.existing:
         raise StackError(f"{data} is not empty; the journeys start from a fresh data folder")
+    if arguments.existing and not used:
+        raise StackError(f"{data} holds no install to start again")
     if answers(f"http://127.0.0.1:{arguments.port}/api/health/"):
         raise StackError(f"something already answers on port {arguments.port}")
     data.mkdir(parents=True, exist_ok=True)
@@ -177,8 +180,13 @@ def start(arguments: argparse.Namespace) -> Stack:
     base_url: str = f"http://127.0.0.1:{arguments.port}"
     try:
         wait_for(f"{base_url}/api/health/", START_SECONDS, mesbah, mesbah_log)
-        if read_json(f"{base_url}/api/auth/setup/").get("needed") is not True:
-            raise StackError("a fresh Mesbah should ask for its first-run setup")
+        fresh: bool = not arguments.existing
+        if read_json(f"{base_url}/api/auth/setup/").get("needed") is not fresh:
+            raise StackError(
+                "an install that has its owner asks for setup again"
+                if arguments.existing
+                else "a fresh Mesbah should ask for its first-run setup"
+            )
     except StackError:
         stop_process(mesbah.pid, STOP_SECONDS)
         stop_process(engine.pid, 10)
@@ -187,7 +195,7 @@ def start(arguments: argparse.Namespace) -> Stack:
         base_url=base_url,
         engine_url=engine_url,
         data_dir=str(data),
-        setup_code=(data / "setup-code").read_text(encoding="utf-8").strip(),
+        setup_code=setup_code(data),
         version=version_of(command, environment),
         mesbah_pid=mesbah.pid,
         engine_pid=engine.pid,
@@ -195,6 +203,11 @@ def start(arguments: argparse.Namespace) -> Stack:
     )
     stack.write(out)
     return stack
+
+
+def setup_code(data: Path) -> str:
+    written: Path = data / "setup-code"
+    return written.read_text(encoding="utf-8").strip() if written.is_file() else ""
 
 
 def stop_process(pid: int, seconds: float) -> bool:
@@ -243,6 +256,9 @@ def parser() -> argparse.ArgumentParser:
     starting.add_argument("--engine-port", type=int, default=ENGINE_PORT)
     starting.add_argument("--database-url", help="instead of the embedded PostgreSQL")
     starting.add_argument("--online", action="store_true", help="let HuggingFace be reached")
+    starting.add_argument(
+        "--existing", action="store_true", help="start again on a data folder already set up"
+    )
     stopping: argparse.ArgumentParser = commands.add_parser(
         "stop", help="stop a stack and check that it stopped cleanly"
     )

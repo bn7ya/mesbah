@@ -1,6 +1,9 @@
 <header class="system__header">
   <h1>{{ 'system.title' | t }}</h1>
   <p class="text-secondary">{{ 'system.subtitle' | t }}</p>
+  @if (overview(); as view) {
+    <p class="text-secondary">{{ 'system.release' | t: { version: view.version } }}</p>
+  }
 </header>
 
 @if (loading() && !overview()) {

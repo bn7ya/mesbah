@@ -38,6 +38,7 @@ export interface HuggingFaceStatus {
 export type GpuChoice = 'automatic' | 'chosen';
 
 export interface SystemOverview {
+  readonly version: string;
   readonly machine: Machine;
   readonly selected_gpus: readonly number[];
   readonly gpu_choice: GpuChoice;

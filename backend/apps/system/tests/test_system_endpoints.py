@@ -19,7 +19,7 @@ from apps.system.models import Secret
 from apps.system.repositories import SecretRepository
 from apps.system.services import SecretBox
 from apps.system.services.system_service import HUGGINGFACE_TOKEN
-from mesbah import hardware, parts
+from mesbah import __version__, hardware, parts
 
 if TYPE_CHECKING:
     from rest_framework.response import _MonkeyPatchedResponse as ApiResponse
@@ -98,6 +98,7 @@ def test_overview_without_a_gpu(client: APIClient, member: User) -> None:
 
     assert response.status_code == 200
     body: dict[str, Any] = response.json()
+    assert body["version"] == __version__
     assert body["machine"]["gpus"] == []
     assert body["selected_gpus"] == []
     assert body["usable_vram_bytes"] == 0

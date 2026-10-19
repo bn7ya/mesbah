@@ -4706,6 +4706,11 @@
           "usable_vram_bytes": {
             "readOnly": true,
             "type": "integer"
+          },
+          "version": {
+            "description": "Mesbah's version, as installed.",
+            "readOnly": true,
+            "type": "string"
           }
         },
         "required": [
@@ -4715,7 +4720,8 @@
           "parts",
           "selected_gpus",
           "storage",
-          "usable_vram_bytes"
+          "usable_vram_bytes",
+          "version"
         ],
         "type": "object"
       },

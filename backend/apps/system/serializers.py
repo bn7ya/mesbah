@@ -42,6 +42,7 @@ class HuggingFaceSerializer(serializers.Serializer[dict[str, Any]]):
 
 
 class SystemOverviewSerializer(serializers.Serializer[dict[str, Any]]):
+    version = serializers.CharField(read_only=True, help_text="Mesbah's version, as installed.")
     machine = MachineSerializer(read_only=True)
     selected_gpus = serializers.ListField(child=serializers.IntegerField(), read_only=True)
     gpu_choice = serializers.ChoiceField(choices=["automatic", "chosen"], read_only=True)

@@ -38,6 +38,8 @@ The first release.
 - **System and Members.**
   - The machine's hardware and installed parts, and the HuggingFace token.
   - Roles: viewer, reviewer, trainer and administrator.
+- **System.** The page names the version of Mesbah that is running, and `GET /api/system/`
+  returns it as `version`.
 - **Two ways to run.**
   - `pip install mesbah && mesbah start`, with an embedded PostgreSQL.
   - Docker Compose, with GPU and engine profiles.

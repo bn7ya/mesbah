@@ -2,6 +2,7 @@
   "system": {
     "title": "System",
     "subtitle": "What this machine offers for training and chat.",
+    "release": "Mesbah {version}",
     "loading": "Loading the system details",
     "gpus": {
       "title": "GPUs",

@@ -15,7 +15,7 @@ from apps.system.models import Secret, Setting
 from apps.system.repositories import SecretRepository, SettingRepository
 from apps.system.services.errors import HuggingFaceTokenRejected, HuggingFaceUnreachable, UnknownGpu
 from apps.system.services.secret_box import SecretBox
-from mesbah import hardware, parts
+from mesbah import __version__, hardware, parts
 from mesbah.paths import ensure
 
 SELECTED_GPUS: str = "selected_gpus"
@@ -35,6 +35,7 @@ class SystemService:
         chosen: list[int] = self._chosen_indices(machine.gpus)
         selected: tuple[hardware.Gpu, ...] = self._effective(machine.gpus, chosen)
         return {
+            "version": __version__,
             "machine": {
                 "gpus": [vars(gpu) for gpu in machine.gpus],
                 "driver": machine.driver,

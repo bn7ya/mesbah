@@ -10,6 +10,7 @@ const GIB = 1024 ** 3;
 
 function overview(overrides: Partial<SystemOverview> = {}): SystemOverview {
   return {
+    version: '0.1.0',
     machine: {
       gpus: [
         { index: 0, name: 'RTX 5080', memory_bytes: 16 * GIB, compute_capability: '12.0' },

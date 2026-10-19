@@ -16,6 +16,7 @@ The start page after signing in is Projects now, and the menu lists System after
 
 ## What the page shows
 
+- **Under the title**: the version of Mesbah that is running (`system.release`).
 - **GPUs**: none found (with what that means), or the VRAM Mesbah can use, how the GPUs were
   chosen, and for an administrator a selection list to change it.
 - **Memory and storage**: RAM, CPU cores, a disk-space meter; Expert mode adds the OS, Python

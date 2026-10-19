@@ -43,7 +43,8 @@ updates the live row or creates one.
 `SECRET_KEY`. A secret sealed under another key opens to `None`, which reads as "not saved".
 
 **`SystemService`** (`services/system_service.py`), for the acting user:
-- `overview()` — the machine, the effective GPU choice, storage, parts and token status. A part
+- `overview()` — Mesbah's version (`mesbah.__version__`, so a candidate's wheel says `0.1.0rc1`),
+  the machine, the effective GPU choice, storage, parts and token status. A part
   counts as installed when this process has it or, if any is missing here, the built-in engine
   reports it in `/admin/status` (the web process has no torch in Docker or dev; the engine and
   the heavy worker do). An engine that is down or sends no parts adds nothing.

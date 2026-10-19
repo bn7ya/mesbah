@@ -6,6 +6,7 @@ from typing import Any
 
 import django_stubs_ext
 
+from mesbah import __version__
 from mesbah.paths import data_dir
 
 django_stubs_ext.monkeypatch()
@@ -168,7 +169,7 @@ REST_FRAMEWORK: dict[str, Any] = {
 SPECTACULAR_SETTINGS: dict[str, Any] = {
     "TITLE": "Mesbah API",
     "DESCRIPTION": "Mesbah: customize, version and serve language models.",
-    "VERSION": "0.1.0",
+    "VERSION": __version__,
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": "/api",
     "COMPONENT_SPLIT_REQUEST": True,

@@ -152,6 +152,7 @@ counts as one; every scheduled backup is then pushed offsite, keeping
 
 **`settings/base.py`** — everything every environment shares, Mesbah's data folder and the
 built-in engine's address and token (`MESBAH_RUNTIME_URL`, `MESBAH_RUNTIME_TOKEN`) included.
+The API schema's version is `mesbah.__version__`, the one place the version is written.
 `env()`, `env_bool()` and `env_list()` read the environment with a default.
 **`settings/dev.py`** adds the debug toolbar (`show_debug_toolbar()` reads `DEBUG` at request
 time) and console email; **`settings/prod.py`** adds the TLS, cookie and SMTP settings behind

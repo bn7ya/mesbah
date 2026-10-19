@@ -41,3 +41,11 @@ The first release.
 - **Two ways to run.**
   - `pip install mesbah && mesbah start`, with an embedded PostgreSQL.
   - Docker Compose, with GPU and engine profiles.
+
+### Contracts
+
+- First release. These are pinned in `backend/contracts/`:
+  - the API schema;
+  - the `mesbah` command line;
+  - the shipped migrations;
+  - the files Django exchanges with the trainer and the exporter.

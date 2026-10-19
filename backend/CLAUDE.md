@@ -15,6 +15,7 @@ backend/
     urls.py                 every slice mounted under /api/; the Angular app when Django serves it
     spa.py                  index.html for any path Angular routes
     celery.py               broker config comes from Django settings
+  contracts/                what a release promises, generated and compared (contracts/CLAUDE.md)
   tools/                    run against a checkout, never shipped (tools/CLAUDE.md)
     build_wheel.py          builds the frontend into the wheel
     release/                versions, tags and the changelog (ADR-010)

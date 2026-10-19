@@ -123,7 +123,10 @@ DJANGO_SETTINGS_MODULE = "config.settings.dev"
 python_files = ["test_*.py", "*_test.py"]
 addopts = "--reuse-db --strict-markers"
 testpaths = ["apps", "mesbah", "tools"]
-markers = ["ml: needs the training parts (torch); skipped without them"]
+markers = [
+    "ml: needs the training parts (torch); skipped without them",
+    "contract: compares what a release promises with backend/contracts/",
+]
 
 [tool.ruff]
 line-length = 100
@@ -157,7 +160,7 @@ ignore = [
 allow-star-arg-any = true
 
 [tool.ruff.lint.isort]
-known-first-party = ["apps", "config", "mesbah", "tools"]
+known-first-party = ["apps", "config", "contracts", "mesbah", "tools"]
 
 [tool.mypy]
 python_version = "3.12"

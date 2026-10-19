@@ -1,0 +1,257 @@
+{
+  "export": {
+    "config": {
+      "gguf": {
+        "adapter_path": "/data/versions/v1",
+        "base_path": "/data/hf/snapshot",
+        "kind": "gguf",
+        "name": "model",
+        "out_type": "q8_0",
+        "output_dir": "/data/exports/e1",
+        "status_path": "/data/exports/e1/status.json",
+        "system_prompt": "",
+        "tools_dir": "/data/tools"
+      },
+      "merged": {
+        "adapter_path": "/data/versions/v1",
+        "base_path": "/data/hf/snapshot",
+        "kind": "merged",
+        "name": "model",
+        "out_type": "q8_0",
+        "output_dir": "/data/exports/e1",
+        "status_path": "/data/exports/e1/status.json",
+        "system_prompt": "",
+        "tools_dir": "/data/tools"
+      }
+    },
+    "status": {
+      "completed": {
+        "error_code": null,
+        "error_detail": "",
+        "output": "/data/exports/e1",
+        "size_bytes": 99,
+        "status": "completed"
+      },
+      "failed": {
+        "error_code": "conversion_failed",
+        "error_detail": "no",
+        "output": null,
+        "size_bytes": 0,
+        "status": "failed"
+      }
+    }
+  },
+  "train": {
+    "config": {
+      "lora": {
+        "architecture": "causal",
+        "base": {
+          "path": "/data/hf/snapshot",
+          "repo_id": "org/name",
+          "revision": null
+        },
+        "cancel_path": "/data/runs/run-1/cancel",
+        "events_path": "/data/runs/run-1/events.jsonl",
+        "examples": [
+          {
+            "max_rows": 500,
+            "path": "/data/runs/run-1/examples.jsonl"
+          }
+        ],
+        "gpu_indices": [
+          0
+        ],
+        "hyperparams": {
+          "batch_size": 1,
+          "epochs": 1.0,
+          "grad_accum": 8,
+          "gradient_checkpointing": true,
+          "learning_rate": 0.0002,
+          "lora_alpha": 32,
+          "lora_dropout": 0.0,
+          "lora_rank": 16,
+          "lr_scheduler": "cosine",
+          "max_seq_len": 2048,
+          "max_steps": null,
+          "quantize_4bit": true,
+          "seed": 42,
+          "target_modules": "all-linear",
+          "train_biases": false,
+          "use_rslora": false,
+          "warmup_ratio": 0.03
+        },
+        "kind": "lora",
+        "output_dir": "/data/versions/v1",
+        "parent_adapter": null,
+        "run_id": "run-1",
+        "status_path": "/data/runs/run-1/status.json"
+      },
+      "pretrain": {
+        "architecture": "seq2seq",
+        "base": {
+          "path": null,
+          "repo_id": "local/new-model",
+          "revision": null
+        },
+        "cancel_path": "/data/runs/run-1/cancel",
+        "events_path": "/data/runs/run-1/events.jsonl",
+        "examples": [
+          {
+            "max_rows": 500,
+            "path": "/data/runs/run-1/examples.jsonl"
+          }
+        ],
+        "gpu_indices": [
+          0
+        ],
+        "hyperparams": {
+          "batch_size": 1,
+          "epochs": 1.0,
+          "grad_accum": 8,
+          "gradient_checkpointing": true,
+          "learning_rate": 0.0002,
+          "lora_alpha": 32,
+          "lora_dropout": 0.0,
+          "lora_rank": 16,
+          "lr_scheduler": "cosine",
+          "max_seq_len": 2048,
+          "max_steps": null,
+          "quantize_4bit": true,
+          "seed": 42,
+          "target_modules": "all-linear",
+          "train_biases": false,
+          "use_rslora": false,
+          "warmup_ratio": 0.03
+        },
+        "kind": "pretrain",
+        "model_config": {
+          "d_model": 64,
+          "model_type": "t5"
+        },
+        "output_dir": "/data/versions/v1",
+        "parent_adapter": null,
+        "pretrain": {
+          "mean_span_length": 3.0,
+          "noise_density": 0.15,
+          "optim": "adamw_8bit",
+          "weight_decay": 0.1
+        },
+        "run_id": "run-1",
+        "status_path": "/data/runs/run-1/status.json",
+        "tokenizer": "org/tokenizer"
+      }
+    },
+    "events": {
+      "begin": [
+        "total_steps"
+      ],
+      "data": [
+        "examples",
+        "skipped",
+        "tokens"
+      ],
+      "done": [],
+      "error": [
+        "code",
+        "detail"
+      ],
+      "loading": [
+        "stage"
+      ],
+      "log": [
+        "epoch",
+        "grad_norm",
+        "learning_rate",
+        "loss",
+        "step",
+        "total_steps"
+      ],
+      "oom_retry": [
+        "max_seq_len"
+      ],
+      "saving": []
+    },
+    "status": {
+      "cancelled": {
+        "adapter_dir": null,
+        "delta": null,
+        "error": null,
+        "metrics": {
+          "examples": 2,
+          "final_loss": 1.25,
+          "seconds": 0.5,
+          "skipped": 1,
+          "steps": 3
+        },
+        "model_dir": null,
+        "parameters": null,
+        "size_bytes": 0,
+        "status": "cancelled"
+      },
+      "failed": {
+        "adapter_dir": null,
+        "delta": null,
+        "error": {
+          "code": "out_of_memory",
+          "detail": "CUDA out of memory"
+        },
+        "metrics": {
+          "examples": 2,
+          "final_loss": 1.25,
+          "seconds": 0.5,
+          "skipped": 1,
+          "steps": 3
+        },
+        "model_dir": null,
+        "parameters": null,
+        "size_bytes": 0,
+        "status": "failed"
+      },
+      "lora": {
+        "adapter_dir": "/data/versions/v1",
+        "delta": {
+          "change_from_parent": 0.25,
+          "layers": [
+            {
+              "layer": 0,
+              "module": "q_proj",
+              "name": "model.layers.0.q_proj",
+              "norm": 0.5
+            }
+          ],
+          "parameters": 64,
+          "rank": 4,
+          "total_norm": 0.5
+        },
+        "error": null,
+        "metrics": {
+          "examples": 2,
+          "final_loss": 1.25,
+          "seconds": 0.5,
+          "skipped": 1,
+          "steps": 3
+        },
+        "model_dir": null,
+        "parameters": null,
+        "size_bytes": 1234,
+        "status": "completed"
+      },
+      "pretrain": {
+        "adapter_dir": null,
+        "delta": null,
+        "error": null,
+        "metrics": {
+          "examples": 2,
+          "final_loss": 1.25,
+          "seconds": 0.5,
+          "skipped": 1,
+          "steps": 3
+        },
+        "model_dir": "/data/models/trained/new",
+        "parameters": 9000,
+        "size_bytes": 0,
+        "status": "completed"
+      }
+    }
+  }
+}

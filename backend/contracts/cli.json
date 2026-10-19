@@ -1,0 +1,116 @@
+{
+  "mesbah": {
+    "commands": {
+      "doctor": {
+        "commands": {},
+        "options": [
+          {
+            "action": "store",
+            "default": 8077,
+            "dest": "port",
+            "flags": [
+              "--port"
+            ],
+            "nargs": null,
+            "required": false,
+            "type": "int"
+          }
+        ]
+      },
+      "manage": {
+        "commands": {},
+        "options": [
+          {
+            "action": "store",
+            "default": null,
+            "dest": "arguments",
+            "flags": [
+              "arguments"
+            ],
+            "nargs": "...",
+            "required": false,
+            "type": null
+          }
+        ]
+      },
+      "start": {
+        "commands": {},
+        "options": [
+          {
+            "action": "store",
+            "default": "127.0.0.1",
+            "dest": "host",
+            "flags": [
+              "--host"
+            ],
+            "nargs": null,
+            "required": false,
+            "type": null
+          },
+          {
+            "action": "store",
+            "default": 8077,
+            "dest": "port",
+            "flags": [
+              "--port"
+            ],
+            "nargs": null,
+            "required": false,
+            "type": "int"
+          },
+          {
+            "action": "store",
+            "default": null,
+            "dest": "database_url",
+            "flags": [
+              "--database-url"
+            ],
+            "nargs": null,
+            "required": false,
+            "type": null
+          },
+          {
+            "action": "store_true",
+            "default": false,
+            "dest": "no_browser",
+            "flags": [
+              "--no-browser"
+            ],
+            "nargs": 0,
+            "required": false,
+            "type": null
+          },
+          {
+            "action": "store",
+            "default": 8078,
+            "dest": "engine_port",
+            "flags": [
+              "--engine-port"
+            ],
+            "nargs": null,
+            "required": false,
+            "type": "int"
+          }
+        ]
+      }
+    },
+    "options": [
+      {
+        "action": "store",
+        "default": null,
+        "dest": "data_dir",
+        "flags": [
+          "--data-dir"
+        ],
+        "nargs": null,
+        "required": false,
+        "type": null
+      }
+    ]
+  },
+  "mesbah manage": {
+    "mesbah's own": [
+      "setup_code"
+    ]
+  }
+}

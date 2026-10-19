@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import signal
 from pathlib import Path
 
 import pytest
 
 from mesbah import server
-from mesbah.launcher import Launcher, Options, secret_key
+from mesbah.launcher import Launcher, Options, StepFailed, secret_key, tail
 
 DATABASE_URL: str = "postgresql://app:app@localhost:5432/app"
 
@@ -90,3 +91,40 @@ def test_the_engine_starts_only_with_the_training_parts(
     modules: list[str] = [command[2] for command in recorder.commands]
     assert ("mesbah.runtime" in modules) is installed
     assert {"uvicorn", "celery"} <= set(modules)
+
+
+def test_a_failed_step_names_itself_and_keeps_what_it_printed(tmp_path: Path) -> None:
+    starting: Launcher = launcher(tmp_path / "data")
+    environment: dict[str, str] = starting.prepare()
+
+    with pytest.raises(StepFailed) as failed:
+        starting.manage(environment, "no_such_command")
+
+    assert failed.value.step == "no_such_command"
+    assert "Unknown command: 'no_such_command'" in failed.value.output
+
+
+def test_starting_stops_at_a_failed_step_and_says_why(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    starting: Launcher = launcher(tmp_path / "data")
+
+    def fail(environment: dict[str, str], *arguments: str) -> str:
+        raise StepFailed(arguments[0], "django.db.utils.ProgrammingError: relation missing")
+
+    monkeypatch.setattr(starting, "manage", fail)
+    monkeypatch.setattr(signal, "signal", lambda signum, handler: None)
+
+    assert starting.run() == 1
+    printed: str = capsys.readouterr().err
+    assert "Mesbah could not start: `migrate` failed." in printed
+    assert "ProgrammingError: relation missing" in printed
+
+
+def test_only_the_end_of_a_long_output_is_kept() -> None:
+    printed: bytes = "\n".join(f"line {number}" for number in range(100)).encode()
+
+    kept: list[str] = tail(printed, b"the error").splitlines()
+
+    assert len(kept) == 40
+    assert kept[-1] == "the error"

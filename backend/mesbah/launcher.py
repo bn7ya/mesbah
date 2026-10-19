@@ -28,6 +28,14 @@ MANAGE_TIMEOUT: float = 600.0
 WORKER_THREADS: int = 4
 ENGINE_PARTS: tuple[str, ...] = ("torch", "transformers", "peft", "starlette")
 OPTIONAL: frozenset[str] = frozenset({"engine"})
+OUTPUT_LINES: int = 40
+
+
+class StepFailed(Exception):
+    def __init__(self, step: str, output: str) -> None:
+        super().__init__(step)
+        self.step: str = step
+        self.output: str = output
 
 
 @dataclass(frozen=True)
@@ -66,6 +74,11 @@ class Launcher:
                 return 1
             self.announce(environment)
             return self.supervise()
+        except StepFailed as failure:
+            print(f"Mesbah could not start: `{failure.step}` failed.", file=sys.stderr)
+            if failure.output:
+                print(failure.output, file=sys.stderr)
+            return 1
         except KeyboardInterrupt:
             return 0
         finally:
@@ -104,15 +117,22 @@ class Launcher:
         return str(self.database.get_uri())
 
     def manage(self, environment: dict[str, str], *arguments: str) -> str:
-        result: subprocess.CompletedProcess[bytes] = subprocess.run(  # noqa: S603
-            [sys.executable, "-m", "django", *arguments],
-            env=environment,
-            cwd=server_root(),
-            check=True,
-            capture_output=True,
-            timeout=MANAGE_TIMEOUT,
-        )
-        return result.stdout.decode().strip()
+        try:
+            result: subprocess.CompletedProcess[bytes] = subprocess.run(  # noqa: S603
+                [sys.executable, "-m", "django", *arguments],
+                env=environment,
+                cwd=server_root(),
+                check=False,
+                capture_output=True,
+                timeout=MANAGE_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired as error:
+            raise StepFailed(
+                arguments[0], f"It took longer than {MANAGE_TIMEOUT:.0f} seconds."
+            ) from error
+        if result.returncode != 0:
+            raise StepFailed(arguments[0], tail(result.stdout, result.stderr))
+        return result.stdout.decode(errors="replace").strip()
 
     def start(self, environment: dict[str, str]) -> None:
         commands: dict[str, list[str]] = {
@@ -206,7 +226,7 @@ class Launcher:
             print('Built-in engine: off. Install it with: pip install "mesbah[train]"')
         try:
             code: str = self.manage(environment, "setup_code")
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        except StepFailed:
             code = ""
             print("Run `mesbah manage setup_code` to see the first-run setup code.")
         if code and "already" not in code:
@@ -261,3 +281,8 @@ def secret_key(data: Path) -> str:
     with os.fdopen(descriptor, "w") as handle:
         handle.write(key)
     return key
+
+
+def tail(*outputs: bytes) -> str:
+    text: str = "\n".join(output.decode(errors="replace").strip() for output in outputs if output)
+    return "\n".join(text.splitlines()[-OUTPUT_LINES:])

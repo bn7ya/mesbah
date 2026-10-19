@@ -93,8 +93,10 @@ when the training parts are installed, the built-in engine; waits for `/api/heal
 the address, the engine and the setup code, and supervises until Ctrl+C or SIGTERM (the engine
 may stop without taking the rest down); `prepare()` builds the children's environment
 (database, secret key, origins, the built app, the engine's address and a fresh token);
-`start_database()` starts the embedded PostgreSQL; `manage()` runs one Django command; `stop()`
-stops the children, then the database it owns. **`engine_installed()`** — whether the parts the
+`start_database()` starts the embedded PostgreSQL; `manage()` runs one Django command and
+raises **`StepFailed`** (the step, and the end of what it printed) when it fails, which `run()`
+reports before exiting 1; `stop()` stops the children, then the database it owns. **`tail()`** —
+the last 40 lines of a command's output. **`engine_installed()`** — whether the parts the
 engine needs are there. **`Options`** — host, port, data folder, an optional database URL,
 whether to open a browser, the engine's port.
 **`secret_key()`** — the Django secret key, made once and kept owner-only in the data folder.

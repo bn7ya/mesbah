@@ -1,14 +1,18 @@
 name: CI
 
-# Only a merge into main runs CI. Before that, the local gate is the check
-# (rule 25) — a pull request runs nothing here.
+# A merge into main runs CI, and so does a push to a release branch. Before that, the local
+# gate is the check (rule 25): a pull request runs nothing here. The release bundle calls this
+# file as its gate.
 on:
   push:
-    branches: [main]
+    branches: [main, "release/**"]
+  workflow_call:
 
+# Called from another workflow, `github.workflow` is the caller's name; the prefix keeps the two
+# groups apart, and a called run is never cancelled.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.workflow == 'CI' }}
 
 jobs:
   hooks:

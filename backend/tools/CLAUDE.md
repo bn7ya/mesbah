@@ -18,6 +18,8 @@ tools/
     seed.py             what the upgrade test makes through a release's own API
     verify.py           what it checks after the upgrade
     client.py           a standard-library HTTP client for both, with the session and CSRF
+    contracts.py        the contracts against the last release: breaking, additive or neither
+    reference.py        the reference tarball a release keeps
     tests/
 ```
 
@@ -61,7 +63,36 @@ the wheel and the source archive into `backend/dist/`.
   `stop_process()` are its steps; `StackError` is what goes wrong.
 
 **`release/tags.py`** — **`tags()`** lists the `v*` tags in git; **`releases()`** keeps the release
-tags among them, in version order; **`previous()`** is the last stable release before a version.
+tags among them, in version order; **`previous()`** is the last stable release before a version. `main()` is
+`python -m tools.release.tags previous <tag>`, which prints that release's tag or nothing.
+
+**`release/contracts.py`** — `python -m tools.release.contracts --previous <tag> --tag <tag> --out
+<folder> [--report-only]`. **`snapshots()`** reads `backend/contracts/` at a git ref, or in the
+tree. **`facts()`** and **`flat()`** turn a file into path→value facts, without descriptions.
+
+**`compare()`** gives a **`Verdict`** of **`Change`**s:
+- **The public files** (`openapi.json`, `compat.json`, `cli.json`): something removed or changed
+  is breaking, and something added is additive. A field made required in a request is breaking.
+  This is **`compare_public()`**.
+- **Migrations:** one edited or gone is blocking, and a new one is additive
+  (**`compare_migrations()`**).
+- **Anything else** is internal.
+
+**`allowed()`** refuses:
+- a blocking change;
+- a patch that does more than add migrations;
+- from 1.0, a breaking change without a major bump.
+
+A breaking or additive change also needs a `### Contracts` line in that version's changelog
+section. It writes `compare.json` and `contracts-diff.md` (**`markdown()`**).
+
+**`release/reference.py`** — `python -m tools.release.reference --version … --out … --part
+name=folder … --result job=result … --note key=value`. **`assemble()`** copies each part into
+`mesbah-<version>-reference/`, adds a screenshot gallery (**`gallery()`**), `summary.md`
+(**`summary()`**) and `manifest.json` (results, notes, and every file with its size and sha256,
+from **`inventory()`** and **`digest()`**), and packs it. It exits 1 when any result is not
+`success` or `skipped`.
+
 
 **`release/upgrade.py`** — `python -m tools.release.upgrade --new <wheel> --work <folder>`. Without
 `--from`, it finds the release before the wheel's version. When there is none, it writes a skipped

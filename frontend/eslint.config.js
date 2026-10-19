@@ -82,6 +82,25 @@ export default tseslint.config(
     },
   },
   {
+    // The journeys: the same type rule as above, which this block would otherwise replace,
+    // and no waiting for time.
+    files: ['e2e/**/*.ts'],
+    ignores: ['**/*.types.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'TSInterfaceDeclaration, TSTypeAliasDeclaration',
+          message: 'Rule 30: declare it in a sibling *.types.ts and import it with `import type`.',
+        },
+        {
+          selector: "CallExpression[callee.property.name='waitForTimeout']",
+          message: 'Wait for what the page shows, with expect or expect.poll, never for a time.',
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.html'],
     extends: [...angular.configs.templateRecommended, ...angular.configs.templateAccessibility],
     rules: {},

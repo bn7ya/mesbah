@@ -6,9 +6,9 @@ Narrows the root `CLAUDE.md` to the Angular side. Read `.claude/docs/design-patt
 
 ```
 frontend/
-  angular.json  tsconfig*.json  eslint.config.js  playwright.config.ts
+  angular.json  tsconfig*.json  eslint.config.js
   proxy.conf.json           /api, /admin, /static, /media → backend:8000
-  e2e/                      Playwright journeys
+  e2e/                      the release journeys, Playwright against a real mesbah start (e2e/CLAUDE.md)
   src/
     styles/_theme.scss      the Material 3 theme — every --mat-sys-* token, every override
     styles/_theme-colors.scss  M3 palettes generated from the brand gold
@@ -171,7 +171,7 @@ outlives its page, so a page that shows server data asks for it again when it op
 docker compose exec frontend npx ng build
 docker compose exec frontend npx ng test --watch=false   # vitest, jsdom
 docker compose exec frontend npx ng lint
-docker compose exec frontend npx playwright test         # stack must be up
+npm run e2e                                              # the release journeys (e2e/CLAUDE.md)
 ```
 
 Unit tests are Vitest, not Karma — Karma is retired upstream and rule 4 says

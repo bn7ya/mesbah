@@ -8,7 +8,9 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "playwright test"
+    "e2e": "playwright test -c e2e",
+    "e2e:smoke": "playwright test -c e2e --grep @smoke",
+    "typecheck:e2e": "tsc -p e2e"
   },
   "dependencies": {
     "@angular/cdk": "^22.2.1",
@@ -32,6 +34,7 @@
     "@angular/compiler-cli": "^22.1.0",
     "@eslint/js": "^10.0.0",
     "@playwright/test": "^1.62.0",
+    "@types/node": "^24.19.2",
     "angular-eslint": "^22.1.0",
     "eslint": "^10.0.0",
     "jsdom": "^30.0.0",

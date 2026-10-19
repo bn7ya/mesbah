@@ -45,7 +45,7 @@ jobs:
               | python3 .claude/hooks/guard-checks.py || fail=1
           done < <(git ls-files 'backend/**/*.py' 'frontend/src/**/*.ts' \
                                 'frontend/src/**/*.html' 'frontend/src/**/*.scss' \
-                                'frontend/src/**/*.json')
+                                'frontend/src/**/*.json' 'frontend/e2e/**/*.ts')
           exit $fail
         shell: bash
 
@@ -178,6 +178,10 @@ jobs:
 
       - name: Lint
         run: npx ng lint
+
+      # The journeys run in the release bundle; here they only have to type-check.
+      - name: Type-check the journeys
+        run: npm run typecheck:e2e
 
       - name: Build
         run: npx ng build --configuration production

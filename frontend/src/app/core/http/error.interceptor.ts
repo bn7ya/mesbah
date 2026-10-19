@@ -1,20 +1,26 @@
 import { HttpErrorResponse, type HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
+import { Injector, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 
+import { AuthStore } from '@core/auth/state/auth.store';
 import { LocaleStore } from '@core/i18n/locale.store';
 import type { ApiError, ApiErrorResponse } from './api.types';
+
+const SESSION_GONE: ReadonlySet<string> = new Set(['not_authenticated', 'authentication_failed']);
 
 export const errorInterceptor: HttpInterceptorFn = (request, next) => {
   const router = inject(Router);
   const locale = inject(LocaleStore);
+  const injector = inject(Injector);
 
   return next(request).pipe(
     catchError((response: unknown) => {
       const error = toApiError(response, locale);
 
-      if (response instanceof HttpErrorResponse && isSessionFailure(response, request.url)) {
+      if (response instanceof HttpErrorResponse && isSessionFailure(response, error, request.url)) {
+        // Asked for here, not above: AuthStore's own requests pass through this interceptor.
+        injector.get(AuthStore).forget();
         void router.navigate(['/sign-in'], {
           queryParams: { next: router.url },
           replaceUrl: true,
@@ -26,11 +32,11 @@ export const errorInterceptor: HttpInterceptorFn = (request, next) => {
   );
 };
 
-function isSessionFailure(response: HttpErrorResponse, url: string): boolean {
-  if (response.status !== 401 && response.status !== 403) {
+function isSessionFailure(response: HttpErrorResponse, error: ApiError, url: string): boolean {
+  if (url.includes('/api/auth/')) {
     return false;
   }
-  return !url.includes('/api/auth/');
+  return response.status === 401 || (response.status === 403 && SESSION_GONE.has(error.code));
 }
 
 function readBody(raw: unknown): ApiErrorResponse | null {

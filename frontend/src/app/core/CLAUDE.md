@@ -50,7 +50,7 @@ identity, whether it has been resolved yet, busy, the last error, the groups and
 name.
 - `restore()` asks the backend on boot; a refusal means signed out, not an error.
 - `signIn()` primes CSRF, signs in and reports success; `signOut()` always ends signed out
-  on the sign-in page.
+  on the sign-in page; `forget()` drops an identity the server no longer accepts.
 - `setupNeeded()` asks whether a fresh install still needs its owner; `setUp()` creates the
   owner and signs them in.
 - `hasGroup()`, `hasAnyGroup()`, `hasPermission()` decide what to show — superusers pass
@@ -104,7 +104,10 @@ chooses. `expert` is the `computed` pages read to show more technical detail.
 **`csrfInterceptor`** (`http/`) — sends Django's CSRF token on unsafe requests. Auth is a
 same-origin session cookie, so CSRF is the price, and the built-in Angular option skips
 absolute URLs and uses other names. **`errorInterceptor`** — turns every failure into an
-`ApiError`, and sends the user to sign in when a session has gone. When a bundle has
+`ApiError`. When the server says the session has gone (401, or 403 `not_authenticated` or
+`authentication_failed`, outside `/api/auth/`), it forgets the identity, so `guestGuard` lets the
+user through, and sends them to sign in with `next`; a `permission_denied` 403 stays an error on
+the page. When a bundle has
 `errors.<code>` for the error's code, that text replaces the server's English message, so a
 feature adds its error codes to its own bundle and every store keeps reading `message`. A code
 with no text keeps the server's message in English and becomes `errors.generic` in any other
@@ -147,9 +150,9 @@ The CDK reads the document's `dir` once, when it is first injected, and never ag
 in an overlay outside the shell and takes the root service's direction. Setting the root
 `valueSignal` and emitting `change` turns both.
 
-**The error interceptor redirects on 401/403 — except under `/api/auth/`.** A
-401 from the sign-in endpoint means wrong credentials, not a lost session;
-redirecting there would loop.
+**The error interceptor redirects only when the session has gone, and never under `/api/auth/`.**
+A 401 from the sign-in endpoint means wrong credentials, not a lost session; redirecting there
+would loop. A 403 that is about permission keeps the user where they are.
 
 ## Changing anything here
 

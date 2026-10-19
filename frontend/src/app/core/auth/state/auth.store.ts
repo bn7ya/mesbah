@@ -78,6 +78,10 @@ export class AuthStore {
     }
   }
 
+  forget(): void {
+    this.identity.set(null);
+  }
+
   async signOut(): Promise<void> {
     this.busy.set(true);
     try {

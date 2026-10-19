@@ -1,10 +1,12 @@
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { Identity } from '@core/auth/data/auth.types';
+import { AuthStore } from '@core/auth/state/auth.store';
 import { LocaleStore } from '@core/i18n/locale.store';
 import type { ApiError } from './api.types';
 import { errorInterceptor } from './error.interceptor';
@@ -18,7 +20,7 @@ describe('errorInterceptor', () => {
     localStorage.clear();
     TestBed.configureTestingModule({
       providers: [
-        provideRouter([]),
+        provideRouter([{ path: '**', children: [] }]),
         provideHttpClient(withInterceptors([errorInterceptor])),
         provideHttpClientTesting(),
       ],
@@ -95,5 +97,67 @@ describe('errorInterceptor', () => {
     backend.expectOne('/api/thing/').flush('Bad gateway', { status: 502, statusText: 'Bad Gateway' });
 
     await expect(request).rejects.toMatchObject({ code: 'unknown' });
+  });
+
+  describe('a session the server no longer accepts', () => {
+    const owner: Identity = {
+      id: 1,
+      username: 'owner',
+      email: '',
+      first_name: '',
+      last_name: '',
+      is_staff: true,
+      is_superuser: true,
+      groups: ['admins'],
+      permissions: [],
+    };
+
+    async function signedIn(): Promise<AuthStore> {
+      const auth = TestBed.inject(AuthStore);
+      const restoring = auth.restore();
+      backend.expectOne('/api/auth/me/').flush(owner);
+      await restoring;
+      return auth;
+    }
+
+    async function refused(url: string, status: number, code: string): Promise<void> {
+      const request = firstValueFrom(http.get(url));
+      backend.expectOne(url).flush({ error: { code, message: 'No' } }, { status, statusText: 'No' });
+      await request.catch(() => undefined);
+    }
+
+    it.each([
+      [401, 'not_authenticated'],
+      [403, 'not_authenticated'],
+      [403, 'authentication_failed'],
+    ])('forgets who was signed in and goes to sign in on a %s %s', async (status, code) => {
+      const auth = await signedIn();
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate');
+
+      await refused('/api/projects/', status, code);
+
+      expect(auth.isAuthenticated()).toBe(false);
+      expect(navigate).toHaveBeenCalledWith(['/sign-in'], expect.objectContaining({ replaceUrl: true }));
+    });
+
+    it('stays signed in on a refusal that is about permission, not the session', async () => {
+      const auth = await signedIn();
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate');
+
+      await refused('/api/members/', 403, 'permission_denied');
+
+      expect(auth.isAuthenticated()).toBe(true);
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('leaves the sign-in calls to the sign-in page', async () => {
+      const auth = await signedIn();
+      const navigate = vi.spyOn(TestBed.inject(Router), 'navigate');
+
+      await refused('/api/auth/login/', 403, 'authentication_failed');
+
+      expect(auth.isAuthenticated()).toBe(true);
+      expect(navigate).not.toHaveBeenCalled();
+    });
   });
 });

@@ -1,0 +1,366 @@
+{
+  "ollama": {
+    "chat": {
+      "body": {
+        "created_at": "string",
+        "done": true,
+        "done_reason": "stop",
+        "eval_count": "integer",
+        "message": {
+          "content": "string",
+          "role": "assistant",
+          "thinking": "string"
+        },
+        "model": "string",
+        "prompt_eval_count": "integer",
+        "total_duration": "integer"
+      },
+      "content_type": "application/json",
+      "request": "POST /ollama/api/chat",
+      "status": 200
+    },
+    "chat failed midway": {
+      "body": [
+        {
+          "created_at": "string",
+          "done": false,
+          "message": {
+            "content": "string",
+            "role": "assistant",
+            "thinking": "string"
+          },
+          "model": "string"
+        },
+        {
+          "error": "string"
+        }
+      ],
+      "content_type": "application/x-ndjson",
+      "request": "POST /ollama/api/chat",
+      "status": 200
+    },
+    "chat streamed": {
+      "body": [
+        {
+          "created_at": "string",
+          "done": false,
+          "message": {
+            "content": "string",
+            "role": "assistant",
+            "thinking": "string"
+          },
+          "model": "string"
+        },
+        {
+          "created_at": "string",
+          "done": false,
+          "message": {
+            "content": "string",
+            "role": "assistant"
+          },
+          "model": "string"
+        },
+        {
+          "created_at": "string",
+          "done": true,
+          "done_reason": "stop",
+          "eval_count": "integer",
+          "message": {
+            "content": "string",
+            "role": "assistant"
+          },
+          "model": "string",
+          "prompt_eval_count": "integer",
+          "total_duration": "integer"
+        }
+      ],
+      "content_type": "application/x-ndjson",
+      "request": "POST /ollama/api/chat",
+      "status": 200
+    },
+    "generate streamed": {
+      "body": [
+        {
+          "created_at": "string",
+          "done": false,
+          "model": "string",
+          "response": "string",
+          "thinking": "string"
+        },
+        {
+          "created_at": "string",
+          "done": false,
+          "model": "string",
+          "response": "string"
+        },
+        {
+          "created_at": "string",
+          "done": true,
+          "done_reason": "stop",
+          "eval_count": "integer",
+          "model": "string",
+          "prompt_eval_count": "integer",
+          "response": "string",
+          "total_duration": "integer"
+        }
+      ],
+      "content_type": "application/x-ndjson",
+      "request": "POST /ollama/api/generate",
+      "status": 200
+    },
+    "show": {
+      "body": {
+        "capabilities": [
+          "string"
+        ],
+        "details": {
+          "families": [
+            "string"
+          ],
+          "family": "string",
+          "format": "string",
+          "parameter_size": "string",
+          "parent_model": "string",
+          "quantization_level": "string"
+        },
+        "model_info": {},
+        "modelfile": "string",
+        "modified_at": "string",
+        "parameters": "string",
+        "system": "string",
+        "template": "string"
+      },
+      "content_type": "application/json",
+      "request": "POST /ollama/api/show",
+      "status": 200
+    },
+    "tags": {
+      "body": {
+        "models": [
+          {
+            "details": {
+              "families": [
+                "string"
+              ],
+              "family": "string",
+              "format": "string",
+              "parameter_size": "string",
+              "parent_model": "string",
+              "quantization_level": "string"
+            },
+            "digest": "string",
+            "model": "string",
+            "modified_at": "string",
+            "name": "string",
+            "size": "integer"
+          }
+        ]
+      },
+      "content_type": "application/json",
+      "request": "GET /ollama/api/tags",
+      "status": 200
+    },
+    "version": {
+      "body": {
+        "version": "string"
+      },
+      "content_type": "application/json",
+      "request": "GET /ollama/api/version",
+      "status": 200
+    }
+  },
+  "openai": {
+    "chat": {
+      "body": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": "integer",
+            "message": {
+              "content": "string",
+              "reasoning_content": "string",
+              "role": "assistant"
+            }
+          }
+        ],
+        "created": "integer",
+        "id": "string",
+        "model": "string",
+        "object": "chat.completion",
+        "usage": {
+          "completion_tokens": "integer",
+          "prompt_tokens": "integer",
+          "total_tokens": "integer"
+        }
+      },
+      "content_type": "application/json",
+      "request": "POST /v1/chat/completions",
+      "status": 200
+    },
+    "chat failed midway": {
+      "body": [
+        {
+          "choices": [
+            {
+              "delta": {
+                "content": "string",
+                "role": "assistant"
+              },
+              "finish_reason": "null",
+              "index": "integer"
+            }
+          ],
+          "created": "integer",
+          "id": "string",
+          "model": "string",
+          "object": "chat.completion.chunk"
+        },
+        {
+          "choices": [
+            {
+              "delta": {
+                "reasoning_content": "string"
+              },
+              "finish_reason": "null",
+              "index": "integer"
+            }
+          ],
+          "created": "integer",
+          "id": "string",
+          "model": "string",
+          "object": "chat.completion.chunk"
+        },
+        {
+          "error": {
+            "code": "generation_failed",
+            "message": "string",
+            "type": "server_error"
+          }
+        },
+        "[DONE]"
+      ],
+      "content_type": "text/event-stream",
+      "request": "POST /v1/chat/completions",
+      "status": 200
+    },
+    "chat streamed": {
+      "body": [
+        {
+          "choices": [
+            {
+              "delta": {
+                "content": "string",
+                "role": "assistant"
+              },
+              "finish_reason": "null",
+              "index": "integer"
+            }
+          ],
+          "created": "integer",
+          "id": "string",
+          "model": "string",
+          "object": "chat.completion.chunk"
+        },
+        {
+          "choices": [
+            {
+              "delta": {
+                "reasoning_content": "string"
+              },
+              "finish_reason": "null",
+              "index": "integer"
+            }
+          ],
+          "created": "integer",
+          "id": "string",
+          "model": "string",
+          "object": "chat.completion.chunk"
+        },
+        {
+          "choices": [
+            {
+              "delta": {
+                "content": "string"
+              },
+              "finish_reason": "null",
+              "index": "integer"
+            }
+          ],
+          "created": "integer",
+          "id": "string",
+          "model": "string",
+          "object": "chat.completion.chunk"
+        },
+        {
+          "choices": [
+            {
+              "delta": {},
+              "finish_reason": "stop",
+              "index": "integer"
+            }
+          ],
+          "created": "integer",
+          "id": "string",
+          "model": "string",
+          "object": "chat.completion.chunk"
+        },
+        {
+          "choices": [],
+          "created": "integer",
+          "id": "string",
+          "model": "string",
+          "object": "chat.completion.chunk",
+          "usage": {
+            "completion_tokens": "integer",
+            "prompt_tokens": "integer",
+            "total_tokens": "integer"
+          }
+        },
+        "[DONE]"
+      ],
+      "content_type": "text/event-stream",
+      "request": "POST /v1/chat/completions",
+      "status": 200
+    },
+    "invalid key": {
+      "body": {
+        "error": {
+          "code": "invalid_api_key",
+          "message": "string",
+          "type": "invalid_request_error"
+        }
+      },
+      "content_type": "application/json",
+      "request": "GET /v1/models",
+      "status": 401
+    },
+    "models": {
+      "body": {
+        "data": [
+          {
+            "created": "integer",
+            "id": "string",
+            "object": "model",
+            "owned_by": "mesbah"
+          }
+        ],
+        "object": "list"
+      },
+      "content_type": "application/json",
+      "request": "GET /v1/models",
+      "status": 200
+    },
+    "unknown model": {
+      "body": {
+        "error": {
+          "code": "model_not_found",
+          "message": "string",
+          "type": "invalid_request_error"
+        }
+      },
+      "content_type": "application/json",
+      "request": "POST /v1/chat/completions",
+      "status": 404
+    }
+  }
+}

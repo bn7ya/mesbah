@@ -1,28 +1,19 @@
 from __future__ import annotations
 
-import importlib.util
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-import httpx2
 import pytest
+from starlette.testclient import TestClient
 
 from mesbah import parts
 from mesbah.runtime.app import create_app
 from mesbah.runtime.engine import Engine
-
-if TYPE_CHECKING:
-    from starlette.testclient import TestClient
 
 TOKEN: str = "test-token"
 INSTALLED: dict[str, str] = {"torch": "2.9.0+cu128", "peft": "0.17.1"}
 
 
 def client() -> TestClient:
-    # Starlette's TestClient imports httpx; Mesbah ships its successor under another name.
-    if importlib.util.find_spec("httpx") is None:
-        httpx2.alias_httpx()
-    from starlette.testclient import TestClient
-
     return TestClient(create_app(Engine(), TOKEN), headers={"Authorization": f"Bearer {TOKEN}"})
 
 

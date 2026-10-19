@@ -96,6 +96,11 @@ dev = [
     "build>=1.3,<2",
     # mypy reads the engine's web layer without the training parts installed.
     "starlette>=0.48,<1",
+    # The contract tests call /v1 and /ollama through the official clients; Ollama's client and
+    # Starlette's test client both run on httpx.
+    "openai>=3,<4",
+    "ollama>=0.6,<0.7",
+    "httpx>=0.28,<1",
 ]
 
 [tool.hatch.version]

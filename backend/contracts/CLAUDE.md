@@ -12,6 +12,7 @@ the wheel and the sdist take only `mesbah`, `apps` and `config`.
 | `openapi.json` | `apps/common/tests/test_openapi_contract.py` | the `/api` schema as spectacular writes it, without its version |
 | `cli.json` | `mesbah/tests/test_cli_contract.py` | `mesbah`'s commands and flags with their defaults, and Mesbah's own `manage` commands |
 | `migrations.json` | `apps/common/tests/test_migration_contract.py` | each app's migrations and the sha256 of each file, without Django's generated line |
+| `compat.json` | `apps/serving/tests/test_client_contract.py` | `/v1` and `/ollama` as the official `openai` and `ollama` clients call them, against the fake engine served for real: each call's status, content type and the shape of its body or of each streamed event |
 | `files.json` | `mesbah/tests/test_files_contract.py` | the training config of a LoRA and a pretrain run, every kind of `status.json`, the fields of every event, and the export config and status |
 
 ## Changing one
@@ -35,6 +36,13 @@ bump can be checked against it.
 here. It fails with the first 80 lines of a unified diff and how to accept the change, or
 rewrites the file when `update` is set. The `contract` fixture in `backend/conftest.py` gives a
 test one, with `update` from `pytest --update-contracts`; the `contract` marker tags such tests.
+
+**`shape()`** (`shapes.py`) — a JSON value with its values replaced by their types (`string`,
+`integer`, `number`, `boolean`, `null`); lists become the distinct shapes of their items, and
+the keys clients branch on (`object`, `owned_by`, `finish_reason`, `role`, `done`,
+`done_reason`, `code`, `type`) keep their values. **`events()`** — the shapes of a response
+body: every distinct server-sent event or NDJSON line in the order they first appear, or the
+one JSON document. **`distinct()`** — shapes without repeats, first seen first.
 
 ## Decisions worth not re-litigating
 

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import httpx2
+import httpx
 import pytest
 import uvicorn
+from starlette.testclient import TestClient
 
 from mesbah.runtime import __main__ as entry
 from mesbah.runtime.app import create_app
@@ -16,15 +16,9 @@ from mesbah.runtime.fake import FakeEngine
 
 if TYPE_CHECKING:
     from starlette.applications import Starlette
-    from starlette.testclient import TestClient
 
 
 def client_for(app: Starlette) -> TestClient:
-    # Starlette's TestClient imports httpx; Mesbah ships its successor under another name.
-    if importlib.util.find_spec("httpx") is None:
-        httpx2.alias_httpx()
-    from starlette.testclient import TestClient
-
     return TestClient(app)
 
 
@@ -44,12 +38,12 @@ def folders(tmp_path: Path) -> tuple[Path, Path]:
     return base, adapter
 
 
-def load(client: TestClient, base: Path, adapter: Path) -> httpx2.Response:
+def load(client: TestClient, base: Path, adapter: Path) -> httpx.Response:
     body: dict[str, object] = {
         "base": str(base),
         "adapters": [{"name": "v1", "path": str(adapter)}],
     }
-    response: httpx2.Response = client.post("/admin/load", json=body)
+    response: httpx.Response = client.post("/admin/load", json=body)
     return response
 
 
@@ -78,8 +72,8 @@ def joined(events: list[Any], key: str) -> str:
 def test_it_loads_only_what_is_on_disk(client: TestClient, folders: tuple[Path, Path]) -> None:
     base, adapter = folders
 
-    missing: httpx2.Response = load(client, base / "nowhere", adapter)
-    loaded: httpx2.Response = load(client, base, adapter)
+    missing: httpx.Response = load(client, base / "nowhere", adapter)
+    loaded: httpx.Response = load(client, base, adapter)
 
     assert missing.status_code == 500
     assert missing.json()["error"]["code"] == "load_failed"
@@ -145,9 +139,9 @@ def test_it_refuses_a_model_it_does_not_hold(
 ) -> None:
     body: dict[str, object] = {"model": "v2", "messages": [{"role": "user", "content": "Hi"}]}
 
-    unloaded: httpx2.Response = client.post("/v1/chat/completions", json=body)
+    unloaded: httpx.Response = client.post("/v1/chat/completions", json=body)
     load(client, *folders)
-    unknown: httpx2.Response = client.post("/v1/chat/completions", json=body)
+    unknown: httpx.Response = client.post("/v1/chat/completions", json=body)
 
     assert unloaded.json()["error"]["code"] == "not_loaded"
     assert unknown.json()["error"]["code"] == "model_not_found"

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 import json
 import threading
 from collections.abc import Iterator
@@ -8,9 +7,10 @@ from pathlib import Path
 from types import ModuleType
 from typing import TYPE_CHECKING, Any
 
-import httpx2
+import httpx
 import pytest
 import uvicorn
+from starlette.testclient import TestClient
 
 from mesbah.runtime import __main__ as entry
 from mesbah.runtime.app import create_app
@@ -20,8 +20,6 @@ from mesbah.runtime.specs import ChatMessage, ChatRequest, LoadSpec
 
 if TYPE_CHECKING:
     from starlette.applications import Starlette
-    from starlette.testclient import TestClient
-
 torch: ModuleType = pytest.importorskip("torch")
 pytestmark: pytest.MarkDecorator = pytest.mark.ml
 
@@ -33,11 +31,6 @@ PROMPT: list[dict[str, str]] = [{"role": "user", "content": "Say something."}]
 
 
 def client_for(app: Starlette, token: str | None = TOKEN) -> TestClient:
-    # Starlette's TestClient imports httpx; Mesbah ships its successor under another name.
-    if importlib.util.find_spec("httpx") is None:
-        httpx2.alias_httpx()
-    from starlette.testclient import TestClient
-
     headers: dict[str, str] = {"Authorization": f"Bearer {token}"} if token else {}
     return TestClient(app, headers=headers)
 
@@ -79,22 +72,22 @@ def load(client: TestClient, **versions: Path) -> dict[str, Any]:
     named: list[dict[str, str]] = [
         {"name": name, "path": str(path)} for name, path in versions.items()
     ]
-    response: httpx2.Response = client.post("/admin/load", json={"base": MODEL, "adapters": named})
+    response: httpx.Response = client.post("/admin/load", json={"base": MODEL, "adapters": named})
     assert response.status_code == 200, response.text
     status: dict[str, Any] = response.json()
     return status
 
 
-def ask(client: TestClient, model: str, **options: object) -> httpx2.Response:
+def ask(client: TestClient, model: str, **options: object) -> httpx.Response:
     body: dict[str, object] = {"model": model, "messages": PROMPT, "max_tokens": 8}
-    response: httpx2.Response = client.post(
+    response: httpx.Response = client.post(
         "/v1/chat/completions", json={**body, "temperature": 0, **options}
     )
     return response
 
 
 def reply(client: TestClient, model: str, **options: object) -> dict[str, Any]:
-    response: httpx2.Response = ask(client, model, **options)
+    response: httpx.Response = ask(client, model, **options)
     assert response.status_code == 200, response.text
     body: dict[str, Any] = response.json()
     return body
@@ -124,7 +117,7 @@ def stream_events(client: TestClient, model: str) -> list[Any]:
 
 def test_health_needs_no_token(engine: Engine) -> None:
     with client_for(create_app(engine, TOKEN), token=None) as anonymous:
-        response: httpx2.Response = anonymous.get("/health")
+        response: httpx.Response = anonymous.get("/health")
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
@@ -133,8 +126,8 @@ def test_health_needs_no_token(engine: Engine) -> None:
 def test_everything_else_needs_the_token(engine: Engine) -> None:
     app: Starlette = create_app(engine, TOKEN)
     with client_for(app, token=None) as anonymous, client_for(app, token="wrong") as stranger:
-        missing: httpx2.Response = anonymous.get("/v1/models")
-        wrong: httpx2.Response = stranger.post("/admin/unload")
+        missing: httpx.Response = anonymous.get("/v1/models")
+        wrong: httpx.Response = stranger.post("/admin/unload")
 
     assert missing.status_code == 401
     assert wrong.status_code == 401
@@ -245,7 +238,7 @@ def test_thinking_switch_and_reasoning_history_reach_the_template(client: TestCl
 def test_an_unknown_model_is_not_found(client: TestClient) -> None:
     load(client)
 
-    response: httpx2.Response = ask(client, "v9")
+    response: httpx.Response = ask(client, "v9")
 
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "model_not_found"
@@ -256,7 +249,7 @@ def test_after_unloading_a_completion_is_a_conflict(client: TestClient) -> None:
     load(client)
 
     status: dict[str, Any] = client.post("/admin/unload").json()
-    response: httpx2.Response = ask(client, "base")
+    response: httpx.Response = ask(client, "base")
 
     assert status["loaded"] is False
     assert response.status_code == 409
@@ -266,9 +259,9 @@ def test_after_unloading_a_completion_is_a_conflict(client: TestClient) -> None:
 def test_a_malformed_request_is_refused(client: TestClient) -> None:
     load(client)
 
-    no_messages: httpx2.Response = client.post("/v1/chat/completions", json={"model": "base"})
-    not_json: httpx2.Response = client.post("/admin/load", content=b"{")
-    bad_role: httpx2.Response = ask(client, "base", messages=[{"role": "robot", "content": "x"}])
+    no_messages: httpx.Response = client.post("/v1/chat/completions", json={"model": "base"})
+    not_json: httpx.Response = client.post("/admin/load", content=b"{")
+    bad_role: httpx.Response = ask(client, "base", messages=[{"role": "robot", "content": "x"}])
 
     for response in (no_messages, not_json, bad_role):
         assert response.status_code == 400
@@ -311,7 +304,7 @@ def test_closing_a_generation_midway_frees_the_engine(engine: Engine) -> None:
 
 
 def test_an_encoder_decoder_model_answers(client: TestClient) -> None:
-    loaded: httpx2.Response = client.post(
+    loaded: httpx.Response = client.post(
         "/admin/load", json={"base": SEQ2SEQ, "architecture": "seq2seq"}
     )
     torch.manual_seed(0)

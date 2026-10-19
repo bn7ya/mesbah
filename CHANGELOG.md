@@ -48,4 +48,5 @@ The first release.
   - the API schema;
   - the `mesbah` command line;
   - the shipped migrations;
-  - the files Django exchanges with the trainer and the exporter.
+  - the files Django exchanges with the trainer and the exporter;
+  - `/v1` and `/ollama`, as the official `openai` and `ollama` clients read them.

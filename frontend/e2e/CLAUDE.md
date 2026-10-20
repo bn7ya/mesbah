@@ -85,6 +85,9 @@ each other's order.
 - **`shot(name)` saves a screenshot** for the release's reference artifact, of the test's page or
   of the page given as its second argument. Screenshots are kept for people to compare, never
   compared pixel by pixel.
+- **Wait for what the page shows before acting on it.** A dialog is typed into once it has
+  focused its first field (Material moves focus there when it has finished opening, and typing
+  earlier can land in it), and a page is reloaded once the change it should keep has shown.
 - **A new write endpoint goes in `VIEWER_WRITES`** (`harness/roles.data.ts`), with the answer a
   viewer gets, or `roles.spec.ts` fails: it sends every write the API schema lists as a viewer,
   and checks the list and the schema name the same operations.

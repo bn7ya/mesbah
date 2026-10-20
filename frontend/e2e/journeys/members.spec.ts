@@ -18,7 +18,10 @@ test('a member added as a viewer sees only what a viewer may, until the role cha
   await page.goto('/members');
   await page.getByRole('button', { name: t('members', 'members.add.open') }).click();
   const form = page.getByRole('dialog', { name: t('members', 'members.add.title') });
-  await form.getByRole('textbox', { name: t('members', 'members.add.username') }).fill(username);
+  const usernameField = form.getByRole('textbox', { name: t('members', 'members.add.username') });
+  // The dialog focuses its first field when it has finished opening; typing earlier can land in it.
+  await expect(usernameField).toBeFocused();
+  await usernameField.fill(username);
   await form.getByLabel(t('members', 'members.add.password')).fill(world.password);
   await form.getByRole('combobox', { name: t('members', 'members.role') }).click();
   await page.getByRole('option', { name: t('members', 'members.roles.viewers.name') }).click();

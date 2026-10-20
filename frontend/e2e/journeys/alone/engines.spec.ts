@@ -52,7 +52,10 @@ test('an OpenAI-compatible engine is connected, listed and disconnected', async 
   await others.getByRole('button', { name: t('serving', 'serving.others.connect') }).click();
 
   const form = page.getByRole('dialog', { name: t('serving', 'serving.form.connectTitle') });
-  await form.getByRole('textbox', { name: t('serving', 'serving.form.name') }).fill(name);
+  const nameField = form.getByRole('textbox', { name: t('serving', 'serving.form.name') });
+  // As in members.spec.ts: wait for the dialog to focus its first field before typing.
+  await expect(nameField).toBeFocused();
+  await nameField.fill(name);
   await form.getByRole('combobox', { name: t('serving', 'serving.form.kind') }).click();
   await page.getByRole('option', { name: t('serving', 'serving.kinds.openai.name') }).click();
   await form.getByRole('textbox', { name: t('serving', 'serving.form.address') }).fill(stack.engine_url);

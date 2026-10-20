@@ -44,6 +44,7 @@ test('switching the language flips the document and stays after a reload', async
   await page.goto('/sign-in');
 
   await page.getByRole('radio', { name: other.name }).click();
+  await expect(page.locator('html')).toHaveAttribute('dir', other.dir);
   await page.reload();
 
   await expect(page.locator('html')).toHaveAttribute('dir', other.dir);

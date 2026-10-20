@@ -102,7 +102,9 @@ export const test = base.extend<Fixtures, WorkerFixtures>({
       const path = join(folder, `${String(taken).padStart(2, '0')}-${fileName(name)}.png`);
       expect(await horizontalOverflow(shown), `pixels "${name}" scrolls sideways`).toBeLessThanOrEqual(1);
       expect(await underTheMenu(shown), `pixels of "${name}" under the side menu`).toBeLessThanOrEqual(1);
-      await shown.screenshot({ path, fullPage: true, animations: 'disabled', caret: 'hide' });
+      // A dialog's backdrop covers the window, not the page below it, so the window is what is shot.
+      const overlaid = (await shown.locator('.cdk-overlay-backdrop-showing').count()) > 0;
+      await shown.screenshot({ path, fullPage: !overlaid, animations: 'disabled', caret: 'hide' });
       await testInfo.attach(name, { path, contentType: 'image/png' });
     });
   },

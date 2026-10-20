@@ -86,7 +86,8 @@ each other's order.
   of the page given as its second argument. Screenshots are kept for people to compare, never
   compared pixel by pixel. Before it shoots, it fails the test if the page scrolls sideways or
   if the open side menu covers any of `<main>`, so every screen in both languages is checked
-  for both.
+  for both. It shoots the whole page, or only the window while a dialog or menu has its
+  backdrop up.
 - **Wait for what the page shows before acting on it.** A dialog is typed into once it has
   focused its first field (Material moves focus there when it has finished opening, and typing
   earlier can land in it), and a page is reloaded once the change it should keep has shown.

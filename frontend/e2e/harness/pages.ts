@@ -35,10 +35,6 @@ export async function settled(page: Page): Promise<void> {
   await expect(page.locator('main mat-progress-bar[mode="indeterminate"]')).toHaveCount(0);
 }
 
-export async function horizontalOverflow(page: Page): Promise<number> {
-  return page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-}
-
 export async function estimated(page: Page, layers: number): Promise<void> {
   await page.waitForResponse((response) => {
     if (!response.url().endsWith('/api/architect/estimate/')) {

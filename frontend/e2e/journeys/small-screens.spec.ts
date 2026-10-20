@@ -1,5 +1,5 @@
-import { expect, test } from '../harness/fixtures';
-import { horizontalOverflow, settled } from '../harness/pages';
+import { expect, horizontalOverflow, test } from '../harness/fixtures';
+import { settled } from '../harness/pages';
 
 test.use({ viewport: { width: 390, height: 844 } });
 

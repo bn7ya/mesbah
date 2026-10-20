@@ -34,6 +34,30 @@ export function recordErrors(page: Page): readonly string[] {
   return problems;
 }
 
+// The document, and <main> with every box around it, since the shell scrolls inside its own box.
+export async function horizontalOverflow(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const boxes: Element[] = [document.documentElement];
+    for (let box = document.getElementById('main'); box; box = box.parentElement) {
+      boxes.push(box);
+    }
+    return Math.max(...boxes.map((box) => Math.max(box.scrollWidth - box.clientWidth, Math.abs(box.scrollLeft))));
+  });
+}
+
+// The menu sits beside the page on a wide screen; only on a narrow one does it slide over it.
+async function underTheMenu(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const menu = document.querySelector('mat-sidenav.mat-drawer-side.mat-drawer-opened');
+    const main = document.getElementById('main');
+    if (!menu || !main) {
+      return 0;
+    }
+    const [beside, content] = [menu.getBoundingClientRect(), main.getBoundingClientRect()];
+    return Math.max(0, Math.min(beside.right, content.right) - Math.max(beside.left, content.left));
+  });
+}
+
 function fileName(text: string): string {
   return text.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').toLowerCase();
 }
@@ -76,6 +100,8 @@ export const test = base.extend<Fixtures, WorkerFixtures>({
       taken += 1;
       mkdirSync(folder, { recursive: true });
       const path = join(folder, `${String(taken).padStart(2, '0')}-${fileName(name)}.png`);
+      expect(await horizontalOverflow(shown), `pixels "${name}" scrolls sideways`).toBeLessThanOrEqual(1);
+      expect(await underTheMenu(shown), `pixels of "${name}" under the side menu`).toBeLessThanOrEqual(1);
       await shown.screenshot({ path, fullPage: true, animations: 'disabled', caret: 'hide' });
       await testInfo.attach(name, { path, contentType: 'image/png' });
     });

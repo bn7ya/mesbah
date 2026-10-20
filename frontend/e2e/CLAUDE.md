@@ -84,7 +84,9 @@ each other's order.
   `test.use({ allowConsoleErrors: true })`.
 - **`shot(name)` saves a screenshot** for the release's reference artifact, of the test's page or
   of the page given as its second argument. Screenshots are kept for people to compare, never
-  compared pixel by pixel.
+  compared pixel by pixel. Before it shoots, it fails the test if the page scrolls sideways or
+  if the open side menu covers any of `<main>`, so every screen in both languages is checked
+  for both.
 - **Wait for what the page shows before acting on it.** A dialog is typed into once it has
   focused its first field (Material moves focus there when it has finished opening, and typing
   earlier can land in it), and a page is reloaded once the change it should keep has shown.
@@ -156,13 +158,12 @@ sends a message and waits for the whole reply, failing if it does not finish.
 **`VIEWER_WRITES`** (`harness/roles.data.ts`) — the answer a viewer gets from each write
 operation, by operation id.
 
-**`choose()`**, **`pickFile()`**, **`signedOut()`**, **`settled()`**, **`horizontalOverflow()`**,
-**`estimated()`** (`harness/pages.ts`) — what a page needs beyond a click:
+**`choose()`**, **`pickFile()`**, **`signedOut()`**, **`settled()`**, **`estimated()`**
+(`harness/pages.ts`) — what a page needs beyond a click:
 - `choose()` opens a menu until its item shows, then picks it.
 - `pickFile()` answers the file picker a button opens.
 - `signedOut()` is a page in a new signed-out browser, in a language, recording its errors.
 - `settled()` waits until nothing in the page is loading.
-- `horizontalOverflow()` is how far the page is wider than the window.
 - `estimated()` waits for the Architect's estimate of a design with that many layers.
 
 **`test`**, **`expect`** (`harness/fixtures.ts`) — Playwright's, with:
@@ -179,6 +180,11 @@ operation, by operation id.
 **`startIn()`**, **`recordErrors()`** (`harness/fixtures.ts`) — `startIn()` sets the language a
 page opens in before it loads, and `recordErrors()` collects what a page logs as an error. The
 fixtures use both, and so does `signedOut()`.
+
+**`horizontalOverflow()`** (`harness/fixtures.ts`) — how far the page scrolls, or could scroll,
+sideways: the most of the document, `<main>` and every box around `<main>`, since the shell
+scrolls inside its own box. `shot()` checks it before every screenshot, and so do the phone-width
+journeys.
 
 **`globalSetup()`** (`global-setup.ts`) — starts a stack with `tools.release.stack` unless
 `E2E_STACK` names one, and stops it afterwards.

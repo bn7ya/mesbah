@@ -42,13 +42,19 @@ export class MessageList {
       previous !== undefined && previous.source.id === now.id && !now.started ? previous.value : true,
   });
 
+  private height = 0;
+
   scrolled(): void {
     const element = this.scroller().nativeElement;
     this.pinned.set(element.scrollHeight - element.scrollTop - element.clientHeight < NEAR_BOTTOM);
   }
 
   changed(): void {
-    if (this.pinned()) {
+    // A button's ripple changes the DOM as it is pressed; only a change in height moves the list.
+    const height = this.scroller().nativeElement.scrollHeight;
+    const resized = height !== this.height;
+    this.height = height;
+    if (this.pinned() && resized) {
       this.toBottom();
     } else {
       this.scrolled();

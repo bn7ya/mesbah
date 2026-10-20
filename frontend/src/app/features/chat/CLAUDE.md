@@ -130,9 +130,10 @@ version and engine selects, the Thinking switch and the Settings button. Each co
 own `linkedSignal`, so a refused change puts the control back as it was.
 
 **`MessageList`** (`components/message-list/`) — the messages in a scrollable region. Stays at the
-bottom while the reader has not scrolled up, watching the DOM for growth (`cdkObserveContent`) so
-new messages, streamed text and an editor opening all keep their place; shows a button to jump to
-the latest.
+bottom while the reader has not scrolled up, watching the DOM (`cdkObserveContent`) so new
+messages, streamed text and an editor opening all keep their place. It moves only when the list's
+height changed: a change that leaves the height alone, like a button's ripple as it is pressed,
+never pulls the list from under the pointer. Shows a button to jump to the latest.
 
 **`MessageBubble`** (`components/message-bubble/`) — one message: the thinking section, the text,
 the status line for a reply in progress or failed, the footer with its marks and the menu. Holds

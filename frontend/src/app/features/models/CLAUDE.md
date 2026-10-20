@@ -1,27 +1,88 @@
-# feature: models (frontend)
+# features/models
 
-`ModelsPage` — pick the base model **live from the HuggingFace API** (no
-hardcoded list), download it locally, and track progress.
+The Models page: the library of models downloaded to this machine, and a search of
+HuggingFace to add more. Every signed-in user sees it; trainers and above add, stop, retry and
+remove.
 
-- Header + HF-token hint row → links to `/settings` (the token is what lets
-  gated models/datasets download).
-- Two searches: models (`api.searchModels`) and datasets (`api.searchDatasets`)
-  — the dataset corpus is for from-scratch training and is picked in the
-  projects wizard, so it is only browsed here.
-- Featured sections, straight from the hub: most-downloaded `text-generation`
-  (`api.featuredModels()`) + Arabic (`api.featuredModels('ar')`). When the hub
-  is unreachable the endpoint falls back to the local models — a
-  `source === 'local'` row in the featured list drives the amber offline note,
-  and the Arabic section filters those rows out.
-- Every hub row: `repo_id` (LTR), `gated` tag, `ModelFitBadge` (fit against the
-  detected hardware — `core/model-fit-badge`), params/license/downloads chips,
-  and one shared download cell (`#dl` `ng-template`, keyed `type:repo`).
-- Download: `api.downloadModel`/`api.downloadDataset` then poll
-  `api.downloadStatus`/`api.datasetDownloadStatus` every 1.5 s until
-  `done`/`error` (per-key `downloads` signal, `timers` map); on a model
-  `done` the local list refreshes (`api.localModels`) and a success toast fires.
-- Local section lists what is on disk with its GB size (`gb()` formats bytes).
+## Route and guard
 
-`DownloadState` (status/bytes_done/total_bytes/percent/error) is local to this
-file. `dlState()` resolves a row to its download state, treating anything in
-the local list as already `done`.
+`/models`. `modelsGuard` is `roleGuard('viewers')`; the backend enforces the real rule
+(`IsViewer` to read, `IsTrainer` to write). The page hides the write buttons from viewers and
+reviewers (`ModelsStore.canWrite`). The menu lists it before System.
+
+## Backend counterpart
+
+`backend/apps/models/` — `GET|POST /api/models/`, `GET|DELETE /api/models/<id>/`,
+`POST /api/models/<id>/cancel/` and `.../retry/`, `GET /api/models/hub/` (popular models, or a
+search with `search` and `task`), `GET /api/models/hub/inspect/?repo=`. `models.types.ts`
+mirrors the serializers, the page envelope included. A library model carries its `origin`
+(`hub` or `trained`, a model trained from nothing and named `local/<name>`); an inspection carries
+`disk_free_bytes` and `fits_disk`.
+
+## What the page shows
+
+- **Library**: one outlined card per model, newest first — repo id, parameters, the family in
+  words, a Thinking marker, and its state: waiting or downloading (a progress bar and
+  "done of total", with Cancel), ready (with its size), failed (the reason from `error_code`,
+  with Try again; a gated model links to the System page for a token) or stopped (Try again).
+  Remove asks first: a downloaded model "stays on HuggingFace and can be downloaded again", a model
+  trained here "is deleted for good" (`models.remove.bodyTrained`). An empty library says so, with
+  what a reader may do about it.
+- **Find a model**: a search field (Enter or the search button) and a Text generation / Text
+  to text toggle. An empty search lists the popular models, and the toggle is disabled until
+  there is text. Results are cards: downloads and likes, parameters, license, a lock when gated,
+  Thinking, how chat would fit, "In library", and Details.
+- **Details dialog**: the architecture in plain words, then whether the model fits this
+  machine for compressed chat, full-precision chat and QLoRA training, then Download.
+
+## Classes and methods
+
+**`ModelsApi`** (`data/models.api.ts`) — one method per endpoint. `hub()` sends no parameters
+for an empty search, which is how the backend lists popular models.
+
+**`ModelsStore`** (`state/models.store.ts`), provided by the route — the library page,
+`pageIndex`, `pageSize`, `loading`, `error`, `working` (ids of rows mid-request) and `adding`
+as signals; the HuggingFace search and the inspected model are `rxResource`s behind
+`hubResults`, `hubLoading`, `hubError`, `inspection`, `inspecting` and `inspectionError`.
+- `canWrite` and `downloading` are `computed`.
+- `load()` fetches a library page and reports a failure; `add()` queues a download, reloads
+  the first page and the search, and hands a refusal back to the dialog.
+- `cancel()`, `retry()` and `remove()` change one row and keep the failure in `error`.
+- `watchDownloads()` is a stream the page subscribes to: every two seconds while a row is
+  queued or downloading, it refreshes the library quietly, and it goes silent when none is.
+- `search()`, `searchAgain()`, `inspect()`, `inspectAgain()` and `stopInspecting()` drive the
+  two resources.
+
+**`ModelsPage`** (`pages/models/`) — the page above. Keeps the search text and the task as
+signals, subscribes to `watchDownloads()` until it is destroyed, opens the details dialog with
+its own injector, asks before removing and reports each change in a snack bar.
+
+**`ModelDetailsDialog`** (`dialogs/model-details/`) — loads the inspection through the store
+and forgets it on close. Download is disabled, with the reason beside it, when the reader cannot
+write, the repository has no weights, the model is already in the library (a failed or stopped
+one can be downloaded again), or the model does not fit on the disk (`fits_disk`; the reason
+gives the download size and the free space). Closes with `true` once the download is queued.
+With no GPU (`available_bytes` is 0) the note says so and the fit rows speak of memory instead of
+VRAM; a model bigger than the machine's RAM is `too_large` there and reads "more than this machine
+has". The
+context length is written as a label before the count: "token: 163,840".
+
+**`modelsGuard`** (`guards/`) — viewers and above.
+
+## Errors
+
+Removing a model a project is built on answers `409 model_in_use`; `errors.model_in_use` in this
+bundle says so in the reader's language and the page shows it in its alert. A download that does
+not fit answers `507 disk_full` and a gated model `400 hub_model_gated` (not 403, which the
+error interceptor reads as a lost session); both have `errors.*` texts here.
+
+## Decisions worth not re-litigating
+
+**Polling is a stream the page owns, not an effect in the store.** The page subscribes with
+`takeUntilDestroyed()`, so leaving the page cancels the timer and any request in flight.
+
+**A background refresh never shows an error.** A failed poll keeps the last list; the next
+tick tries again.
+
+**Counts follow `label: n`.** "Parameters: 8.2B", never "8.2B parameters", so the Arabic has
+no plural to get wrong; `{done} of {total}` is the other allowed form.

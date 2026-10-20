@@ -1,0 +1,138 @@
+<section class="others" aria-labelledby="engines-others">
+  <header class="others__header">
+    <div class="others__heading">
+      <h2 id="engines-others">{{ 'serving.others.title' | t }}</h2>
+      <p class="text-secondary">{{ 'serving.others.lead' | t }}</p>
+    </div>
+    @if (canManage() && !empty()) {
+      <button matButton="filled" type="button" (click)="connect()">
+        <mat-icon fontIcon="fa-plug" />
+        {{ 'serving.others.connect' | t }}
+      </button>
+    }
+  </header>
+
+  @if (empty()) {
+    <app-empty-state icon="fa-server" [heading]="'serving.others.emptyTitle' | t">
+      {{ (canManage() ? 'serving.others.emptyAdmin' : 'serving.others.emptyRead') | t }}
+      @if (canManage()) {
+        <button emptyActions matButton="filled" type="button" (click)="connect()">
+          <mat-icon fontIcon="fa-plug" />
+          {{ 'serving.others.connect' | t }}
+        </button>
+      }
+    </app-empty-state>
+  }
+
+  <ul class="others__grid">
+    @for (engine of engines(); track engine.id) {
+      <li>
+        <mat-card appearance="outlined" class="engine" [attr.aria-busy]="isWorking(engine)">
+          <div class="engine__top">
+            <h3 class="engine__name"><span dir="auto">{{ engine.name }}</span></h3>
+            <div class="engine__tags">
+              <app-status
+                [tone]="engine.state.running ? 'ok' : 'neutral'"
+                [icon]="engine.state.running ? 'fa-circle-check' : 'fa-circle-xmark'"
+              >
+                {{ (engine.state.running ? 'serving.state.running' : 'serving.state.stopped') | t }}
+              </app-status>
+              @if (engine.is_default) {
+                <app-status icon="fa-star">{{ 'serving.state.default' | t }}</app-status>
+              }
+              @if (!engine.enabled) {
+                <app-status icon="fa-power-off">{{ 'serving.state.off' | t }}</app-status>
+              }
+            </div>
+          </div>
+
+          <div class="engine__kind">
+            <p class="engine__kind-name">
+              @if (termOf(engine); as term) {
+                <app-term [key]="term" />
+              } @else {
+                <span dir="auto">{{ 'serving.kinds.' + engine.kind + '.name' | t }}</span>
+              }
+            </p>
+            <p class="text-secondary">
+              {{ 'serving.kinds.' + engine.kind + '.explain' | t }}
+              @if (engine.kind === 'ollama') {
+                <app-term key="gguf" />
+              }
+            </p>
+          </div>
+
+          <dl class="engine__facts">
+            <div>
+              <dt>{{ 'serving.address' | t }}</dt>
+              <dd><span dir="ltr">{{ engine.base_url }}</span></dd>
+            </div>
+            @if (engine.model_name) {
+              <div>
+                <dt>{{ 'serving.modelName' | t }}</dt>
+                <dd><span dir="ltr">{{ engine.model_name }}</span></dd>
+              </div>
+            }
+            @if (engine.state.versions.length > 0) {
+              <div>
+                <dt>{{ 'serving.versions' | t }}</dt>
+                <dd><app-loaded-versions [versions]="engine.state.versions" /></dd>
+              </div>
+            }
+          </dl>
+
+          @if (!engine.state.running) {
+            <p class="engine__hint text-secondary">{{ 'serving.unreachable' | t }}</p>
+          }
+
+          @if (canManage()) {
+            <div class="engine__actions">
+              <button
+                matButton
+                type="button"
+                [disabled]="isWorking(engine)"
+                [attr.aria-label]="'serving.others.editFor' | t: { name: engine.name }"
+                (click)="edit(engine)"
+              >
+                <mat-icon fontIcon="fa-pen" />
+                {{ 'serving.others.edit' | t }}
+              </button>
+              <button
+                matButton
+                type="button"
+                [disabled]="isWorking(engine)"
+                [attr.aria-label]="(engine.enabled ? 'serving.others.turnOffFor' : 'serving.others.turnOnFor') | t: { name: engine.name }"
+                (click)="toggle(engine)"
+              >
+                <mat-icon fontIcon="fa-power-off" />
+                {{ (engine.enabled ? 'serving.others.turnOff' : 'serving.others.turnOn') | t }}
+              </button>
+              @if (!engine.is_default) {
+                <button
+                  matButton
+                  type="button"
+                  [disabled]="isWorking(engine)"
+                  [attr.aria-label]="'serving.others.makeDefaultFor' | t: { name: engine.name }"
+                  (click)="makeDefault(engine)"
+                >
+                  <mat-icon fontIcon="fa-star" />
+                  {{ 'serving.others.makeDefault' | t }}
+                </button>
+              }
+              <button
+                matButton
+                type="button"
+                [disabled]="isWorking(engine)"
+                [attr.aria-label]="'serving.others.disconnectFor' | t: { name: engine.name }"
+                (click)="disconnect(engine)"
+              >
+                <mat-icon fontIcon="fa-link-slash" />
+                {{ 'serving.others.disconnect' | t }}
+              </button>
+            </div>
+          }
+        </mat-card>
+      </li>
+    }
+  </ul>
+</section>

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PreToolUse and PostToolUse on Bash: announce the machine's shared resources.
 
-Session awareness. Two sessions running the Docker gate at once load the machine and time
+Rule 28. Two sessions running the Docker gate at once load the machine and time
 each other out; a backgrounded pytest in one session holds the test database the
 other one needs. Neither session can see the other doing it.
 
@@ -11,9 +11,9 @@ announcement, never a lease: nothing waits, nothing is blocked, and a holder
 that dies simply stops being live. A lock here would be worse than the collision
 -- a session waiting forever on a lease held by a dead process.
 
-`compose:<project>` is the sharpest of the three. Every worktree's
-docker-compose.django.yml declares the same project name, so a second `docker compose up`
-from a different worktree does not start a second stack: it reuses and mutates the first one.
+`compose:<project>` is the sharpest of the three. Every worktree's compose.yaml
+declares the same project name, so a second `docker compose up` from a different
+worktree does not start a second stack: it reuses and mutates the first one.
 That is the real mechanism behind the deadlocked test database, and this makes
 it visible at the moment it is about to happen.
 """
@@ -48,7 +48,7 @@ def compose_project(cwd: str) -> str:
     """The project name a compose command in this directory would use."""
     root, _ = registry.git_facts(cwd)
     base = Path(root) if root else Path(cwd)
-    for name in ("compose.yaml", "compose.yml", "docker-compose.yml", "docker-compose.django.yml"):
+    for name in ("compose.yaml", "compose.yml", "docker-compose.yml"):
         try:
             for line in (base / name).read_text(encoding="utf-8").splitlines():
                 if line.startswith("name:"):

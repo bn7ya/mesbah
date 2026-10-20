@@ -1,0 +1,47 @@
+<mat-sidenav-container class="chat">
+  <mat-sidenav
+    class="chat__list"
+    [mode]="wide() ? 'side' : 'over'"
+    [opened]="wide() || listOpen()"
+    [attr.aria-label]="'chat.list.title' | t"
+    (closedStart)="listOpen.set(false)"
+  >
+    <app-conversation-list
+      [projectId]="projectId()"
+      [activeId]="conversationId() ?? null"
+      (chosen)="listOpen.set(false)"
+    />
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <div class="chat__main">
+      @if (conversationId() === undefined) {
+        <div class="chat__choose">
+          <mat-icon fontIcon="fa-comments" />
+          <p class="chat__choose-title">{{ 'chat.choose.title' | t }}</p>
+          <p class="text-secondary">{{ 'chat.choose.body' | t }}</p>
+          @if (!wide()) {
+            <button matButton="tonal" type="button" (click)="listOpen.set(true)">
+              <mat-icon fontIcon="fa-bars" />
+              {{ 'chat.list.show' | t }}
+            </button>
+          }
+        </div>
+      } @else if (error(); as failure) {
+        <div class="chat__choose">
+          <app-note kind="error">{{ failure.message }}</app-note>
+          <div class="chat__failure-actions">
+            @if (failure.code !== 'not_found') {
+              <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
+            }
+            <a matButton [routerLink]="['/projects', projectId(), 'chat']">{{ 'chat.choose.back' | t }}</a>
+          </div>
+        </div>
+      } @else {
+        <app-conversation-header [listButton]="!wide()" (showList)="listOpen.set(true)" />
+        <app-message-list />
+        <app-composer />
+      }
+    </div>
+  </mat-sidenav-content>
+</mat-sidenav-container>

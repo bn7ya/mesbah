@@ -1,0 +1,41 @@
+<section class="breakdown" aria-labelledby="breakdown-total">
+  <div class="breakdown__total">
+    <p class="breakdown__label" id="breakdown-total"><app-term key="parameters" /></p>
+    <p class="breakdown__value">{{ counts().total | compact }}</p>
+    <p class="breakdown__active">
+      @if (moe()) {
+        {{ 'architect.breakdown.active' | t: { active: (counts().active | compact), total: (counts().total | compact) } }}
+        <app-term key="moe" />
+      } @else {
+        {{ 'architect.breakdown.allActive' | t }}
+      }
+    </p>
+  </div>
+
+  <div class="breakdown__where">
+    <h4>{{ 'architect.breakdown.where' | t }}</h4>
+
+    <div class="breakdown__bar" role="img" [attr.aria-label]="summary()">
+      @for (row of rows(); track row.key) {
+        <span class="breakdown__slice" [class]="'breakdown__slice--' + row.tone" [style.inline-size.%]="row.ratio * 100"></span>
+      }
+    </div>
+
+    <ul class="breakdown__legend">
+      @for (row of rows(); track row.key) {
+        <li class="breakdown__item">
+          <span class="breakdown__swatch" [class]="'breakdown__swatch--' + row.tone" aria-hidden="true"></span>
+          <span><app-term [key]="row.termKey" /></span>
+          <span class="breakdown__count">{{ row.value | compact }}</span>
+          <span class="breakdown__share text-secondary">{{ percent(row.ratio) }}</span>
+        </li>
+      }
+    </ul>
+  </div>
+
+  @if (note() === 'embeddings_dominate') {
+    <app-note icon="fa-lightbulb">
+      {{ 'architect.breakdown.embeddings_dominate' | t: { share: vocabularyShare() } }}
+    </app-note>
+  }
+</section>

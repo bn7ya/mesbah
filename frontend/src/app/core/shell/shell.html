@@ -1,0 +1,73 @@
+<mat-sidenav-container class="shell">
+  <mat-sidenav
+    class="shell__nav"
+    [mode]="wide() ? 'side' : 'over'"
+    [opened]="opened()"
+    (closedStart)="closeMenu()"
+  >
+    <div class="shell__brand">
+      <span class="shell__name">{{ 'app.name' | t }}</span>
+    </div>
+
+    <mat-nav-list [attr.aria-label]="'nav.label' | t">
+      @for (item of items(); track item.path) {
+        <a
+          mat-list-item
+          [routerLink]="item.path"
+          routerLinkActive
+          #link="routerLinkActive"
+          [activated]="link.isActive"
+          [attr.aria-current]="link.isActive ? 'page' : null"
+          (click)="closeMenu()"
+        >
+          <mat-icon matListItemIcon [fontIcon]="item.icon" />
+          <span matListItemTitle>{{ item.labelKey | t }}</span>
+        </a>
+      }
+    </mat-nav-list>
+
+    @if (!wide()) {
+      <div class="shell__drawer-controls">
+        <app-ui-mode-switcher />
+        <app-locale-switcher />
+        <button matButton type="button" (click)="signOut()">
+          <mat-icon fontIcon="fa-right-from-bracket" class="mat-icon-rtl-mirror" />
+          {{ 'auth.signOut' | t }}
+        </button>
+      </div>
+    }
+  </mat-sidenav>
+
+  <mat-sidenav-content class="shell__body">
+    <mat-toolbar class="shell__bar">
+      @if (!wide()) {
+        <button matIconButton type="button" [attr.aria-label]="'nav.open' | t" (click)="openMenu()">
+          <mat-icon fontIcon="fa-bars" />
+        </button>
+        <span class="shell__name">{{ 'app.name' | t }}</span>
+      }
+
+      <span class="shell__spacer"></span>
+
+      <div class="shell__controls">
+        <app-ui-mode-switcher />
+        <app-locale-switcher />
+        <button matButton type="button" [matMenuTriggerFor]="account">
+          <mat-icon fontIcon="fa-circle-user" />
+          <span dir="auto">{{ displayName() }}</span>
+        </button>
+      </div>
+
+      <mat-menu #account="matMenu">
+        <button mat-menu-item type="button" (click)="signOut()">
+          <mat-icon fontIcon="fa-right-from-bracket" class="mat-icon-rtl-mirror" />
+          <span>{{ 'auth.signOut' | t }}</span>
+        </button>
+      </mat-menu>
+    </mat-toolbar>
+
+    <main class="shell__content" id="main" tabindex="-1">
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

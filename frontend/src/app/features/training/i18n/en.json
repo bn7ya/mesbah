@@ -1,0 +1,351 @@
+{
+  "training": {
+    "intro": "Each run learns from approved replies and datasets, and adds a new version. The version stores only what changed.",
+    "terms": "Terms:",
+    "learns": {
+      "title": "What training learns from",
+      "label": "Approved replies",
+      "loading": "Loading approved replies",
+      "what": "Approved replies count, edited ones included. A reply left out of training in Chat isn't counted.",
+      "none": "No reply is approved yet.",
+      "toChat": "Go to Chat",
+      "see": "Show examples"
+    },
+    "views": {
+      "label": "Show",
+      "runs": "Runs",
+      "examples": "Examples",
+      "runsTitle": "Runs",
+      "examplesTitle": "Examples",
+      "examplesNote": "Each example is a conversation as it goes into training. The highlighted reply is the one the model learns."
+    },
+    "form": {
+      "title": "Train a new version",
+      "intro": "Choose what the run learns from, then start it. Only one run trains at a time.",
+      "name": "Name of the new version",
+      "nameHint": "Optional. Without a name, the version shows only its number.",
+      "startsFrom": {
+        "label": "Start from",
+        "active": "Active",
+        "base": "The base model has no earlier training. The new version learns only from the examples.",
+        "enhance": "Building on {version} keeps what it learned and adds the new examples."
+      },
+      "useCorrections": "Learn from the approved replies",
+      "useCorrectionsHint": "Replies approved in Chat, edited ones included. Approved replies: {count}",
+      "activate": "Make it the active version when done",
+      "activateHint": "Chat then uses the new version. An older version can be made active again.",
+      "settings": "Settings",
+      "expertTitle": "Expert settings",
+      "expertChanged": "Some expert settings have been changed and apply to this run.",
+      "expertReset": "Reset expert settings",
+      "custom": "Custom value: {value}. Set in Expert mode.",
+      "loadingPlan": "Loading the settings for this machine",
+      "noModel": "This project has no model yet. A new version can be trained once its first run has finished.",
+      "start": "Start training",
+      "starting": "Starting…",
+      "started": "Training started.",
+      "blocked": {
+        "noReplies": "There is nothing to learn from yet. Approve a reply in Chat or choose a dataset.",
+        "toChat": "Go to Chat",
+        "noSource": "Turn on learning from the approved replies or choose a dataset.",
+        "settings": "Some settings need a different value."
+      },
+      "epochs": {
+        "label": "Passes over the examples",
+        "hint": "How many times the model goes through all the examples. More passes learn more, but the model can start to memorize them."
+      },
+      "rank": {
+        "label": "How much the model may change",
+        "hint": "A larger change can learn more. It needs more memory and disk space.",
+        "value": "Rank {rank}",
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large"
+      },
+      "rate": {
+        "label": "How strongly it learns",
+        "hint": "A strong rate learns fast and can overshoot. A gentle rate is slow and steady.",
+        "gentle": "Gentle",
+        "normal": "Normal",
+        "strong": "Strong"
+      },
+      "sources": "Learn from",
+      "datasets": {
+        "label": "Datasets from the library",
+        "hint": "Datasets that finished importing.",
+        "rows": "Rows: {rows}",
+        "thinking": "Includes thinking",
+        "chosen": "Chosen datasets",
+        "remove": "Remove {name}",
+        "limit": "Row limit",
+        "limitHint": "Leave empty to use all rows.",
+        "none": "No dataset is ready.",
+        "toDatasets": "Go to Datasets"
+      }
+    },
+    "expert": {
+      "intro": "Every setting a run takes. The defaults suit this machine and model.",
+      "default": "Default: {value}.",
+      "noLimit": "No limit",
+      "epochsHint": "Passes over all the examples. Maximum steps overrides it.",
+      "rateHint": "Size of each learning step.",
+      "rank": "LoRA rank",
+      "rankHint": "Size of the add-on. A larger rank can learn more.",
+      "maxSteps": "Maximum steps",
+      "maxStepsHint": "Stops after this many steps. Leave empty to run every pass in full.",
+      "maxSeqLen": "Longest example, in tokens",
+      "maxSeqLenHint": "Longer examples are skipped. Memory use grows with this.",
+      "batchSize": "Examples per step",
+      "batchSizeHint": "Examples processed together. A larger batch needs more memory.",
+      "gradAccum": "Gradient accumulation",
+      "gradAccumHint": "Batches collected before each update. The effective batch is the batch size times this.",
+      "loraAlpha": "LoRA alpha",
+      "loraAlphaHint": "Scales the effect of the add-on. Often twice the rank.",
+      "loraDropout": "LoRA dropout",
+      "loraDropoutHint": "Share of the add-on skipped at random while training. 0 turns it off.",
+      "rslora": "Rank-stabilized LoRA",
+      "rsloraHint": "Scales by the square root of the rank. Keeps large ranks stable.",
+      "biases": "Train biases",
+      "biasesHint": "Also changes the model's bias values. The version can then only be exported as a merged model.",
+      "quantize": "4-bit loading",
+      "quantizeHint": "Loads the base model compressed to 4 bits. Needs less memory. Quality drops slightly.",
+      "checkpointing": "Gradient checkpointing",
+      "checkpointingHint": "Recomputes some work to save memory. Training is slower."
+    },
+    "problem": {
+      "required": "Enter a number.",
+      "whole": "Enter a whole number.",
+      "range": "Enter a number from {min} to {max}.",
+      "limit": "Enter a whole number of 1 or more."
+    },
+    "fit": {
+      "verdict": {
+        "fits": "This machine has enough memory to train this model.",
+        "tight": "Memory is tight. Training may run out of memory, and the examples would then be shortened.",
+        "too_large": "This model is too large to train on this machine.",
+        "cpu_only": "No GPU found. It will train on the processor, slowly.",
+        "unknown": "Whether this machine can train this model isn't known."
+      },
+      "need": "Needs about {required}. Available: {available}.",
+      "needMemory": "Needs about {required} of memory."
+    },
+    "runs": {
+      "list": "Training runs",
+      "pages": "Pages of runs",
+      "loading": "Loading runs",
+      "progress": "Training progress",
+      "unnamed": "Unnamed run",
+      "pretrainName": "New model",
+      "from": "Started from",
+      "fromNothing": "A new model, trained from nothing",
+      "kind": "Kind",
+      "separator": ",",
+      "made": "New version",
+      "loss": "Latest loss",
+      "started": "Started",
+      "queued": "Queued",
+      "finished": "Finished",
+      "by": "Started by",
+      "open": "Open",
+      "empty": {
+        "title": "No runs yet.",
+        "write": "Start training with the form above. Progress shows here.",
+        "read": "A trainer or an administrator can start training."
+      },
+      "stop": {
+        "open": "Stop",
+        "title": "Stop this run?",
+        "body": "The run ends at its next step. Nothing it learned is saved.",
+        "confirm": "Stop run"
+      },
+      "remove": {
+        "open": "Remove",
+        "title": "Remove this run?",
+        "body": "The run is removed from the list. A version it made stays in the tree.",
+        "confirm": "Remove"
+      },
+      "stopped": "Stopping at the next step.",
+      "removed": "Run removed.",
+      "datasets": "Datasets"
+    },
+    "status": {
+      "completed": "Done",
+      "failed": "Failed",
+      "cancelled": "Stopped"
+    },
+    "stage": {
+      "queued": "Waiting for its turn. One run trains at a time.",
+      "data": "Preparing the examples",
+      "tokenizer": "Loading the model",
+      "model": "Loading the model",
+      "parent": "Starting from {version}",
+      "begin": "Getting ready to learn",
+      "training": "Learning: step {step} of {total}",
+      "saving": "Saving the change",
+      "stopping": "Stopping at the next step",
+      "oom_retry": "Ran out of GPU memory. Trying again with shorter examples.",
+      "pretrain": {
+        "tokenizer": "Loading the tokenizer",
+        "model": "Building the model",
+        "saving": "Saving the model"
+      }
+    },
+    "examples": {
+      "loading": "Loading examples",
+      "list": "Examples",
+      "pages": "Pages of examples",
+      "empty": {
+        "title": "No approved replies yet.",
+        "body": "Edit or approve a reply in Chat. It then appears here, and a run can learn from it.",
+        "toChat": "Go to Chat"
+      },
+      "from": "Conversation:",
+      "untitled": "Untitled conversation",
+      "marks": "Marks",
+      "corrected": "Edited",
+      "thinkingCorrected": "Thinking edited",
+      "asIs": "Approved as it is",
+      "conversation": "Conversation as it goes into training",
+      "role": {
+        "system": "Instructions",
+        "user": "Prompt",
+        "assistant": "Reply"
+      },
+      "thinking": "Thinking",
+      "learns": "Reply the model learns",
+      "approvedBy": "Approved by:",
+      "updated": "Updated:"
+    },
+    "run": {
+      "back": "Training",
+      "loading": "Loading the run",
+      "untitled": "Training run",
+      "elapsed": "Elapsed:",
+      "percent": "{percent} done",
+      "left": "About {time} left",
+      "estimating": "Estimating the time left",
+      "oom": "Ran out of GPU memory, so the examples were shortened and training started again. Longest example, in tokens: {length}.",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "result": {
+      "title": "Result",
+      "done": "Training is done and the version is saved.",
+      "pretrainDone": "Training is done and the new model is saved.",
+      "pretrainBody": "The model joined the library and is now this project's base model.",
+      "firstVersion": "First version",
+      "version": "New version",
+      "sizeLabel": "Size of the change",
+      "size": "{size}, which is {percent} of the full model",
+      "sliver": "{size}, under {percent} of the full model",
+      "loss": "Final loss",
+      "active": "Active version",
+      "activeYes": "It is now the active version.",
+      "activeNo": "Not made active.",
+      "toChat": "Go to Chat",
+      "toModels": "Go to Models",
+      "failed": "Training failed",
+      "detail": "Technical details",
+      "stopped": "Training was stopped.",
+      "stoppedBody": "Nothing was saved from this run."
+    },
+    "failure": {
+      "no_examples": "None of the approved replies could be used. They may be longer than the length limit, or hold no readable text.",
+      "out_of_memory": "The GPU ran out of memory, even with shorter examples. Choose a smaller rank, turn on 4-bit loading, or use a smaller model.",
+      "load_failed": "The model couldn't be loaded. Check that it finished downloading.",
+      "training_parts_missing": "The training parts aren't installed. Install them with this command:",
+      "training_parts_missingCommand": "pip install \"mesbah[train]\"",
+      "trainer_crashed": "Training stopped unexpectedly. Start the run again.",
+      "interrupted": "The run was interrupted when Mesbah restarted. Start it again.",
+      "bad_settings": "These settings can't be used together. Change them and start again.",
+      "failed": "Training failed.",
+      "pretrain": {
+        "no_examples": "None of the approved replies or datasets could be used. They may hold no text, or be longer than the length limit.",
+        "out_of_memory": "The GPU ran out of memory, even with shorter examples. Design a smaller model in the model designer and train it again.",
+        "load_failed": "The model or its tokenizer couldn't be built. Check the design and the tokenizer in the model designer.",
+        "trainer_crashed": "Training stopped unexpectedly. Train the model again from the model designer.",
+        "interrupted": "The run was interrupted when Mesbah restarted. Train the model again from the model designer.",
+        "bad_settings": "The design or its settings can't be used. Check them in the model designer and train again."
+      }
+    },
+    "loss": {
+      "title": "Learning progress",
+      "none": "No loss was recorded.",
+      "waiting": "The chart starts after the first step.",
+      "paceTitle": "Learning rate and gradient norm",
+      "live": {
+        "too_early": "Too early to tell. The loss needs a few more steps.",
+        "falling": "Learning steadily. The loss fell from {first} to {latest}.",
+        "levelled_off": "The loss has leveled off at {latest}. More steps won't add much.",
+        "rising": "The loss is rising, now {latest}. Try a gentler learning rate."
+      },
+      "done": {
+        "too_early": "Too few steps to tell how the loss moved. It ended at {latest}.",
+        "falling": "The loss fell steadily, from {first} to {latest}.",
+        "levelled_off": "The loss leveled off at {latest}. More steps wouldn't add much.",
+        "rising": "The loss rose by the end, to {latest}. Try a gentler learning rate."
+      }
+    },
+    "chart": {
+      "loss": "Loss",
+      "step": "Step",
+      "rate": "Learning rate",
+      "norm": "Gradient norm",
+      "paceSummary": "Learning rate and gradient norm by step"
+    },
+    "learned": {
+      "title": "Examples in this run",
+      "examples": "Examples",
+      "skipped": "Skipped",
+      "tokens": "Size of the examples",
+      "skippedWhy": "Skipped examples were too long for the length limit or couldn't be read.",
+      "waiting": "Shown once the examples are ready.",
+      "replies": "Approved replies",
+      "repliesUsed": "Used",
+      "repliesNot": "Not used",
+      "repliesFrom": "Approved replies from",
+      "projectGone": "A removed project",
+      "projectsCount": "Projects: {count}",
+      "datasets": "Datasets",
+      "rows": "Rows: {rows}",
+      "limit": "Row limit: {limit}",
+      "allRows": "All rows"
+    },
+    "settingsUsed": {
+      "title": "Settings used",
+      "optimizer": "Optimizer",
+      "warmup": "Warm-up share",
+      "device": "Trained on",
+      "processor": "The processor"
+    }
+  },
+  "errors": {
+    "nothing_to_learn": "There is nothing to learn from yet. Approve replies in Chat or choose a dataset.",
+    "base_model_not_ready": "The base model isn't ready yet. Wait for its download or training to finish.",
+    "wrong_parent": "That version belongs to another project.",
+    "run_still_going": "Stop the run before removing it.",
+    "dataset_not_ready": "The dataset hasn't finished importing. Wait for it to finish or choose another."
+  },
+  "glossary": {
+    "loss": {
+      "term": "loss",
+      "explain": "How far the model's answer is from the reply in the example. Lower is better. It falls as the model learns."
+    },
+    "epoch": {
+      "term": "epoch",
+      "explain": "One full pass over all the examples. With two epochs the model sees every example twice."
+    },
+    "learning_rate": {
+      "term": "learning rate",
+      "explain": "How big a step the model takes each time it learns. A high rate learns fast but can overshoot. A low rate is slow and steady."
+    },
+    "adamw_torch": {
+      "term": "AdamW",
+      "explain": "The usual way of adjusting a model while it trains. It keeps two extra numbers for every parameter, so it needs more memory than the model itself."
+    },
+    "adamw_8bit": {
+      "term": "8-bit Adam",
+      "explain": "AdamW with its extra numbers stored in 8 bits. It needs less memory."
+    }
+  }
+}

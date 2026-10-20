@@ -1,0 +1,52 @@
+<section class="memory" aria-labelledby="memory-title">
+  <div class="memory__heading">
+    <h4 id="memory-title">{{ 'architect.memory.title' | t }}</h4>
+    <p class="text-secondary">{{ 'architect.memory.intro' | t }}</p>
+  </div>
+
+  <div class="memory__options">
+    @for (option of options(); track option.key) {
+      <section class="memory__option" [attr.aria-labelledby]="'memory-' + option.key">
+        <p class="memory__name" [id]="'memory-' + option.key">
+          <span dir="ltr">{{ 'architect.memory.' + option.key | t }}</span>
+        </p>
+
+        <div class="memory__summary">
+          <p class="memory__total">{{ option.total | bytes }}</p>
+          <p class="memory__caption text-secondary">{{ 'architect.memory.needed' | t }}</p>
+          <app-fit-verdict [verdict]="option.fit.verdict">
+            {{ 'architect.memory.verdict.' + option.fit.verdict | t }}
+          </app-fit-verdict>
+        </div>
+
+        <dl class="memory__parts">
+          <div>
+            <dt><app-term key="optimizer" /></dt>
+            <dd>{{ option.optimizer | bytes }}</dd>
+          </div>
+          <div>
+            <dt><app-term key="activations" /></dt>
+            <dd>{{ option.activations | bytes }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'architect.memory.runtime' | t }}</dt>
+            <dd>{{ option.runtime | bytes }}</dd>
+          </div>
+        </dl>
+      </section>
+    }
+  </div>
+
+  @if (noGpu()) {
+    <app-note icon="fa-microchip">{{ 'architect.memory.noGpu' | t }}</app-note>
+  } @else {
+    <p class="memory__available">
+      <app-term key="vram" />
+      <span>{{ 'architect.memory.available' | t: { size: (memory().fit.available_bytes | bytes) } }}</span>
+    </p>
+  }
+
+  <p class="memory__weights text-secondary">
+    {{ 'architect.memory.weights' | t: { size: (memory().weights_bytes | bytes) } }}
+  </p>
+</section>

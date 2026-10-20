@@ -1,0 +1,108 @@
+@let current = engine();
+@let loaded = state();
+
+<section class="builtin" aria-labelledby="engines-builtin">
+  <div class="builtin__heading">
+    <h2 id="engines-builtin">{{ 'serving.builtin.title' | t }}</h2>
+    <p class="text-secondary">{{ 'serving.builtin.lead' | t }}</p>
+  </div>
+
+  <mat-card appearance="outlined" class="builtin__card" [attr.aria-busy]="working()">
+    <div class="builtin__status">
+      <app-status
+        prominent
+        [tone]="loaded.running ? 'ok' : 'neutral'"
+        [icon]="loaded.running ? 'fa-circle-check' : 'fa-circle-xmark'"
+      >
+        {{ (loaded.running ? 'serving.state.running' : 'serving.state.stopped') | t }}
+      </app-status>
+      @if (loaded.running && loaded.busy) {
+        <app-status icon="fa-hourglass-half">{{ 'serving.state.busy' | t }}</app-status>
+      }
+      @if (current.is_default) {
+        <app-status icon="fa-star">{{ 'serving.state.default' | t }}</app-status>
+      }
+      @if (!current.enabled) {
+        <app-status icon="fa-power-off">{{ 'serving.state.off' | t }}</app-status>
+      }
+    </div>
+
+    @if (!loaded.running) {
+      <div class="builtin__stopped">
+        <h3>{{ 'serving.builtin.stopped.title' | t }}</h3>
+        <p class="text-secondary">{{ 'serving.builtin.stopped.body' | t }}</p>
+        <div class="builtin__steps">
+          @for (step of commands; track step.id) {
+            <div class="builtin__step">
+              <app-code-block [label]="step.labelKey | t" [code]="step.command">
+                <app-copy-button [text]="step.command" [what]="step.labelKey | t" />
+              </app-code-block>
+              <p class="text-secondary">{{ step.bodyKey | t }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    } @else if (!loaded.loaded) {
+      <p class="text-secondary">{{ 'serving.builtin.idle' | t }}</p>
+    } @else {
+      <dl class="builtin__facts">
+        @if (loaded.base_model; as base) {
+          <div>
+            <dt>{{ 'serving.builtin.baseModel' | t }}</dt>
+            <dd><span dir="ltr">{{ base.repo_id }}</span></dd>
+          </div>
+        }
+        @if (loaded.versions.length > 0) {
+          <div>
+            <dt>{{ 'serving.versions' | t }}</dt>
+            <dd><app-loaded-versions [versions]="loaded.versions" /></dd>
+          </div>
+        }
+        @if (device().kind !== 'none') {
+          <div>
+            <dt>{{ 'serving.builtin.device' | t }}</dt>
+            <dd>
+              @switch (device().kind) {
+                @case ('cpu') {
+                  {{ 'serving.builtin.deviceCpu' | t }}
+                }
+                @case ('gpu') {
+                  <app-term key="gpu" />
+                  @if (device().index !== null) {
+                    <span dir="ltr">{{ device().index }}</span>
+                  }
+                }
+                @default {
+                  <span dir="ltr">{{ device().raw }}</span>
+                }
+              }
+            </dd>
+          </div>
+        }
+        @if (loaded.quantized) {
+          <div>
+            <dt><app-term key="quantization" /></dt>
+            <dd>{{ 'serving.builtin.compressed' | t }}</dd>
+          </div>
+        }
+      </dl>
+    }
+
+    @if (canFree() || canMakeDefault()) {
+      <div class="builtin__actions">
+        @if (canFree()) {
+          <button matButton type="button" [disabled]="working()" (click)="free()">
+            <mat-icon fontIcon="fa-broom" />
+            {{ 'serving.builtin.free.open' | t }}
+          </button>
+        }
+        @if (canMakeDefault()) {
+          <button matButton type="button" [disabled]="working()" (click)="makeDefault()">
+            <mat-icon fontIcon="fa-star" />
+            {{ 'serving.builtin.makeDefault' | t }}
+          </button>
+        }
+      </div>
+    }
+  </mat-card>
+</section>

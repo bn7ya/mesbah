@@ -1,0 +1,93 @@
+@use "layout" as *;
+
+:host {
+  display: block;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+  padding: var(--app-space-5);
+
+  p {
+    margin: 0;
+  }
+}
+
+.row__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-3);
+  align-items: center;
+}
+
+.row__menu {
+  margin-inline-end: calc(-1 * var(--app-space-2));
+}
+
+.row__name {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.row__kind {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-3);
+  align-items: center;
+  font: var(--mat-sys-body-medium);
+}
+
+.row__notes {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.row__size {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+}
+
+.row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-4);
+  font: var(--mat-sys-body-medium);
+}
+
+.row__expert {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--app-space-3) var(--app-space-5);
+  padding-block-start: var(--app-space-3);
+  margin: 0;
+  border-block-start: var(--app-hairline) solid var(--mat-sys-outline-variant);
+
+  @include from($screen-sm) {
+    grid-template-columns: repeat(auto-fit, minmax(#{$column-min * 0.7}, 1fr));
+  }
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-1);
+  }
+
+  dt {
+    display: flex;
+    align-items: center;
+    min-block-size: calc(var(--app-icon-box) + var(--app-space-2));
+    font: var(--mat-sys-label-large);
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    margin: 0;
+    font: var(--mat-sys-body-large);
+    font-variant-numeric: tabular-nums;
+  }
+}

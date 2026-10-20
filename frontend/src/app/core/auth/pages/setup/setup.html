@@ -1,0 +1,89 @@
+<main class="setup" id="main" tabindex="-1">
+  <mat-card class="setup__card">
+    <header class="setup__header">
+      <h1>{{ 'auth.setup.title' | t }}</h1>
+      <p class="text-secondary">{{ 'auth.setup.subtitle' | t }}</p>
+    </header>
+
+    @if (error(); as failure) {
+      <app-note kind="error">{{ failure.message }}</app-note>
+    }
+
+    <form class="setup__form" novalidate (ngSubmit)="submit()">
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>{{ 'auth.setup.code' | t }}</mat-label>
+        <input
+          matInput
+          name="code"
+          autocomplete="one-time-code"
+          dir="ltr"
+          [errorStateMatcher]="codeErrors"
+          [ngModel]="code()"
+          (ngModelChange)="code.set($event)"
+        />
+        <mat-hint>{{ 'auth.setup.codeHint' | t }}</mat-hint>
+        <mat-error>{{ 'auth.setup.codeRequired' | t }}</mat-error>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ 'auth.setup.name' | t }}</mat-label>
+        <input matInput name="name" autocomplete="given-name" dir="auto" [ngModel]="name()" (ngModelChange)="name.set($event)" />
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ 'auth.signIn.username' | t }}</mat-label>
+        <input
+          matInput
+          name="username"
+          autocomplete="username"
+          dir="ltr"
+          [errorStateMatcher]="usernameErrors"
+          [ngModel]="username()"
+          (ngModelChange)="username.set($event)"
+        />
+        <mat-error>{{ 'auth.errors.usernameRequired' | t }}</mat-error>
+      </mat-form-field>
+
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>{{ 'auth.signIn.password' | t }}</mat-label>
+        <input
+          matInput
+          name="password"
+          autocomplete="new-password"
+          [type]="revealed() ? 'text' : 'password'"
+          [errorStateMatcher]="passwordErrors"
+          [ngModel]="password()"
+          (ngModelChange)="password.set($event)"
+        />
+        <button
+          matIconButton
+          matSuffix
+          type="button"
+          [attr.aria-label]="revealLabel()"
+          [attr.aria-pressed]="revealed()"
+          (click)="toggleReveal()"
+        >
+          <mat-icon [fontIcon]="revealed() ? 'fa-eye-slash' : 'fa-eye'" />
+        </button>
+        <mat-hint>{{ 'auth.setup.passwordHint' | t }}</mat-hint>
+        <mat-error>{{ 'auth.errors.passwordRequired' | t }}</mat-error>
+      </mat-form-field>
+
+      <button
+        matButton="filled"
+        type="submit"
+        class="setup__submit"
+        [attr.aria-busy]="busy()"
+        [disabled]="busy()"
+      >
+        {{ (busy() ? 'auth.setup.working' : 'auth.setup.submit') | t }}
+      </button>
+    </form>
+
+    <mat-divider />
+
+    <footer>
+      <app-locale-switcher />
+    </footer>
+  </mat-card>
+</main>

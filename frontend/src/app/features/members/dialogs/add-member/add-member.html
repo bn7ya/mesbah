@@ -1,0 +1,91 @@
+<h2 mat-dialog-title>{{ 'members.add.title' | t }}</h2>
+
+<form novalidate (ngSubmit)="submit()">
+  <mat-dialog-content class="add-member">
+    @if (failure(); as error) {
+      <app-note kind="error">{{ error.message }}</app-note>
+    }
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'members.add.username' | t }}</mat-label>
+      <input
+        matInput
+        name="username"
+        autocomplete="off"
+        dir="ltr"
+        [errorStateMatcher]="usernameErrors"
+        [ngModel]="username()"
+        (ngModelChange)="username.set($event)"
+      />
+      <mat-error>{{ (usernameMissing() ? 'members.add.usernameRequired' : 'members.add.usernameFormat') | t }}</mat-error>
+    </mat-form-field>
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'members.add.password' | t }}</mat-label>
+      <input
+        matInput
+        name="password"
+        autocomplete="new-password"
+        [type]="revealed() ? 'text' : 'password'"
+        [errorStateMatcher]="passwordErrors"
+        [ngModel]="password()"
+        (ngModelChange)="password.set($event)"
+      />
+      <button
+        matIconButton
+        matSuffix
+        type="button"
+        [attr.aria-label]="revealLabel()"
+        [attr.aria-pressed]="revealed()"
+        (click)="toggleReveal()"
+      >
+        <mat-icon [fontIcon]="revealed() ? 'fa-eye-slash' : 'fa-eye'" />
+      </button>
+      <mat-hint>{{ 'members.add.passwordHint' | t }}</mat-hint>
+      <mat-error>{{ 'members.add.passwordRequired' | t }}</mat-error>
+    </mat-form-field>
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'members.role' | t }}</mat-label>
+      <mat-select name="role" [value]="role()" (valueChange)="role.set($event)">
+        @for (option of roles; track option) {
+          <mat-option [value]="option">{{ 'members.roles.' + option + '.name' | t }}</mat-option>
+        }
+      </mat-select>
+      <mat-hint>{{ 'members.roles.' + role() + '.can' | t }}</mat-hint>
+    </mat-form-field>
+
+    <div class="add-member__names">
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>{{ 'members.add.firstName' | t }}</mat-label>
+        <input matInput name="firstName" dir="auto" [ngModel]="firstName()" (ngModelChange)="firstName.set($event)" />
+      </mat-form-field>
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>{{ 'members.add.lastName' | t }}</mat-label>
+        <input matInput name="lastName" dir="auto" [ngModel]="lastName()" (ngModelChange)="lastName.set($event)" />
+      </mat-form-field>
+    </div>
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'members.add.email' | t }}</mat-label>
+      <input
+        matInput
+        name="email"
+        type="email"
+        dir="ltr"
+        autocomplete="off"
+        [errorStateMatcher]="emailErrors"
+        [ngModel]="email()"
+        (ngModelChange)="email.set($event)"
+      />
+      <mat-error>{{ 'members.add.emailInvalid' | t }}</mat-error>
+    </mat-form-field>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button matButton type="button" [mat-dialog-close]="false">{{ 'actions.cancel' | t }}</button>
+    <button matButton="filled" type="submit" [disabled]="busy()" [attr.aria-busy]="busy()">
+      {{ (busy() ? 'members.add.working' : 'members.add.submit') | t }}
+    </button>
+  </mat-dialog-actions>
+</form>

@@ -1,0 +1,76 @@
+@use "layout" as *;
+
+:host {
+  display: block;
+}
+
+.conversation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+
+  p {
+    margin: 0;
+  }
+}
+
+.conversation__number {
+  font: var(--mat-sys-label-medium);
+}
+
+.conversation__turn,
+.conversation__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+  max-inline-size: 100%;
+  padding: var(--app-space-3) var(--app-space-4);
+  border-radius: var(--mat-sys-corner-large);
+
+  @include from($screen-md) {
+    max-inline-size: 85%;
+  }
+}
+
+.conversation__text {
+  max-inline-size: 100%;
+  background: var(--mat-sys-surface-container);
+}
+
+.conversation__turn--system {
+  max-inline-size: 100%;
+  background: var(--mat-sys-surface-container-highest);
+}
+
+.conversation__turn--user {
+  align-self: flex-end;
+  color: var(--mat-sys-on-secondary-container);
+  background: var(--mat-sys-secondary-container);
+  border-end-end-radius: var(--mat-sys-corner-extra-small);
+}
+
+.conversation__turn--assistant {
+  align-self: flex-start;
+  background: var(--mat-sys-surface-container-high);
+  border-end-start-radius: var(--mat-sys-corner-extra-small);
+}
+
+.conversation__role {
+  display: flex;
+  gap: var(--app-space-2);
+  align-items: center;
+  font: var(--mat-sys-label-large);
+}
+
+.conversation__content {
+  font: var(--mat-sys-body-medium);
+  text-align: start;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.conversation__thinking mat-panel-title {
+  display: flex;
+  gap: var(--app-space-2);
+  align-items: center;
+}

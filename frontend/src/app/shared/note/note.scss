@@ -1,0 +1,24 @@
+:host {
+  display: block;
+}
+
+.note {
+  display: flex;
+  gap: var(--app-space-3);
+  align-items: flex-start;
+  padding: var(--app-space-3);
+  color: var(--mat-sys-on-secondary-container);
+  background: var(--mat-sys-secondary-container);
+  border-radius: var(--mat-sys-corner-small);
+}
+
+.note--error {
+  color: var(--mat-sys-on-error-container);
+  background: var(--mat-sys-error-container);
+}
+
+.note__text {
+  flex: 1;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}

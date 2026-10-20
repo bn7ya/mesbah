@@ -1,31 +1,21 @@
-"""The only place this app touches the ORM.
-
-`User` comes from `django.contrib.auth`, so it does not inherit `BaseModel`
-and has no `deleted_at` — deactivation is what "deleting" a user means here.
-"""
 from __future__ import annotations
+
+from typing import Any
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission, User
 
-UserModel = get_user_model()
+UserModel: type[User] = get_user_model()
 
 
 class UserRepository:
-    """Reads and writes for users, groups and permissions."""
-
-    def exists(self) -> bool:
-        """True once any account exists — the seed command's idempotency check."""
-        return UserModel.objects.exists()
-
     def find_by_username(self, username: str) -> User | None:
         return UserModel.objects.filter(username__iexact=username).first()
 
     def find_by_email(self, email: str) -> User | None:
         return UserModel.objects.filter(email__iexact=email).first()
 
-    def with_groups(self, user_id) -> User | None:
-        """One user with groups and permissions prefetched."""
+    def with_groups(self, user_id: int) -> User | None:
         return (
             UserModel.objects.filter(pk=user_id)
             .prefetch_related("groups", "groups__permissions", "user_permissions")
@@ -36,7 +26,6 @@ class UserRepository:
         return sorted(user.groups.values_list("name", flat=True))
 
     def permission_codenames(self, user: User) -> list[str]:
-        """Every permission the user has, `app_label.codename`, sorted."""
         return sorted(user.get_all_permissions())
 
     def in_group(self, user: User, name: str) -> bool:
@@ -46,13 +35,14 @@ class UserRepository:
         group, _ = Group.objects.get_or_create(name=name)
         return group
 
-    def create(self, *, username: str, password: str, **fields) -> User:
-        """Create a user with a hashed password (never stored in plain text)."""
-        return UserModel.objects.create_user(username=username, password=password, **fields)
+    def any_exists(self) -> bool:
+        return UserModel.objects.exists()
 
-    def create_superuser(self, *, username: str, password: str, **fields) -> User:
-        """Create an account with the superuser flags (the local operator)."""
+    def create_owner(self, *, username: str, password: str, **fields: Any) -> User:
         return UserModel.objects.create_superuser(username=username, password=password, **fields)
+
+    def create(self, *, username: str, password: str, **fields: Any) -> User:
+        return UserModel.objects.create_user(username=username, password=password, **fields)
 
     def add_to_group(self, user: User, name: str) -> User:
         user.groups.add(self.ensure_group(name))

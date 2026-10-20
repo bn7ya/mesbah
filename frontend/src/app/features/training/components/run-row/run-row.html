@@ -1,0 +1,112 @@
+@let item = run();
+
+<mat-card appearance="outlined" class="row" [attr.aria-busy]="busy()">
+  <div class="row__head">
+    <h3 class="row__name"><span dir="auto">{{ title() }}</span></h3>
+    <app-run-status [run]="item" [stopping]="stopRequested()" />
+  </div>
+
+  @if (showBar()) {
+    <mat-progress-bar
+      [mode]="indeterminate() ? 'indeterminate' : 'determinate'"
+      [value]="barValue()"
+      [attr.aria-label]="'training.runs.progress' | t"
+    />
+  }
+
+  <dl class="row__facts">
+    @if (pretrain()) {
+      <div>
+        <dt>{{ 'training.runs.kind' | t }}</dt>
+        <dd>{{ 'training.runs.fromNothing' | t }}</dd>
+      </div>
+      @if (item.corrections_from.length > 0) {
+        <div>
+          <dt>{{ 'training.learned.repliesFrom' | t }}</dt>
+          <dd>
+            @if (sources(); as list) {
+              @for (source of list; track source.id; let last = $last) {
+                @if (source.name !== null) {
+                  <span dir="auto">{{ source.name }}</span>
+                } @else {
+                  <span>{{ 'training.learned.projectGone' | t }}</span>
+                }@if (!last) {<span>{{ 'training.runs.separator' | t }} </span>}
+              }
+            } @else {
+              {{ 'training.learned.projectsCount' | t: { count: sourceCount() } }}
+            }
+          </dd>
+        </div>
+      }
+    } @else if (item.starts_from; as parent) {
+      <div>
+        <dt>{{ 'training.runs.from' | t }}</dt>
+        <dd><app-version-ref [version]="parent" /></dd>
+      </div>
+    }
+    @if (item.version; as made) {
+      <div>
+        <dt>{{ 'training.runs.made' | t }}</dt>
+        <dd>
+          <a [routerLink]="['/projects', projectId(), 'versions']"><app-version-ref [version]="made" /></a>
+        </dd>
+      </div>
+    }
+    @if (item.datasets.length > 0) {
+      <div>
+        <dt>{{ 'training.runs.datasets' | t }}</dt>
+        <dd>
+          @for (dataset of item.datasets; track dataset.id; let last = $last) {
+            <span dir="auto">{{ dataset.name }}</span>@if (!last) {<span>{{ 'training.runs.separator' | t }} </span>}
+          }
+        </dd>
+      </div>
+    }
+    @if (loss(); as latest) {
+      <div>
+        <dt>{{ 'training.runs.loss' | t }}</dt>
+        <dd>{{ latest }}</dd>
+      </div>
+    }
+    <div>
+      @if (item.started_at; as started) {
+        <dt>{{ 'training.runs.started' | t }}</dt>
+        <dd>{{ started | datetime }}</dd>
+      } @else {
+        <dt>{{ 'training.runs.queued' | t }}</dt>
+        <dd>{{ item.created_at | datetime }}</dd>
+      }
+    </div>
+    @if (item.finished_at; as ended) {
+      <div>
+        <dt>{{ 'training.runs.finished' | t }}</dt>
+        <dd>{{ ended | datetime }}</dd>
+      </div>
+    }
+    @if (item.created_by) {
+      <div>
+        <dt>{{ 'training.runs.by' | t }}</dt>
+        <dd dir="ltr">{{ item.created_by }}</dd>
+      </div>
+    }
+  </dl>
+
+  <div class="row__actions">
+    <a matButton="outlined" [routerLink]="['/projects', projectId(), 'training', item.id]">
+      <mat-icon fontIcon="fa-chart-line" />
+      {{ 'training.runs.open' | t }}
+    </a>
+    @if (canStop()) {
+      <button matButton type="button" [disabled]="busy()" (click)="stop()">
+        <mat-icon fontIcon="fa-stop" />
+        {{ 'training.runs.stop.open' | t }}
+      </button>
+    }
+    @if (canRemove()) {
+      <button matButton type="button" [disabled]="busy()" (click)="remove()">
+        <mat-icon fontIcon="fa-trash" />
+        {{ 'training.runs.remove.open' | t }}
+      </button>
+    }
+  </div>
+</mat-card>

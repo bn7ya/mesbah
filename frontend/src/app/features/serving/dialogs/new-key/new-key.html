@@ -1,0 +1,61 @@
+@if (created(); as made) {
+  <h2 mat-dialog-title>{{ 'serving.newKey.createdTitle' | t }}</h2>
+
+  <mat-dialog-content class="new-key">
+    <app-note live icon="fa-triangle-exclamation">{{ 'serving.newKey.warning' | t }}</app-note>
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'serving.newKey.keyLabel' | t }}</mat-label>
+      <input
+        #keyField
+        matInput
+        readonly
+        dir="ltr"
+        autocomplete="off"
+        [value]="made.key"
+        (focus)="selectAll($event)"
+      />
+    </mat-form-field>
+
+    <div>
+      <app-copy-button [text]="made.key" [what]="'serving.newKey.keyLabel' | t" />
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button matButton="filled" type="button" [mat-dialog-close]="true">{{ 'serving.newKey.done' | t }}</button>
+  </mat-dialog-actions>
+} @else {
+  <h2 mat-dialog-title>{{ 'serving.newKey.title' | t }}</h2>
+
+  <form novalidate (ngSubmit)="submit()">
+    <mat-dialog-content class="new-key">
+      @if (failure(); as error) {
+        <app-note kind="error">{{ error.message }}</app-note>
+      }
+
+      <mat-form-field>
+        <mat-label>{{ 'serving.newKey.name' | t }}</mat-label>
+        <input
+          matInput
+          name="name"
+          dir="auto"
+          autocomplete="off"
+          [maxlength]="nameMax"
+          [errorStateMatcher]="nameErrors"
+          [ngModel]="name()"
+          (ngModelChange)="name.set($event)"
+        />
+        <mat-hint>{{ 'serving.newKey.nameHint' | t }}</mat-hint>
+        <mat-error>{{ 'serving.newKey.nameRequired' | t }}</mat-error>
+      </mat-form-field>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end">
+      <button matButton type="button" [mat-dialog-close]="false">{{ 'actions.cancel' | t }}</button>
+      <button matButton="filled" type="submit" [disabled]="busy()" [attr.aria-busy]="busy()">
+        {{ (busy() ? 'serving.newKey.working' : 'serving.newKey.submit') | t }}
+      </button>
+    </mat-dialog-actions>
+  </form>
+}

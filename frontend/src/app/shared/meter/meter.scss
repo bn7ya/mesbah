@@ -1,0 +1,79 @@
+.meter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+  margin: 0;
+}
+
+.meter__caption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+  justify-content: space-between;
+  font: var(--mat-sys-label-large);
+}
+
+.meter__bar {
+  display: flex;
+  block-size: var(--app-space-3);
+  overflow: hidden;
+  background: var(--mat-sys-surface-container-highest);
+  border-radius: var(--mat-sys-corner-full);
+}
+
+.meter__slice {
+  display: block;
+  block-size: 100%;
+}
+
+.meter__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2) var(--app-space-5);
+  padding: 0;
+  margin: 0;
+  font: var(--mat-sys-body-medium);
+  list-style: none;
+}
+
+.meter__item {
+  display: flex;
+  gap: var(--app-space-2);
+  align-items: center;
+}
+
+.meter__value {
+  font-variant-numeric: tabular-nums;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.meter__swatch {
+  inline-size: var(--app-space-3);
+  block-size: var(--app-space-3);
+  border-radius: var(--mat-sys-corner-full);
+}
+
+.meter__slice--primary,
+.meter__swatch--primary {
+  background: var(--mat-sys-primary);
+}
+
+.meter__slice--tertiary,
+.meter__swatch--tertiary {
+  background: var(--mat-sys-tertiary);
+}
+
+.meter__slice--secondary,
+.meter__swatch--secondary {
+  background: var(--mat-sys-secondary);
+}
+
+.meter__slice--error,
+.meter__swatch--error {
+  background: var(--mat-sys-error);
+}
+
+.meter__swatch--free {
+  background: var(--mat-sys-surface-container-highest);
+  border: var(--app-focus-width) solid var(--mat-sys-outline-variant);
+}

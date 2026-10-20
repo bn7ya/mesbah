@@ -1,0 +1,27 @@
+<figure class="meter">
+  <figcaption class="meter__caption">
+    <span>{{ label() }}</span>
+    <span class="text-secondary">{{ 'meter.ofTotal' | t: { total: (totalBytes() | bytes) } }}</span>
+  </figcaption>
+
+  <div class="meter__bar" role="img" [attr.aria-label]="summary()">
+    @for (slice of slices(); track slice.label) {
+      <span class="meter__slice" [class]="'meter__slice--' + slice.tone" [style.inline-size.%]="slice.share"></span>
+    }
+  </div>
+
+  <ul class="meter__legend">
+    @for (slice of slices(); track slice.label) {
+      <li class="meter__item">
+        <span class="meter__swatch" [class]="'meter__swatch--' + slice.tone" aria-hidden="true"></span>
+        <span>{{ slice.label }}</span>
+        <span class="meter__value">{{ slice.bytes | bytes }}</span>
+      </li>
+    }
+    <li class="meter__item">
+      <span class="meter__swatch meter__swatch--free" aria-hidden="true"></span>
+      <span>{{ 'meter.free' | t }}</span>
+      <span class="meter__value">{{ freeBytes() | bytes }}</span>
+    </li>
+  </ul>
+</figure>

@@ -1,0 +1,39 @@
+@if (error(); as failure) {
+  <app-note kind="error">{{ failure.message }}</app-note>
+  <div>
+    <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
+  </div>
+}
+
+@if (actionError(); as failure) {
+  <app-note kind="error">{{ failure.message }}</app-note>
+}
+
+@if (loading() && page().results.length === 0) {
+  <mat-progress-bar mode="indeterminate" [attr.aria-label]="'training.runs.loading' | t" />
+}
+
+@if (empty()) {
+  <app-empty-state icon="fa-graduation-cap" [heading]="'training.runs.empty.title' | t">
+    {{ (canWrite() ? 'training.runs.empty.write' : 'training.runs.empty.read') | t }}
+  </app-empty-state>
+}
+
+<ul class="runs__list" [attr.aria-label]="'training.runs.list' | t" [attr.aria-busy]="loading()">
+  @for (run of page().results; track run.id) {
+    <li>
+      <app-run-row [run]="run" />
+    </li>
+  }
+</ul>
+
+@if (paged()) {
+  <mat-paginator
+    [length]="page().count"
+    [pageIndex]="pageIndex()"
+    [pageSize]="pageSize()"
+    [pageSizeOptions]="sizes"
+    [attr.aria-label]="'training.runs.pages' | t"
+    (page)="turnPage($event)"
+  />
+}

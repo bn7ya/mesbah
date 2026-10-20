@@ -1,0 +1,63 @@
+<form
+  class="editor"
+  novalidate
+  [attr.aria-busy]="busy()"
+  (ngSubmit)="save()"
+  (keydown.escape)="cancel()"
+  (keydown.control.enter)="save()"
+  (keydown.meta.enter)="save()"
+>
+  <mat-form-field class="editor__field" subscriptSizing="dynamic">
+    <mat-label>{{ labelKey() | t }}</mat-label>
+    <textarea
+      matInput
+      #field
+      name="text"
+      dir="auto"
+      cdkTextareaAutosize
+      cdkAutosizeMinRows="2"
+      cdkAutosizeMaxRows="16"
+      [maxlength]="max"
+      [errorStateMatcher]="errors"
+      [ngModel]="draft()"
+      (ngModelChange)="draft.set($event)"
+    ></textarea>
+    @if (hintKey(); as hint) {
+      <mat-hint>{{ hint | t }}</mat-hint>
+    }
+    <mat-error>{{ 'chat.edit.blank' | t }}</mat-error>
+  </mat-form-field>
+
+  @if (original() !== null) {
+    <div>
+      <button
+        matButton
+        type="button"
+        [attr.aria-expanded]="showOriginal()"
+        [attr.aria-controls]="originalId"
+        (click)="showOriginal.set(!showOriginal())"
+      >
+        {{ (showOriginal() ? 'chat.edit.hideOriginal' : 'chat.edit.showOriginal') | t }}
+      </button>
+    </div>
+    @if (showOriginal()) {
+      <div class="editor__original" [id]="originalId">
+        <p class="editor__original-label text-secondary">{{ 'chat.edit.original' | t }}</p>
+        @if (original()) {
+          <p class="editor__original-text" dir="auto">{{ original() }}</p>
+        } @else {
+          <p class="text-secondary">{{ 'chat.edit.originalEmpty' | t }}</p>
+        }
+      </div>
+    }
+  }
+
+  <div class="editor__actions">
+    <button matButton="filled" type="submit" [disabled]="busy()">
+      {{ (busy() ? 'chat.edit.saving' : 'actions.save') | t }}
+    </button>
+    <button matButton type="button" [disabled]="busy()" (click)="cancel()">
+      {{ 'actions.cancel' | t }}
+    </button>
+  </div>
+</form>

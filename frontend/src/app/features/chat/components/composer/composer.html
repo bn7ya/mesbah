@@ -1,0 +1,50 @@
+@if (canWrite()) {
+  <form class="composer" novalidate (ngSubmit)="send()">
+    @if (failure(); as problem) {
+      <app-note kind="error">{{ problem.message }}</app-note>
+    }
+
+    <div class="composer__row">
+      <mat-form-field class="composer__field" subscriptSizing="dynamic">
+        <textarea
+          matInput
+          #field
+          name="message"
+          dir="auto"
+          cdkTextareaAutosize
+          cdkAutosizeMinRows="1"
+          cdkAutosizeMaxRows="8"
+          [attr.aria-label]="'chat.composer.label' | t"
+          [maxlength]="max"
+          [disabled]="!ready()"
+          [ngModel]="draft()"
+          (ngModelChange)="draft.set($event)"
+          (keydown)="pressed($event)"
+        ></textarea>
+        <mat-hint>{{ 'chat.composer.hint' | t }}</mat-hint>
+      </mat-form-field>
+
+      @if (sending()) {
+        <button matButton="tonal" type="button" class="composer__action" (click)="stop()">
+          <mat-icon fontIcon="fa-stop" />
+          {{ 'chat.composer.stop' | t }}
+        </button>
+      } @else {
+        <button
+          matButton="filled"
+          type="submit"
+          class="composer__action"
+          [disabled]="blank() || !ready()"
+        >
+          <mat-icon fontIcon="fa-paper-plane" class="mat-icon-rtl-mirror" />
+          {{ 'chat.composer.send' | t }}
+        </button>
+      }
+    </div>
+  </form>
+} @else {
+  <p class="composer__readonly text-secondary">
+    <mat-icon fontIcon="fa-eye" />
+    {{ 'chat.composer.readOnly' | t }}
+  </p>
+}

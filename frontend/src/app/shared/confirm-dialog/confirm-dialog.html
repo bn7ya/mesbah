@@ -1,0 +1,15 @@
+<h2 mat-dialog-title>{{ data.titleKey | t: data.values }}</h2>
+<mat-dialog-content>
+  <p>{{ data.bodyKey | t: data.values }}</p>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button matButton type="button" [mat-dialog-close]="false">{{ 'actions.cancel' | t }}</button>
+  <button
+    matButton="filled"
+    type="button"
+    [class.app-destructive]="data.destructive"
+    [mat-dialog-close]="true"
+  >
+    {{ data.confirmKey | t: data.values }}
+  </button>
+</mat-dialog-actions>

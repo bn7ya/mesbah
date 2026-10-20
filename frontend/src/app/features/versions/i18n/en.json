@@ -1,0 +1,164 @@
+{
+  "versions": {
+    "title": "Versions",
+    "intro": {
+      "first": "The first version is the model as downloaded.",
+      "each": "Each version below it stores only what its training changed.",
+      "any": "Any version can be made active at any time. Rolling back is making an older version active."
+    },
+    "terms": "Terms:",
+    "loading": "Loading versions",
+    "tree": "Version tree",
+    "onlyBase": "Train the model to add versions here.",
+    "activated": "{name} is now the active version.",
+    "renamed": "Version renamed.",
+    "removed": "Version removed.",
+    "active": "Active",
+    "kind": {
+      "base": "Base model, as downloaded",
+      "scratch_root": "Model designed from scratch",
+      "lora": "Change on top of the base"
+    },
+    "size": {
+      "change": "{size}, which is {percent} of the full model",
+      "sliver": "{size}, under {percent} of the full model",
+      "changeOnly": "{size}",
+      "root": "{size}, stored once and shared by every version",
+      "rootUnknown": "Stored once and shared by every version."
+    },
+    "row": {
+      "created": "Created:",
+      "by": "By:",
+      "actionsFor": "Actions for {name}"
+    },
+    "expert": {
+      "rank": "Rank: {rank}",
+      "biases": "Trains biases",
+      "yes": "Yes",
+      "no": "No",
+      "parameters": "Parameters changed",
+      "size": "Size of the change",
+      "fromParent": "Change from the parent version"
+    },
+    "menu": {
+      "activate": "Make active",
+      "activateHint": "Conversations will use this version. Rolling back is making an older version active.",
+      "alreadyActive": "This is the active version.",
+      "rename": "Rename",
+      "remove": "Remove",
+      "changes": "What changed",
+      "exports": "Show exports",
+      "export": "Export"
+    },
+    "rename": {
+      "title": "Rename version",
+      "name": "Name",
+      "nameRequired": "Enter a name for the version.",
+      "notes": "Notes",
+      "notesHint": "What changed, or why. Optional.",
+      "working": "Saving…"
+    },
+    "remove": {
+      "title": "Remove {name}?",
+      "body": "The version is removed from the tree. Versions trained from it move up to its parent.",
+      "confirm": "Remove"
+    },
+    "close": "Close",
+    "export": {
+      "title": "Export {name}",
+      "intro": "Choose a format. The export is prepared in the background.",
+      "formatLabel": "Format",
+      "lora": {
+        "name": "LoRA adapter",
+        "explain": "The change alone, as a zip file. For vLLM and other tools that load LoRA.",
+        "size": "Size: {size}"
+      },
+      "merged": {
+        "name": "Merged model",
+        "explain": "The full model with the change merged in, as large as the base model. Works with any engine.",
+        "size": "Disk space: about {size}"
+      },
+      "gguf": {
+        "name": "GGUF file",
+        "explain": "One file for llama.cpp and Ollama."
+      },
+      "noChange": "A base model has no change to export. It can be exported as a GGUF file.",
+      "quality": {
+        "label": "Size and quality",
+        "f16": "Full quality",
+        "bf16": "Full quality, for newer GPUs",
+        "q8_0": "About half the size, nearly the same quality"
+      },
+      "start": "Start export",
+      "starting": "Starting…",
+      "started": "Export started."
+    },
+    "exports": {
+      "title": "Exports of {name}",
+      "intro": "Files made from this version, newest first.",
+      "list": "Exports",
+      "loading": "Loading exports",
+      "empty": "No exports yet.",
+      "emptyHint": "A version can be exported to run on another engine.",
+      "new": "New export",
+      "status": {
+        "queued": "Waiting",
+        "running": "Exporting",
+        "ready": "Ready",
+        "failed": "Failed"
+      },
+      "size": "Size: {size}",
+      "download": "Download",
+      "copyPath": "Copy path",
+      "pathCopied": "Path copied.",
+      "pathLabel": "Location on the server:",
+      "folderNote": "A merged model is as large as the base model, so it stays on the server.",
+      "remove": "Remove",
+      "removed": "Export removed.",
+      "removeTitle": "Remove this export?",
+      "removeBody": "Its files are deleted from the server. The version itself stays.",
+      "failure": {
+        "training_parts_missing": "The training parts needed to prepare this export aren't installed on this machine.",
+        "converter_unavailable": "The GGUF converter couldn't be downloaded. Check the internet connection and try again.",
+        "conversion_failed": "The conversion to GGUF failed. llama.cpp may not support this model.",
+        "out_of_memory": "This machine ran out of memory while preparing the export.",
+        "exporter_crashed": "The export stopped unexpectedly. Try again.",
+        "nothing_to_merge": "This version has no change to merge into the base model.",
+        "failed": "The export failed."
+      }
+    },
+    "changes": {
+      "title": "What changed in {name}",
+      "loading": "Loading changes",
+      "base": "This is the model as downloaded. Nothing has changed, so there is no map.",
+      "scratch": "This version is the whole model, designed from scratch. There is no change to show.",
+      "missing": "No record of what changed in this version.",
+      "summary": "Summary",
+      "leading": {
+        "attention": "The biggest change is in the attention modules.",
+        "feed_forward": "The biggest change is in the feed-forward modules.",
+        "even": "Attention and feed-forward modules changed about equally."
+      },
+      "topLayers": "Layers that changed most",
+      "rank": "Rank",
+      "mapTitle": "Map of the change",
+      "intro": "Each square is a part of the model. A stronger color means training changed it more.",
+      "less": "Less change",
+      "more": "More change",
+      "caption": "Change by layer and module",
+      "layerColumn": "Layer",
+      "group": {
+        "attention": "Attention",
+        "feed_forward": "Feed-forward",
+        "other": "Other"
+      },
+      "cell": "Layer {layer}, {module}: {value}",
+      "cellNone": "Layer {layer}, {module}: not recorded"
+    }
+  },
+  "errors": {
+    "root_version_kept": "The base model can't be removed from a project.",
+    "active_version_kept": "The active version can't be removed. Make another version active first.",
+    "not_exportable": "The base model isn't on this machine, so this version can't be exported."
+  }
+}

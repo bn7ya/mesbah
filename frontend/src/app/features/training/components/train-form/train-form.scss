@@ -1,0 +1,130 @@
+:host {
+  display: block;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+
+  p {
+    margin: 0;
+  }
+}
+
+.form__heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.form__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-5);
+  padding: var(--app-space-6);
+}
+
+.form__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-5);
+}
+
+.form__option {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-3);
+  align-items: baseline;
+}
+
+.form__sources {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+
+  h3 {
+    margin: 0;
+  }
+}
+
+.form__datasets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.dataset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+  padding: var(--app-space-4);
+  background: var(--mat-sys-surface-container-low);
+  border-radius: var(--mat-sys-corner-medium);
+
+  p {
+    margin: 0;
+  }
+}
+
+.dataset__head {
+  display: flex;
+  gap: var(--app-space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dataset__name {
+  display: flex;
+  gap: var(--app-space-3);
+  align-items: center;
+  min-inline-size: 0;
+  font: var(--mat-sys-title-small);
+  overflow-wrap: anywhere;
+}
+
+.form__switch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+
+  p {
+    font: var(--mat-sys-body-medium);
+  }
+}
+
+.form__settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+
+  h3 {
+    margin: 0;
+  }
+}
+
+.form__fit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+}
+
+.form__fit-verdict {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-3);
+  align-items: center;
+}
+
+.form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-3);
+}

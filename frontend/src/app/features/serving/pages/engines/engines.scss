@@ -1,0 +1,22 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-8);
+}
+
+.engines__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+
+  h1,
+  p {
+    margin: 0;
+  }
+}
+
+.engines__engines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-8);
+}

@@ -1,21 +1,14 @@
-"""Shape only — field mapping and field-level validation.
+from typing import Any
 
-No queries, no cross-object rules, no side effects. Whether the credentials
-are correct is a service decision, not a serializer one.
-"""
 from rest_framework import serializers
 
 
-class SignInSerializer(serializers.Serializer):
-    """Input for `POST /api/auth/login/`."""
-
+class SignInSerializer(serializers.Serializer[dict[str, Any]]):
     username = serializers.CharField(max_length=150, trim_whitespace=True)
     password = serializers.CharField(max_length=128, trim_whitespace=False, write_only=True)
 
 
-class IdentitySerializer(serializers.Serializer):
-    """Output for `GET /api/auth/me/`. Mirrors `AccountService.identity()`."""
-
+class IdentitySerializer(serializers.Serializer[dict[str, Any]]):
     id = serializers.IntegerField(read_only=True)
     username = serializers.CharField(read_only=True)
     email = serializers.EmailField(read_only=True, allow_blank=True)
@@ -25,3 +18,15 @@ class IdentitySerializer(serializers.Serializer):
     is_superuser = serializers.BooleanField(read_only=True)
     groups = serializers.ListField(child=serializers.CharField(), read_only=True)
     permissions = serializers.ListField(child=serializers.CharField(), read_only=True)
+
+
+class SetupStatusSerializer(serializers.Serializer[dict[str, Any]]):
+    needed = serializers.BooleanField(read_only=True)
+
+
+class SetupSerializer(serializers.Serializer[dict[str, Any]]):
+    code = serializers.CharField(max_length=32, trim_whitespace=True, write_only=True)
+    username = serializers.RegexField(r"^[\w.@+-]+$", max_length=150)
+    password = serializers.CharField(max_length=128, trim_whitespace=False, write_only=True)
+    first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    email = serializers.EmailField(required=False, allow_blank=True)

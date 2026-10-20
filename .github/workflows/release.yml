@@ -1,0 +1,151 @@
+name: Release
+
+# A candidate first, then the release, on the same commit (ADR-010, .claude/docs/releasing.md).
+#   vX.Y.Z-rc.N  runs the release bundle, publishes to TestPyPI, then makes a GitHub
+#                pre-release carrying the bundle's reference artifact.
+#   vX.Y.Z       is refused unless a candidate on this same commit has that pre-release; runs
+#                the bundle again on its own wheel, publishes to PyPI (the `pypi` environment's
+#                reviewers approve it), then makes the GitHub Release.
+# PyPI and TestPyPI trust this workflow directly (trusted publishing), so publishing stays here:
+# neither accepts a reusable workflow as the publisher. Run it by hand with `dry_run` to rehearse
+# everything but the publishing.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The tag to rehearse, e.g. v0.1.0-rc.1"
+        required: true
+        type: string
+      dry_run:
+        description: "Run the checks and the bundle, publish nothing"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: May this tag be released?
+    runs-on: ubuntu-latest
+    outputs:
+      kind: ${{ steps.check.outputs.kind }}
+      tag: ${{ steps.check.outputs.tag }}
+      semver: ${{ steps.check.outputs.semver }}
+      final: ${{ steps.check.outputs.final }}
+      latest: ${{ steps.check.outputs.latest }}
+      publish: ${{ steps.publish.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # The tag's form, its version and changelog section, the branch it is on, that it was never
+      # released, and for a release a candidate on this commit whose pre-release exists.
+      - name: Check the tag
+        id: check
+        working-directory: backend
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+          REHEARSAL: ${{ github.event_name == 'workflow_dispatch' && '--commit HEAD' || '' }}
+          GH_TOKEN: ${{ github.token }}
+        run: python -m tools.release.tags check "$TAG" $REHEARSAL --github-output "$GITHUB_OUTPUT"
+      - name: Publish, or only rehearse?
+        id: publish
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: echo "publish=$([ "$DRY_RUN" = true ] && echo false || echo true)" >> "$GITHUB_OUTPUT"
+
+  bundle:
+    name: Release bundle
+    needs: check
+    uses: ./.github/workflows/release-bundle.yml
+    with:
+      tag: ${{ needs.check.outputs.tag }}
+
+  testpypi:
+    name: Publish the candidate to TestPyPI
+    needs: [check, bundle]
+    if: needs.check.outputs.kind == 'candidate' && needs.check.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Keep the checksums for the GitHub release, not the index
+        run: rm dist/SHA256SUMS
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+
+  pypi:
+    name: Publish the release to PyPI
+    needs: [check, bundle]
+    if: needs.check.outputs.kind == 'stable' && needs.check.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Keep the checksums for the GitHub release, not the index
+        run: rm dist/SHA256SUMS
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    name: Make the GitHub release
+    needs: [check, bundle, testpypi, pypi]
+    if: >-
+      always() && needs.check.outputs.publish == 'true' && needs.bundle.result == 'success' &&
+      (needs.testpypi.result == 'success' || needs.pypi.result == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: actions/download-artifact@v4
+        with:
+          name: reference
+          path: reference/
+      - name: Write the notes from the changelog and the bundle
+        working-directory: backend
+        env:
+          FINAL: ${{ needs.check.outputs.final }}
+        run: |
+          python -m tools.release.version notes "$FINAL" > "$RUNNER_TEMP/notes.md"
+          tar -xzOf "$GITHUB_WORKSPACE"/reference/*.tar.gz --wildcards '*/summary.md' \
+            >> "$RUNNER_TEMP/notes.md"
+      - name: Release it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.check.outputs.tag }}
+          SEMVER: ${{ needs.check.outputs.semver }}
+          KIND: ${{ needs.check.outputs.kind }}
+          LATEST: ${{ needs.check.outputs.latest }}
+        run: |
+          if [ "$KIND" = candidate ]; then which=--prerelease; else which="--latest=$LATEST"; fi
+          gh release create "$TAG" dist/* reference/*.tar.gz --verify-tag \
+            --title "Mesbah $SEMVER" --notes-file "$RUNNER_TEMP/notes.md" "$which"

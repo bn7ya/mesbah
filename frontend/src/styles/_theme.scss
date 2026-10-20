@@ -1,0 +1,88 @@
+@use "sass:map";
+@use "@angular/material" as mat;
+@use "theme-colors";
+
+$_untracked: ();
+@each $role in display, headline, title, body, label {
+  @each $size in large, medium, small {
+    $_untracked: map.set($_untracked, #{$role}-#{$size}-tracking, 0);
+  }
+}
+
+html {
+  color-scheme: light dark;
+
+  @include mat.theme(
+    (
+      color: (
+        primary: theme-colors.$primary-palette,
+        tertiary: theme-colors.$tertiary-palette,
+      ),
+      typography: (
+        plain-family: ("Tajawal", "Omani Rial Sign", system-ui, sans-serif),
+        brand-family: ("Tajawal", "Omani Rial Sign", system-ui, sans-serif),
+        regular-weight: 400,
+        medium-weight: 500,
+        bold-weight: 700,
+      ),
+      density: 0,
+    )
+  );
+
+  @include mat.strong-focus-indicators(
+    (
+      border-color: var(--mat-sys-primary),
+      border-width: var(--app-focus-width),
+    )
+  );
+
+  // A panel opens inside a card or a message, so tone sets it apart rather than a shadow.
+  @include mat.expansion-overrides(
+    (
+      container-elevation-shadow: var(--mat-sys-level0),
+      container-background-color: var(--mat-sys-surface-container-low),
+    )
+  );
+}
+
+// Arabic is a joined script: tracking breaks the joins, so every type step sets it at zero.
+html:lang(ar) {
+  @include mat.theme-overrides($_untracked);
+}
+
+// Font Awesome draws every mat-icon; this keeps its glyph centred in the box Material reserves.
+mat-icon.mat-icon {
+  flex-shrink: 0;
+  inline-size: var(--app-icon-box);
+  block-size: var(--app-icon-box);
+  font-size: var(--app-icon-size);
+  line-height: var(--app-icon-box);
+}
+
+// A glyph set beside small label text, such as the marks in a message footer.
+mat-icon.mat-icon.app-icon-small {
+  inline-size: var(--app-icon-box-small);
+  block-size: var(--app-icon-box-small);
+  font-size: var(--app-icon-size-small);
+  line-height: var(--app-icon-box-small);
+}
+
+// A glossary term's help button sits inside a line of text, so it drops the touch-target margin.
+.app-term__button {
+  @include mat.icon-button-overrides(
+    (
+      state-layer-size: calc(var(--app-icon-box) + var(--app-space-2)),
+      touch-target-display: none,
+    )
+  );
+}
+
+// A filled button whose action removes something takes the error colour.
+.app-destructive {
+  @include mat.button-overrides(
+    (
+      filled-container-color: var(--mat-sys-error),
+      filled-label-text-color: var(--mat-sys-on-error),
+    )
+  );
+}

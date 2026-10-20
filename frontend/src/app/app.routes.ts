@@ -1,30 +1,93 @@
-import { Routes } from '@angular/router';
+import type { Routes } from '@angular/router';
+
+import { authGuard, guestGuard, setupGuard } from '@core/auth/guards/auth.guard';
 
 export const routes: Routes = [
   {
+    path: 'sign-in',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('@core/auth/pages/sign-in/sign-in').then((m) => m.SignInPage),
+  },
+  {
+    path: 'setup',
+    canActivate: [setupGuard],
+    loadComponent: () => import('@core/auth/pages/setup/setup').then((m) => m.SetupPage),
+  },
+  {
     path: '',
-    loadComponent: () => import('./features/projects/projects-page').then((m) => m.ProjectsPage),
-    title: 'المشاريع · مِصباح',
+    canActivate: [authGuard],
+    loadComponent: () => import('@core/shell/shell').then((m) => m.Shell),
+    children: [
+      {
+        path: '',
+        pathMatch: 'full',
+        // No guard: the router rejects canActivate beside redirectTo (NG04014).
+        redirectTo: 'projects',
+      },
+      {
+        path: 'projects',
+        pathMatch: 'full',
+        loadChildren: () => import('@features/projects/projects.routes').then((m) => m.routes),
+      },
+      {
+        path: 'projects/:projectId',
+        loadChildren: async () => {
+          const { projectFrame } = await import('@features/projects/projects.routes');
+          return projectFrame([
+            {
+              path: 'chat',
+              loadChildren: () => import('@features/chat/chat.routes').then((m) => m.routes),
+            },
+            {
+              path: 'versions',
+              loadChildren: () => import('@features/versions/versions.routes').then((m) => m.routes),
+            },
+            {
+              path: 'training',
+              loadChildren: () => import('@features/training/training.routes').then((m) => m.routes),
+            },
+          ]);
+        },
+      },
+      {
+        path: 'models',
+        loadChildren: () => import('@features/models/models.routes').then((m) => m.routes),
+      },
+      {
+        path: 'architect',
+        loadChildren: () => import('@features/architect/architect.routes').then((m) => m.routes),
+      },
+      {
+        path: 'datasets',
+        loadChildren: () => import('@features/datasets/datasets.routes').then((m) => m.routes),
+      },
+      {
+        path: 'engines',
+        loadChildren: () => import('@features/serving/serving.routes').then((m) => m.routes),
+      },
+      {
+        path: 'system',
+        loadChildren: () => import('@features/system/system.routes').then((m) => m.routes),
+      },
+      {
+        path: 'members',
+        loadChildren: () => import('@features/members/members.routes').then((m) => m.routes),
+      },
+      {
+        path: 'forbidden',
+        canActivate: [authGuard],
+        data: { titleKey: 'errors.forbidden', bodyKey: 'errors.forbiddenBody' },
+        loadComponent: () =>
+          import('@shared/status-page/status-page').then((m) => m.StatusPage),
+      },
+      {
+        path: '**',
+        canActivate: [authGuard],
+        data: { titleKey: 'errors.notFound', bodyKey: 'errors.notFoundBody' },
+        loadComponent: () =>
+          import('@shared/status-page/status-page').then((m) => m.StatusPage),
+      },
+    ],
   },
-  {
-    path: 'models',
-    loadComponent: () => import('./features/models/models-page').then((m) => m.ModelsPage),
-    title: 'النماذج · مِصباح',
-  },
-  {
-    path: 'settings',
-    loadComponent: () => import('./features/settings/settings-page').then((m) => m.SettingsPage),
-    title: 'الإعدادات · مِصباح',
-  },
-  {
-    path: 'debug',
-    loadComponent: () => import('./features/debug/debug-page').then((m) => m.DebugPage),
-    title: 'الحالة والتشخيص · مِصباح',
-  },
-  {
-    path: 'projects/:id',
-    loadComponent: () => import('./features/workspace/workspace-page').then((m) => m.WorkspacePage),
-    title: 'مساحة العمل · مِصباح',
-  },
-  { path: '**', redirectTo: '' },
 ];

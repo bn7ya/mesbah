@@ -1,0 +1,229 @@
+@if (project(); as current) {
+  <section class="overview__section" aria-labelledby="overview-about">
+    <h2 id="overview-about">{{ 'projects.overview.about.title' | t }}</h2>
+
+    <mat-card appearance="outlined" class="overview__card">
+      @if (canWrite()) {
+        <form class="overview__form" novalidate [attr.aria-busy]="saving()" (ngSubmit)="saveAbout()">
+          @if (aboutFailure(); as problem) {
+            <app-note kind="error">{{ problem.message }}</app-note>
+          }
+
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>{{ 'projects.overview.about.name' | t }}</mat-label>
+            <input
+              matInput
+              name="name"
+              dir="auto"
+              autocomplete="off"
+              [maxlength]="nameMax"
+              [errorStateMatcher]="nameErrors"
+              [ngModel]="name()"
+              (ngModelChange)="name.set($event)"
+            />
+            <mat-error>{{ 'projects.overview.about.nameRequired' | t }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field subscriptSizing="dynamic">
+            <mat-label>{{ 'projects.overview.about.description' | t }}</mat-label>
+            <textarea
+              matInput
+              name="description"
+              dir="auto"
+              cdkTextareaAutosize
+              cdkAutosizeMinRows="2"
+              cdkAutosizeMaxRows="8"
+              [maxlength]="descriptionMax"
+              [ngModel]="description()"
+              (ngModelChange)="description.set($event)"
+            ></textarea>
+          </mat-form-field>
+
+          <div class="overview__actions">
+            <button matButton="filled" type="submit" [disabled]="!aboutDirty() || saving()">
+              {{ (saving() ? 'projects.overview.saving' : 'actions.save') | t }}
+            </button>
+            <button matButton type="button" [disabled]="!aboutDirty() || saving()" (click)="resetAbout()">
+              {{ 'projects.overview.reset' | t }}
+            </button>
+          </div>
+        </form>
+
+        <mat-divider />
+      }
+
+      <dl class="overview__facts">
+        @if (!canWrite()) {
+          <div>
+            <dt>{{ 'projects.overview.about.name' | t }}</dt>
+            <dd dir="auto">{{ current.name }}</dd>
+          </div>
+          <div>
+            <dt>{{ 'projects.overview.about.description' | t }}</dt>
+            @if (current.description) {
+              <dd class="overview__text" dir="auto">{{ current.description }}</dd>
+            } @else {
+              <dd class="text-secondary">{{ 'projects.overview.about.descriptionNone' | t }}</dd>
+            }
+          </div>
+        }
+        @if (current.base_model; as model) {
+          <div>
+            <dt>{{ 'projects.overview.about.baseModel' | t }}</dt>
+            <dd>
+              <span dir="ltr">{{ model.repo_id }}</span>
+              @if (model.parameters !== null) {
+                <span class="text-secondary">{{ 'projects.parameters' | t: { count: (model.parameters | compact) } }}</span>
+              }
+              <a routerLink="/models">{{ 'projects.overview.about.viewModels' | t }}</a>
+            </dd>
+          </div>
+        }
+        <div>
+          <dt>{{ 'projects.overview.about.created' | t }}</dt>
+          <dd>{{ current.created_at | datetime }}</dd>
+        </div>
+        <div>
+          <dt>{{ 'projects.overview.about.changed' | t }}</dt>
+          <dd>{{ current.updated_at | datetime }}</dd>
+        </div>
+      </dl>
+    </mat-card>
+  </section>
+
+  <section class="overview__section" aria-labelledby="overview-reply">
+    <div class="overview__heading">
+      <h2 id="overview-reply">{{ 'projects.reply.title' | t }}</h2>
+      <p class="text-secondary">{{ 'projects.reply.intro' | t }}</p>
+    </div>
+
+    <mat-card appearance="outlined" class="overview__card">
+      @if (canWrite()) {
+        <form class="overview__form" novalidate [attr.aria-busy]="saving()" (ngSubmit)="saveReply()">
+          @if (replyFailure(); as problem) {
+            <app-note kind="error">{{ problem.message }}</app-note>
+          }
+
+          <div class="overview__field">
+            <p class="overview__label">
+              <span>{{ 'projects.reply.instructions' | t }}</span>
+              <app-term key="system_prompt" />
+            </p>
+            <mat-form-field subscriptSizing="dynamic">
+              <textarea
+                matInput
+                name="systemPrompt"
+                dir="auto"
+                [attr.aria-label]="'projects.reply.instructions' | t"
+                cdkTextareaAutosize
+                cdkAutosizeMinRows="3"
+                cdkAutosizeMaxRows="12"
+                [maxlength]="promptMax"
+                [ngModel]="systemPrompt()"
+                (ngModelChange)="systemPrompt.set($event)"
+              ></textarea>
+              <mat-hint>{{ 'projects.reply.instructionsHint' | t }}</mat-hint>
+            </mat-form-field>
+          </div>
+
+          <div class="overview__field">
+            <mat-slide-toggle
+              aria-describedby="overview-thinking"
+              [checked]="thinking()"
+              [disabled]="!canThink() || saving()"
+              (change)="thinking.set($event.checked)"
+            >
+              {{ 'projects.reply.thinking' | t }}
+            </mat-slide-toggle>
+            <p class="overview__hint text-secondary" id="overview-thinking">
+              {{ (canThink() ? 'projects.reply.thinkingHint' : 'projects.reply.thinkingUnsupported') | t }}
+            </p>
+          </div>
+
+          @for (setting of settings; track setting.key) {
+            <div class="overview__field">
+              <div class="overview__head">
+                <p class="overview__label">
+                  <span>{{ setting.labelKey | t }}</span>
+                  <app-term [key]="setting.termKey" />
+                </p>
+                <span class="overview__value">{{ value(setting) }}</span>
+              </div>
+              <mat-slider [min]="setting.range.min" [max]="setting.range.max" [step]="setting.range.step" [disabled]="saving()">
+                <input
+                  matSliderThumb
+                  [attr.aria-label]="setting.labelKey | t"
+                  [value]="generation[setting.key]()"
+                  (valueChange)="setValue(setting, $event)"
+                />
+              </mat-slider>
+              <p class="overview__hint text-secondary">{{ setting.hintKey | t }}</p>
+            </div>
+          }
+
+          <div class="overview__actions">
+            <button matButton="filled" type="submit" [disabled]="!replyDirty() || saving()">
+              {{ (saving() ? 'projects.overview.saving' : 'actions.save') | t }}
+            </button>
+            <button matButton type="button" [disabled]="!replyDirty() || saving()" (click)="resetReply()">
+              {{ 'projects.overview.reset' | t }}
+            </button>
+          </div>
+        </form>
+      } @else {
+        <dl class="overview__facts">
+          <div>
+            <dt>
+              <span>{{ 'projects.reply.instructions' | t }}</span>
+              <app-term key="system_prompt" />
+            </dt>
+            @if (current.system_prompt) {
+              <dd class="overview__text" dir="auto">{{ current.system_prompt }}</dd>
+            } @else {
+              <dd class="text-secondary">{{ 'projects.reply.instructionsNone' | t }}</dd>
+            }
+          </div>
+          <div>
+            <dt>{{ 'projects.reply.thinking' | t }}</dt>
+            <dd>{{ (current.thinking ? 'projects.reply.on' : 'projects.reply.off') | t }}</dd>
+          </div>
+          @for (setting of settings; track setting.key) {
+            <div>
+              <dt>
+                <span>{{ setting.labelKey | t }}</span>
+                <app-term [key]="setting.termKey" />
+              </dt>
+              <dd>{{ value(setting) }}</dd>
+            </div>
+          }
+        </dl>
+        <p class="text-secondary">{{ 'projects.reply.readOnly' | t }}</p>
+      }
+    </mat-card>
+  </section>
+
+  @if (canWrite()) {
+    <section class="overview__section" aria-labelledby="overview-remove">
+      <h2 id="overview-remove">{{ 'projects.overview.remove.title' | t }}</h2>
+
+      <mat-card appearance="outlined" class="overview__card">
+        @if (removeFailure(); as problem) {
+          <app-note kind="error">{{ problem.message }}</app-note>
+        }
+        <p>{{ 'projects.overview.remove.body' | t }}</p>
+        <div class="overview__actions">
+          <button
+            matButton="filled"
+            type="button"
+            class="app-destructive"
+            [disabled]="saving()"
+            (click)="remove()"
+          >
+            <mat-icon fontIcon="fa-trash" />
+            {{ 'projects.overview.remove.open' | t }}
+          </button>
+        </div>
+      </mat-card>
+    </section>
+  }
+}

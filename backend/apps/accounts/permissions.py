@@ -1,29 +1,17 @@
-"""Reusable permission classes.
-
-Django Groups and Permissions are the only authorization system on the
-Django side — these are thin adapters onto that, not a second one.
-"""
 from __future__ import annotations
 
+from django.contrib.auth.models import AnonymousUser, User
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
 
 class InGroup(BasePermission):
-    """Grants access to members of a named group.
-
-    Subclass with the group name rather than instantiating::
-
-        class IsOperator(InGroup):
-            group = "operators"
-    """
-
     group: str = ""
-    message = "You don't have access to this."
+    message: str = "You don't have access to this."
 
     def has_permission(self, request: Request, view: APIView) -> bool:
-        user = request.user
+        user: User | AnonymousUser = request.user
         if not user or not user.is_authenticated:
             return False
         if user.is_superuser:
@@ -34,15 +22,10 @@ class InGroup(BasePermission):
 
 
 class IsOwnerOrStaff(BasePermission):
-    """Object-level: the row's creator, or a staff member.
+    message: str = "You don't have access to this."
 
-    Only useful on models inheriting `BaseModel` (every model in `apps/*`).
-    """
-
-    message = "You don't have access to this."
-
-    def has_object_permission(self, request: Request, view: APIView, obj) -> bool:
-        user = request.user
+    def has_object_permission(self, request: Request, view: APIView, obj: object) -> bool:
+        user: User | AnonymousUser = request.user
         if not user or not user.is_authenticated:
             return False
         return user.is_staff or getattr(obj, "created_by_id", None) == user.pk

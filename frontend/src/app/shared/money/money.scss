@@ -1,0 +1,7 @@
+.money {
+  display: inline-flex;
+  gap: var(--app-space-1);
+  align-items: baseline;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

@@ -1,0 +1,210 @@
+{
+  "datasets": {
+    "title": "مجموعات البيانات",
+    "subtitle": "بيانات التدريب من HuggingFace أو من ملفاتك.",
+    "thinking": "سلسلة التفكير",
+    "addedBy": "تمت الإضافة بواسطة {name}",
+    "rowsCount": "عدد الصفوف: {count}",
+    "skippedCount": "الصفوف المستبعدة: {count}",
+    "tokenLink": "إضافة رمز HuggingFace",
+    "imported": "بدأ الاستيراد.",
+    "uploaded": "تم رفع الملف.",
+    "cancelled": "جار إيقاف الاستيراد.",
+    "retried": "بدأ الاستيراد من جديد.",
+    "removed": "تمت إزالة مجموعة البيانات.",
+    "saved": "تم حفظ التغييرات.",
+    "source": {
+      "hub": "HuggingFace",
+      "upload": "ملف"
+    },
+    "format": {
+      "messages": {
+        "name": "محادثات",
+        "explain": "كل صف محادثة، ولكل رسالة فيها دور ونص.",
+        "columns": "messages: [{role, content}]"
+      },
+      "sharegpt": {
+        "name": "محادثات بصيغة ShareGPT",
+        "explain": "كل صف محادثة، ولكل رسالة فيها وسم human أو gpt.",
+        "columns": "conversations: [{from, value}]"
+      },
+      "instruction": {
+        "name": "تعليمة وإجابة",
+        "explain": "في كل صف تعليمة ومدخل اختياري والإجابة.",
+        "columns": "instruction · input · output"
+      },
+      "prompt_completion": {
+        "name": "طلبات وردود",
+        "explain": "في كل صف طلب والرد الذي يتعلمه النموذج.",
+        "columns": "prompt + completion · question + answer · query + response"
+      },
+      "text": {
+        "name": "نص عادي",
+        "explain": "كل صف نص يتعلم النموذج إكماله.",
+        "columns": "text"
+      },
+      "unsupported": {
+        "name": "صيغة غير معروفة",
+        "explain": "لا تطابق هذه الأعمدة أي صيغة مدعومة. اختر عمود الطلب وعمود الرد."
+      }
+    },
+    "mapping": {
+      "conversation": "المحادثة",
+      "prompt": "الطلب",
+      "reply": "الرد",
+      "thinking": "سلسلة التفكير",
+      "text": "النص",
+      "and": "مع",
+      "none": "بدون",
+      "thinkingInline": "من وسم ⁦<think>⁩ في الرد، إن وجد"
+    },
+    "conversation": {
+      "number": "الصف {number}",
+      "text": "نص",
+      "thinking": "سلسلة التفكير",
+      "roles": {
+        "system": "التعليمات",
+        "user": "الطلب",
+        "assistant": "الرد"
+      }
+    },
+    "library": {
+      "title": "المكتبة",
+      "loading": "جار تحميل المكتبة",
+      "pages": "صفحات مجموعات البيانات",
+      "emptyTitle": "لا توجد مجموعات بيانات بعد.",
+      "emptyWrite": "استورد مجموعة من HuggingFace أو ارفع ملفا أدناه.",
+      "emptyRead": "إضافة مجموعات البيانات متاحة للمدرب والمسؤول.",
+      "queued": "في انتظار البدء",
+      "progress": "عدد الصفوف: {done} من {total}",
+      "progressLabel": "تقدم استيراد {name}",
+      "ready": "جاهزة",
+      "failed": "فشل الاستيراد",
+      "stopped": "تم الإيقاف",
+      "open": "عرض الصفوف",
+      "openFor": "عرض صفوف {name}",
+      "cancelFor": "إيقاف استيراد {name}",
+      "retryFor": "إعادة استيراد {name}",
+      "remove": "إزالة",
+      "removeFor": "إزالة {name}",
+      "failure": {
+        "gated": "تحتاج مجموعة البيانات هذه إلى رمز HuggingFace له صلاحية الوصول إليها.",
+        "not_found": "لا توجد في HuggingFace مجموعة بيانات بهذا الاسم، أو أنها خاصة.",
+        "hf_unreachable": "انقطع الاتصال مع HuggingFace.",
+        "unsupported_format": "لا يطابق أي صف الصيغة المختارة.",
+        "disk_full": "لا توجد مساحة كافية على القرص.",
+        "unknown": "توقف الاستيراد بسبب خطأ."
+      }
+    },
+    "remove": {
+      "title": "إزالة {name}؟",
+      "body": "تتم إزالة ملف مجموعة البيانات من هذا الجهاز. تبقى مجموعة البيانات في HuggingFace ويمكن استيرادها مرة أخرى.",
+      "confirm": "إزالة"
+    },
+    "find": {
+      "title": "البحث عن مجموعة بيانات",
+      "label": "البحث في HuggingFace",
+      "hint": "اتركه فارغا لعرض مجموعات البيانات الشائعة.",
+      "submit": "بحث",
+      "popular": "مجموعات البيانات الشائعة لتوليد النصوص",
+      "resultsFor": "نتائج البحث عن",
+      "loading": "جار البحث في HuggingFace",
+      "empty": "لا توجد نتائج.",
+      "emptyHint": "راجع الإملاء أو جرب كلمات أخرى.",
+      "downloads": "التنزيلات",
+      "likes": "الإعجابات",
+      "license": "الترخيص:",
+      "languages": "اللغات",
+      "gated": "تحتاج صلاحية وصول",
+      "inLibrary": "في المكتبة",
+      "preview": "معاينة",
+      "previewFor": "معاينة {name}",
+      "size": {
+        "under": "عدد الصفوف: أقل من {max}",
+        "between": "عدد الصفوف: من {min} إلى {max}",
+        "over": "عدد الصفوف: أكثر من {min}"
+      }
+    },
+    "inspect": {
+      "loading": "جار تحميل مجموعة البيانات",
+      "about": "عن مجموعة البيانات",
+      "part": "الجزء المراد استيراده",
+      "subset": "المجموعة الفرعية",
+      "split": "القسم",
+      "layout": "طريقة قراءة الصفوف",
+      "columns": "الأعمدة",
+      "choose": "اختيار الأعمدة يدويا",
+      "firstRows": "الصفوف الأولى",
+      "checked": "عدد الصفوف التي تم فحصها: {count}",
+      "unusable": "عدد الصفوف غير الصالحة: {count}",
+      "chooseFirst": "اختر عمود الطلب وعمود الرد لعرض الصفوف.",
+      "nothingUsable": "لا يصلح أي صف من الصفوف الأولى مع هذه الأعمدة.",
+      "limitTitle": "حجم الاستيراد",
+      "limit": "الحد الأقصى للصفوف",
+      "limitHint": "يتوقف الاستيراد عند هذا العدد من الصفوف. كلما زادت الصفوف طال الاستيراد والتدريب.",
+      "limitInvalid": "أدخل عددا صحيحا من 1 إلى {max}.",
+      "readOnly": "استيراد مجموعات البيانات متاح للمدرب والمسؤول.",
+      "close": "إغلاق",
+      "import": "استيراد",
+      "starting": "جار البدء…"
+    },
+    "upload": {
+      "title": "رفع ملف",
+      "accepts": "ملف بصيغة JSONL أو JSON أو CSV، بحجم أقصاه {size}.",
+      "savedAs": "تحفظ كل مجموعة بيانات بصيغة",
+      "name": "الاسم",
+      "nameHint": "اختياري. الاسم الافتراضي هو اسم الملف.",
+      "choose": "اختيار ملف",
+      "working": "جار الرفع…",
+      "progressLabel": "تقدم الرفع",
+      "progress": "نسبة الرفع: {percent}%",
+      "readOnly": "رفع مجموعات البيانات متاح للمدرب والمسؤول.",
+      "layouts": "الصيغ المقبولة",
+      "thinking": "عمود مستقل فيه التفكير، أو التفكير داخل وسم ⁦<think>⁩ في بداية الرد.",
+      "thinkingColumns": "reasoning · thinking · reasoning_content · think · cot · <think>…</think>"
+    },
+    "edit": {
+      "title": "تعديل مجموعة البيانات",
+      "name": "الاسم",
+      "nameRequired": "أدخل اسما.",
+      "description": "الوصف",
+      "saving": "جار الحفظ…"
+    },
+    "detail": {
+      "breadcrumb": "مسار التنقل",
+      "loading": "جار تحميل مجموعة البيانات",
+      "noDescription": "لا يوجد وصف بعد.",
+      "edit": "تعديل",
+      "about": "التفاصيل",
+      "source": "المصدر",
+      "format": "الصيغة",
+      "rows": "عدد الصفوف",
+      "skipped": "الصفوف المستبعدة",
+      "size": "حجم الملف",
+      "thinkingYes": "موجودة",
+      "thinkingNo": "غير موجودة",
+      "addedBy": "تمت الإضافة بواسطة",
+      "addedAt": "تاريخ الإضافة",
+      "columns": "الأعمدة المستخدمة",
+      "checksum": "بصمة الملف (SHA-256)",
+      "rowsTitle": "الصفوف",
+      "rowsLoading": "جار تحميل الصفوف",
+      "pages": "صفحات الصفوف",
+      "stopped": "تم إيقاف الاستيراد. حاول مرة أخرى من المكتبة.",
+      "importing": "جار الاستيراد. عدد الصفوف حتى الآن: {count}"
+    }
+  },
+  "errors": {
+    "hub_dataset_not_found": "لا توجد في HuggingFace مجموعة بيانات بهذا الاسم.",
+    "hub_dataset_gated": "تحتاج مجموعة البيانات هذه إلى رمز HuggingFace له صلاحية الوصول إليها. احفظ رمزا في صفحة النظام.",
+    "hub_dataset_unavailable": "لا تتوفر في HuggingFace ملفات جاهزة لمجموعة البيانات هذه. حاول لاحقا أو اختر مجموعة أخرى.",
+    "unknown_split": "لا تحتوي مجموعة البيانات هذه على هذه المجموعة الفرعية أو هذا القسم.",
+    "unsupported_format": "لا تطابق الصفوف أي صيغة مدعومة.",
+    "missing_column": "أحد الأعمدة المختارة غير موجود في هذه البيانات.",
+    "unsupported_file": "ارفع ملفا بصيغة JSONL أو JSON أو CSV.",
+    "file_too_large": "حجم الملف أكبر من 200 MB.",
+    "empty_file": "لا يحتوي الملف على صفوف.",
+    "dataset_not_ready": "لم ينته استيراد مجموعة البيانات. انتظر اكتماله أو اختر مجموعة أخرى.",
+    "upload_missing": "لم يعد الملف المرفوع موجودا. ارفعه مرة أخرى."
+  }
+}

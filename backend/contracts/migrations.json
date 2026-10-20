@@ -1,0 +1,37 @@
+{
+  "architect": {
+    "0001_initial": "0ff392831693636f995f95463174b9fca513569f2d82b312c2124d930f741185"
+  },
+  "chat": {
+    "0001_initial": "a8a7f43390c254ff35196f0e8774d7a2a756eb33b8ff968d6949728fc44eba17"
+  },
+  "datasets": {
+    "0001_initial": "29fe8a1c22332f09e7ab174d8c9e96cbdac53f8ffd58958e5c2c0fbf4c5dafe0"
+  },
+  "members": {
+    "0001_roles": "4079ea37e2d6d50261e070638c2d796369a67cf317a9193d05c649a37630cdcf"
+  },
+  "models": {
+    "0001_initial": "442f19b90d03387c3b1434bd656c23ea1b06c529fea19eea0234d010a3b1afb5",
+    "0002_origin": "cd78b9a632f53259ad0786abc079717e5247e13a815ce61bf2815a8f8a6eb9dc"
+  },
+  "projects": {
+    "0001_initial": "4e8b82cc340ad84cfb8ff19c60e8db3513f388fe3d6d9fa24458e3778a7df0a7",
+    "0002_initial": "052dbd59ac0d21b07cf05cb15bfdd1a704e3ebf9667728620ece7106c5ab1d4b"
+  },
+  "serving": {
+    "0001_initial": "f53420d411ad05f6cc105974aa0f9f70af3d76e475fa0f2f9d0b2a51912d9f7a",
+    "0002_builtin_engine": "646d8b429add848e86db77761a12234c0bd5eede10ff36941678a91a25335ab2"
+  },
+  "system": {
+    "0001_initial": "98f92cafb2292bb617ca3ce136a527e8a610da443d1f1e3ba028acf2f9625b1f"
+  },
+  "training": {
+    "0001_initial": "707902826212d2c989dacafd406760ea0435ef598ce0b4b8edd31c40abe51100",
+    "0002_pretrain": "a040dbc8d32c4c303a6bdf806572b9eabaf97ebe2d007eb9401abc8123c0af0f"
+  },
+  "versions": {
+    "0001_initial": "b2191f76143100678afbfd334bb9e3536f4b16f822d97fdd1ffea7dd69e011f7",
+    "0002_exports": "5ee1c391b7e6a439bb00f879a8eb43ab8e7462ece82d9c4b4022139026d5a3ce"
+  }
+}

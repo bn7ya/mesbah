@@ -1,0 +1,9 @@
+@use "layout" as *;
+
+.edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+  max-inline-size: $card-max;
+}
+

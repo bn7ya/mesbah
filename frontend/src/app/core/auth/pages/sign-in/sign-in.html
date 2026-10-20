@@ -1,0 +1,70 @@
+<main class="sign-in" id="main" tabindex="-1">
+  <mat-card class="sign-in__card">
+    <header class="sign-in__header">
+      <h1>{{ 'auth.signIn.title' | t }}</h1>
+      <p class="text-secondary">{{ 'auth.signIn.subtitle' | t }}</p>
+    </header>
+
+    @if (error(); as failure) {
+      <app-note kind="error">{{ failure.message }}</app-note>
+    }
+
+    <form class="sign-in__form" novalidate (ngSubmit)="submit()">
+      <mat-form-field>
+        <mat-label>{{ 'auth.signIn.username' | t }}</mat-label>
+        <input
+          matInput
+          name="username"
+          autocomplete="username"
+          dir="auto"
+          [errorStateMatcher]="usernameErrors"
+          [placeholder]="'auth.signIn.usernamePlaceholder' | t"
+          [ngModel]="username()"
+          (ngModelChange)="username.set($event)"
+        />
+        <mat-error>{{ 'auth.errors.usernameRequired' | t }}</mat-error>
+      </mat-form-field>
+
+      <mat-form-field>
+        <mat-label>{{ 'auth.signIn.password' | t }}</mat-label>
+        <input
+          matInput
+          name="password"
+          autocomplete="current-password"
+          [type]="revealed() ? 'text' : 'password'"
+          [errorStateMatcher]="passwordErrors"
+          [placeholder]="'auth.signIn.passwordPlaceholder' | t"
+          [ngModel]="password()"
+          (ngModelChange)="password.set($event)"
+        />
+        <button
+          matIconButton
+          matSuffix
+          type="button"
+          [attr.aria-label]="revealLabel()"
+          [attr.aria-pressed]="revealed()"
+          (click)="toggleReveal()"
+        >
+          <mat-icon [fontIcon]="revealed() ? 'fa-eye-slash' : 'fa-eye'" />
+        </button>
+        <mat-error>{{ 'auth.errors.passwordRequired' | t }}</mat-error>
+      </mat-form-field>
+
+      <button
+        matButton="filled"
+        type="submit"
+        class="sign-in__submit"
+        [attr.aria-busy]="busy()"
+        [disabled]="!canSubmit()"
+      >
+        {{ (busy() ? 'auth.signIn.working' : 'auth.signIn.submit') | t }}
+      </button>
+    </form>
+
+    <mat-divider />
+
+    <footer>
+      <app-locale-switcher />
+    </footer>
+  </mat-card>
+</main>

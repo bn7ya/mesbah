@@ -1,0 +1,10 @@
+<button
+  matButton="outlined"
+  type="button"
+  [cdkCopyToClipboard]="text()"
+  [attr.aria-label]="label()"
+  (cdkCopyToClipboardCopied)="report($event)"
+>
+  <mat-icon fontIcon="fa-copy" />
+  {{ 'serving.copy.action' | t }}
+</button>

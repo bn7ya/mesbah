@@ -1,0 +1,66 @@
+@let row = item();
+
+<mat-card appearance="outlined" class="export" [attr.aria-busy]="unfinished() || busy()">
+  <div class="export__head">
+    <h3 class="export__name">{{ 'versions.export.' + row.format + '.name' | t }}</h3>
+    <app-status role="status" [icon]="icon()" [tone]="tone()">
+      {{ 'versions.exports.status.' + row.status | t }}
+    </app-status>
+  </div>
+
+  @if (row.out_type) {
+    <p class="export__quality text-secondary">
+      {{ 'versions.export.quality.' + row.out_type | t }}
+      <span dir="ltr">({{ row.out_type }})</span>
+    </p>
+  }
+
+  @if (unfinished()) {
+    <mat-progress-bar mode="indeterminate" [attr.aria-label]="'versions.exports.status.' + row.status | t" />
+  }
+
+  @if (failureKey(); as key) {
+    <p>{{ key | t }}</p>
+  }
+
+  @if (row.status === 'ready') {
+    <p>{{ 'versions.exports.size' | t: { size: (row.size_bytes | bytes) } }}</p>
+  }
+
+  @if (folder()) {
+    <div class="export__folder">
+      <p class="text-secondary">{{ 'versions.exports.folderNote' | t }}</p>
+      <app-code-block [label]="'versions.exports.pathLabel' | t" [code]="row.path" />
+    </div>
+  }
+
+  <p class="export__meta text-secondary">
+    <span>{{ 'versions.row.created' | t }} {{ row.created_at | datetime }}</span>
+    @if (row.created_by) {
+      <span>{{ 'versions.row.by' | t }} <span dir="ltr">{{ row.created_by }}</span></span>
+    }
+  </p>
+
+  @if (row.downloadable || folder() || canWrite()) {
+    <div class="export__actions">
+      @if (row.downloadable) {
+        <a matButton="tonal" [href]="downloadUrl()" download>
+          <mat-icon fontIcon="fa-download" />
+          {{ 'versions.exports.download' | t }}
+        </a>
+      }
+      @if (folder()) {
+        <button matButton="tonal" type="button" (click)="copyPath()">
+          <mat-icon fontIcon="fa-copy" />
+          {{ 'versions.exports.copyPath' | t }}
+        </button>
+      }
+      @if (canWrite()) {
+        <button matButton type="button" [disabled]="busy()" [attr.aria-busy]="busy()" (click)="remove()">
+          <mat-icon fontIcon="fa-trash" />
+          {{ 'versions.exports.remove' | t }}
+        </button>
+      }
+    </div>
+  }
+</mat-card>

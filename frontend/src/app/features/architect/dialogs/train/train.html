@@ -1,0 +1,150 @@
+<h2 mat-dialog-title>{{ 'architect.train.title' | t }}</h2>
+
+<form novalidate (ngSubmit)="submit()">
+  <mat-dialog-content class="train">
+    <p>{{ 'architect.train.intro' | t }}</p>
+
+    <app-note>{{ 'architect.train.expectation' | t }}</app-note>
+
+    @if (failure(); as problem) {
+      <app-note kind="error">{{ problem.message }}</app-note>
+    }
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'architect.train.name' | t }}</mat-label>
+      <input
+        matInput
+        name="name"
+        dir="auto"
+        autocomplete="off"
+        [maxlength]="nameMax"
+        [errorStateMatcher]="nameErrors"
+        [ngModel]="name()"
+        (ngModelChange)="name.set($event)"
+      />
+      <mat-hint>{{ 'architect.train.nameHint' | t }}</mat-hint>
+      <mat-error>{{ 'architect.train.nameRequired' | t }}</mat-error>
+    </mat-form-field>
+
+    <section class="train__sources" aria-labelledby="train-sources" [attr.aria-busy]="loading()">
+      <h3 id="train-sources">{{ 'architect.train.sources' | t }}</h3>
+
+      @if (loading()) {
+        <mat-progress-bar mode="indeterminate" [attr.aria-label]="'architect.train.loading' | t" />
+      }
+
+      @if (loadFailure(); as problem) {
+        <app-note kind="error">{{ problem.message }}</app-note>
+        <div>
+          <button matButton type="button" (click)="loadAgain()">{{ 'actions.retry' | t }}</button>
+        </div>
+      }
+
+      @if (nothingAvailable()) {
+        <app-empty-state class="train__empty" icon="fa-box-open" [heading]="'architect.train.nothing' | t">
+          <a emptyActions matButton routerLink="/datasets" mat-dialog-close>
+            <mat-icon fontIcon="fa-database" />
+            {{ 'architect.train.toDatasets' | t }}
+          </a>
+        </app-empty-state>
+      }
+
+      @if (sources().length > 0) {
+        <h4 id="train-projects">{{ 'architect.train.projects' | t }}</h4>
+        <mat-selection-list
+          name="sources"
+          aria-labelledby="train-projects"
+          [ngModel]="picked()"
+          (ngModelChange)="picked.set($event)"
+        >
+          @for (source of sources(); track source.id) {
+            <mat-list-option [value]="source.id" [disabled]="!learnable(source)">
+              <span matListItemTitle dir="auto">{{ source.name }}</span>
+              <span matListItemLine>
+                @if (source.corrections === null) {
+                  {{ 'architect.train.unknown' | t }}
+                } @else if (source.corrections === 0) {
+                  {{ 'architect.train.none' | t }}
+                } @else {
+                  {{ 'architect.train.replies' | t: { count: count(source.corrections) } }}
+                }
+              </span>
+            </mat-list-option>
+          }
+        </mat-selection-list>
+
+        <p class="train__total" role="status">
+          {{ 'architect.train.selected' | t: { count: count(chosenReplies()) } }}
+        </p>
+      }
+
+      @if (datasets().length > 0) {
+        <h4 id="train-datasets">{{ 'architect.train.datasets' | t }}</h4>
+        <mat-selection-list
+          name="datasets"
+          aria-labelledby="train-datasets"
+          [ngModel]="pickedDatasets()"
+          (ngModelChange)="pickedDatasets.set($event)"
+        >
+          @for (dataset of datasets(); track dataset.id) {
+            <mat-list-option [value]="dataset.id">
+              <span matListItemTitle dir="auto">{{ dataset.name }}</span>
+              <span matListItemLine>
+                {{ 'architect.train.rows' | t: { count: count(dataset.rows) } }}
+                @if (dataset.hasThinking) {
+                  · {{ 'architect.train.hasThinking' | t }}
+                }
+              </span>
+            </mat-list-option>
+          }
+        </mat-selection-list>
+
+        @if (chosenDatasets().length > 0) {
+          <ul class="train__limits">
+            @for (dataset of chosenDatasets(); track dataset.id) {
+              <li class="train__limit">
+                <span class="train__limit-name" dir="auto">{{ dataset.name }}</span>
+                <mat-form-field subscriptSizing="dynamic">
+                  <mat-label>{{ 'architect.train.limit' | t }}</mat-label>
+                  <input
+                    matInput
+                    type="number"
+                    inputmode="numeric"
+                    step="1"
+                    min="1"
+                    autocomplete="off"
+                    [name]="'limit-' + dataset.id"
+                    [attr.aria-label]="'architect.train.limitFor' | t: { name: dataset.name }"
+                    [errorStateMatcher]="limitMatcher(dataset.id)"
+                    [ngModel]="limits()[dataset.id] ?? null"
+                    (ngModelChange)="setLimit(dataset.id, $event)"
+                  />
+                  <mat-hint>{{ 'architect.train.limitHint' | t }}</mat-hint>
+                  <mat-error>{{ 'architect.train.limitError' | t }}</mat-error>
+                </mat-form-field>
+              </li>
+            }
+          </ul>
+        }
+      }
+
+    </section>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    @if (nothingChosen() && !nothingAvailable() && !loading()) {
+      <p class="train__pick text-secondary" id="train-pick">{{ 'architect.train.pick' | t }}</p>
+    }
+    <button matButton type="button" mat-dialog-close>{{ 'actions.cancel' | t }}</button>
+    <button
+      matButton="filled"
+      type="submit"
+      [disabled]="!canTrain()"
+      [attr.aria-busy]="training()"
+      [attr.aria-describedby]="nothingChosen() ? 'train-pick' : null"
+    >
+      <mat-icon fontIcon="fa-play" class="mat-icon-rtl-mirror" />
+      {{ (training() ? 'architect.train.working' : 'architect.train.submit') | t }}
+    </button>
+  </mat-dialog-actions>
+</form>

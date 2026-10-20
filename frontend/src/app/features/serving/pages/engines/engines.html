@@ -1,0 +1,34 @@
+<header class="engines__header">
+  <h1>{{ 'serving.title' | t }}</h1>
+  <p class="text-secondary">
+    {{ 'serving.subtitle' | t }}
+    <app-term key="engine" />
+  </p>
+</header>
+
+@if (error(); as failure) {
+  <app-note kind="error">{{ failure.message }}</app-note>
+  @if (!loaded()) {
+    <div>
+      <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
+    </div>
+  }
+}
+
+<div class="engines__engines" [attr.aria-busy]="loading()">
+  @if (loading() && !loaded()) {
+    <mat-progress-bar mode="indeterminate" [attr.aria-label]="'serving.loading' | t" />
+  }
+
+  @if (builtin(); as engine) {
+    <app-builtin-engine [engine]="engine" />
+  }
+
+  @if (loaded()) {
+    <app-other-engines />
+  }
+</div>
+
+<app-api-keys />
+
+<app-connect-guide />

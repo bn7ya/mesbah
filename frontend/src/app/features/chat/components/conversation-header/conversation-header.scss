@@ -1,0 +1,86 @@
+@use "layout" as *;
+
+:host {
+  display: block;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+  padding: var(--app-space-3) var(--app-space-4);
+  border-block-end: var(--app-hairline) solid var(--mat-sys-outline-variant);
+}
+
+.head__title {
+  display: flex;
+  gap: var(--app-space-1);
+  align-items: center;
+  min-inline-size: 0;
+}
+
+.head__name {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.head__rename {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+  align-items: center;
+}
+
+.head__rename-field {
+  flex: 1;
+  min-inline-size: $column-min;
+}
+
+.head__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2) var(--app-space-4);
+  align-items: center;
+}
+
+.head__select {
+  flex: 1;
+  min-inline-size: $column-min;
+  max-inline-size: $card-max;
+}
+
+.head__label {
+  display: inline-flex;
+  gap: var(--app-space-2);
+}
+
+.head__thinking {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+  align-items: center;
+}
+
+.head__reason {
+  font: var(--mat-sys-body-medium);
+}
+
+.head__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-5);
+  margin: 0;
+
+  div {
+    display: flex;
+    gap: var(--app-space-2);
+    align-items: center;
+  }
+
+  dd {
+    margin: 0;
+  }
+}

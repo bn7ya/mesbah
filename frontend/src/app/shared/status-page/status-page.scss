@@ -1,0 +1,28 @@
+@use "layout" as *;
+
+:host {
+  display: flex;
+  flex: 1;
+}
+
+.status-page {
+  display: flex;
+  inline-size: 100%;
+  margin-block: auto;
+}
+
+.status-page__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+  align-items: center;
+  inline-size: 100%;
+  max-inline-size: $card-max;
+  padding: var(--app-space-7);
+  margin-inline: auto;
+  text-align: center;
+}
+
+.status-page__action {
+  margin-block-start: var(--app-space-4);
+}

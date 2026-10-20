@@ -1,0 +1,123 @@
+<h2 mat-dialog-title>
+  {{ (editing ? 'serving.form.editTitle' : 'serving.form.connectTitle') | t: { name: engine?.name ?? '' } }}
+</h2>
+
+<form novalidate (ngSubmit)="submit()">
+  <mat-dialog-content class="form">
+    @if (failure(); as error) {
+      <app-note kind="error">{{ error.message }}</app-note>
+    }
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'serving.form.name' | t }}</mat-label>
+      <input
+        matInput
+        name="name"
+        dir="auto"
+        autocomplete="off"
+        [maxlength]="nameMax"
+        [errorStateMatcher]="nameErrors"
+        [ngModel]="name()"
+        (ngModelChange)="name.set($event)"
+      />
+      <mat-error>{{ 'serving.form.nameRequired' | t }}</mat-error>
+    </mat-form-field>
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'serving.form.kind' | t }}</mat-label>
+      <mat-select name="kind" [value]="kind()" [disabled]="editing" (valueChange)="kind.set($event)">
+        @for (option of kinds; track option) {
+          <mat-option [value]="option">{{ 'serving.kinds.' + option + '.name' | t }}</mat-option>
+        }
+      </mat-select>
+      <mat-hint>{{ 'serving.kinds.' + kind() + '.explain' | t }}</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'serving.form.address' | t }}</mat-label>
+      <input
+        matInput
+        name="address"
+        type="url"
+        dir="ltr"
+        autocomplete="off"
+        [errorStateMatcher]="addressErrors"
+        [ngModel]="address()"
+        (ngModelChange)="address.set($event)"
+      />
+      <mat-hint>
+        {{ 'serving.form.addressHint' | t }}
+        <span dir="ltr">{{ exampleAddress }}</span>
+      </mat-hint>
+      <mat-error>{{ 'serving.form.addressInvalid' | t }}</mat-error>
+    </mat-form-field>
+
+    @if (usesModelName()) {
+      <mat-form-field subscriptSizing="dynamic">
+        <mat-label>{{ 'serving.form.modelName' | t }}</mat-label>
+        <input
+          matInput
+          name="modelName"
+          dir="ltr"
+          autocomplete="off"
+          [ngModel]="modelName()"
+          (ngModelChange)="modelName.set($event)"
+        />
+        <mat-hint>{{ 'serving.form.modelNameHint' | t }}</mat-hint>
+      </mat-form-field>
+    }
+
+    <mat-form-field subscriptSizing="dynamic">
+      <mat-label>{{ 'serving.form.apiKey' | t }}</mat-label>
+      <input
+        matInput
+        name="apiKey"
+        dir="ltr"
+        autocomplete="new-password"
+        type="password"
+        [disabled]="removeKey()"
+        [ngModel]="apiKey()"
+        (ngModelChange)="apiKey.set($event)"
+      />
+      <mat-hint>{{ (keySaved ? 'serving.form.apiKeySaved' : 'serving.form.apiKeyNone') | t }}</mat-hint>
+    </mat-form-field>
+
+    @if (keySaved) {
+      @if (removeKey()) {
+        <app-note live>{{ 'serving.form.keyRemoved' | t }}</app-note>
+        <div>
+          <button matButton type="button" (click)="removeKey.set(false)">{{ 'serving.form.keepKey' | t }}</button>
+        </div>
+      } @else {
+        <div>
+          <button matButton type="button" (click)="removeKey.set(true)">
+            <mat-icon fontIcon="fa-key" />
+            {{ 'serving.form.removeKey' | t }}
+          </button>
+        </div>
+      }
+    }
+
+    <mat-slide-toggle
+      [checked]="makeDefault()"
+      [disabled]="defaultLocked"
+      (change)="makeDefault.set($event.checked)"
+    >
+      {{ 'serving.form.makeDefault' | t }}
+    </mat-slide-toggle>
+    @if (defaultLocked) {
+      <p class="text-secondary form__note">{{ 'serving.form.defaultLocked' | t }}</p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button matButton type="button" [mat-dialog-close]="false">{{ 'actions.cancel' | t }}</button>
+    <button matButton="filled" type="submit" [disabled]="busy()" [attr.aria-busy]="busy()">
+      @if (editing) {
+        {{ (busy() ? 'serving.form.saving' : 'actions.save') | t }}
+      } @else {
+        {{ (busy() ? 'serving.form.connecting' : 'serving.form.connect') | t }}
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

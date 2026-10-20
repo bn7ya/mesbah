@@ -1,0 +1,51 @@
+@use "layout" as *;
+
+:host {
+  display: block;
+}
+
+.chat {
+  block-size: max(32rem, calc(100dvh - 8rem));
+  border: var(--app-hairline) solid var(--mat-sys-outline-variant);
+  border-radius: var(--mat-sys-corner-medium);
+
+  @include from($screen-md) {
+    block-size: max(32rem, calc(100dvh - 20rem));
+  }
+}
+
+.chat__list {
+  inline-size: min(22rem, 90%);
+}
+
+.chat__main {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+}
+
+.chat__choose {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--app-space-2);
+  align-items: center;
+  justify-content: center;
+  padding: var(--app-space-6);
+  text-align: center;
+
+  p {
+    margin: 0;
+  }
+}
+
+.chat__choose-title {
+  font: var(--mat-sys-title-medium);
+}
+
+.chat__failure-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+  justify-content: center;
+}

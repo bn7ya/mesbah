@@ -1,9 +1,33 @@
 {
   "/api": {
-    "target": "http://127.0.0.1:8077",
+    "target": "http://backend:8000",
     "secure": false,
-    "ws": true,
-    "changeOrigin": true,
+    "changeOrigin": false,
     "logLevel": "debug"
+  },
+  "/admin": {
+    "target": "http://backend:8000",
+    "secure": false,
+    "changeOrigin": false
+  },
+  "/static": {
+    "target": "http://backend:8000",
+    "secure": false,
+    "changeOrigin": false
+  },
+  "/media": {
+    "target": "http://backend:8000",
+    "secure": false,
+    "changeOrigin": false
+  },
+  "/v1": {
+    "target": "http://backend:8000",
+    "secure": false,
+    "changeOrigin": false
+  },
+  "/ollama": {
+    "target": "http://backend:8000",
+    "secure": false,
+    "changeOrigin": false
   }
 }

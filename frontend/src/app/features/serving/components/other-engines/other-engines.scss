@@ -1,0 +1,121 @@
+@use "layout" as *;
+
+:host {
+  display: block;
+}
+
+.others {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+}
+
+.others__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-4);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.others__heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+
+  h2,
+  p {
+    margin: 0;
+  }
+}
+
+.others__grid {
+  display: grid;
+  gap: var(--app-space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, #{$column-min * 3.6}), 1fr));
+}
+
+.engine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+  block-size: 100%;
+  padding: var(--app-space-5);
+
+  p {
+    margin: 0;
+  }
+}
+
+.engine__top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+}
+
+.engine__name {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.engine__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-4);
+  align-items: center;
+}
+
+.engine__kind {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-1);
+}
+
+.engine__kind-name {
+  font: var(--mat-sys-label-large);
+}
+
+.engine__facts {
+  display: grid;
+  gap: var(--app-space-3) var(--app-space-6);
+  margin: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, #{$column-min * 2}), 1fr));
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-1);
+    min-inline-size: 0;
+  }
+
+  dt {
+    font: var(--mat-sys-label-large);
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    margin: 0;
+    font: var(--mat-sys-body-large);
+    overflow-wrap: anywhere;
+  }
+}
+
+.engine__hint {
+  font: var(--mat-sys-body-medium);
+}
+
+.engine__actions {
+  display: grid;
+  gap: var(--app-space-2);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-items: start;
+  margin-block-start: auto;
+
+  @include from($screen-sm) {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}

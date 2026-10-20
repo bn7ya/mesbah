@@ -1,0 +1,116 @@
+@use "layout" as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-8);
+  max-inline-size: $reading-max;
+}
+
+.dataset__back {
+  margin-block-end: calc(-1 * var(--app-space-4));
+  margin-inline-start: calc(-1 * var(--app-space-3));
+}
+
+.dataset__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+
+  h1,
+  p {
+    margin: 0;
+  }
+
+  h1 {
+    overflow-wrap: anywhere;
+  }
+}
+
+.dataset__eyebrow {
+  font: var(--mat-sys-label-large);
+}
+
+.dataset__description {
+  white-space: pre-wrap;
+}
+
+.dataset__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-2);
+  margin-block-start: var(--app-space-2);
+}
+
+.dataset__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-3);
+
+  h2,
+  p {
+    margin: 0;
+  }
+}
+
+.dataset__facts {
+  display: grid;
+  gap: var(--app-space-4) var(--app-space-5);
+  margin: 0;
+
+  @include from($screen-sm) {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  @include from($screen-lg) {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  div {
+    display: flex;
+    flex-direction: column;
+    gap: var(--app-space-1);
+    min-inline-size: 0;
+  }
+
+  dt {
+    display: flex;
+    align-items: center;
+    min-block-size: calc(var(--app-icon-box) + var(--app-space-2));
+    font: var(--mat-sys-label-large);
+    color: var(--mat-sys-on-surface-variant);
+  }
+
+  dd {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--app-space-1) var(--app-space-2);
+    align-items: center;
+    margin: 0;
+    font: var(--mat-sys-body-large);
+    overflow-wrap: anywhere;
+  }
+}
+
+.dataset__wide {
+  grid-column: 1 / -1;
+}
+
+.dataset__facts code {
+  font-size: var(--mat-sys-body-medium-size);
+  overflow-wrap: anywhere;
+}
+
+.dataset__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-7);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+
+  li + li {
+    padding-block-start: var(--app-space-7);
+    border-block-start: var(--app-hairline) solid var(--mat-sys-outline-variant);
+  }
+}

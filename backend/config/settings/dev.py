@@ -1,10 +1,7 @@
-"""Development settings.
+from typing import Any
 
-Served by `runserver` behind the Angular dev-server proxy, so the browser
-only ever talks to localhost:4200 — same-origin, no CORS configuration
-needed.
-"""
 from django.conf import settings as runtime_settings
+from django.http import HttpRequest
 
 from .base import *  # noqa: F403
 from .base import INSTALLED_APPS, MIDDLEWARE, env
@@ -15,31 +12,20 @@ SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-only-not-a-secret")  # noqa: S105
 
 ALLOWED_HOSTS = ["*"]
 
-# django-debug-toolbar. Docker gives containers arbitrary IPs, so the usual
-# INTERNAL_IPS check is useless here and is replaced with a DEBUG check.
 INSTALLED_APPS = [*INSTALLED_APPS, "debug_toolbar"]
 
-# WhiteNoise is a production concern: runserver's staticfiles app already
-# serves /static/ in development, and without a collectstatic run WhiteNoise
-# warns about the missing directory on every request.
 MIDDLEWARE = [
     "debug_toolbar.middleware.DebugToolbarMiddleware",
     *(m for m in MIDDLEWARE if "whitenoise" not in m),
 ]
 
 
-def show_debug_toolbar(request) -> bool:
-    """Show the toolbar only when DEBUG is on, read at request time.
-
-    A test runner may flip `DEBUG = False` after this module is imported, so
-    a module-level check would still be True under pytest.
-    """
+def show_debug_toolbar(request: HttpRequest) -> bool:
     return runtime_settings.DEBUG
 
 
-DEBUG_TOOLBAR_CONFIG = {"SHOW_TOOLBAR_CALLBACK": show_debug_toolbar}
+DEBUG_TOOLBAR_CONFIG: dict[str, Any] = {"SHOW_TOOLBAR_CALLBACK": show_debug_toolbar}
 
-# Browsable API, for poking at endpoints without leaving the browser.
 REST_FRAMEWORK = {  # noqa: F405
     **REST_FRAMEWORK,  # noqa: F405
     "DEFAULT_RENDERER_CLASSES": [
@@ -48,9 +34,10 @@ REST_FRAMEWORK = {  # noqa: F405
     ],
 }
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND: str = "django.core.mail.backends.console.EmailBackend"
 
-# Uncompressed static files, so a changed file is visible without a rebuild.
+DBS_BACKUP_PREFIX: str = "dev"
+
 STORAGES = {  # noqa: F405
     **STORAGES,  # noqa: F405
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},

@@ -1,0 +1,36 @@
+<article class="conversation">
+  <p class="conversation__number text-secondary">{{ 'datasets.conversation.number' | t: { number: number() } }}</p>
+
+  @if (conversation().messages.length === 0) {
+    <div class="conversation__text">
+      <p class="conversation__role">
+        <mat-icon fontIcon="fa-align-left" />
+        {{ 'datasets.conversation.text' | t }}
+      </p>
+      <p class="conversation__content" dir="auto">{{ conversation().text }}</p>
+    </div>
+  }
+
+  @for (message of conversation().messages; track $index) {
+    <div class="conversation__turn" [class]="'conversation__turn--' + message.role">
+      <p class="conversation__role">
+        <mat-icon [fontIcon]="message.role === 'assistant' ? 'fa-robot' : message.role === 'user' ? 'fa-user' : 'fa-gear'" />
+        {{ 'datasets.conversation.roles.' + message.role | t }}
+      </p>
+
+      @if (message.thinking) {
+        <mat-expansion-panel class="conversation__thinking">
+          <mat-expansion-panel-header>
+            <mat-panel-title>
+              <mat-icon fontIcon="fa-brain" />
+              {{ 'datasets.conversation.thinking' | t }}
+            </mat-panel-title>
+          </mat-expansion-panel-header>
+          <p class="conversation__content" dir="auto">{{ message.thinking }}</p>
+        </mat-expansion-panel>
+      }
+
+      <p class="conversation__content" dir="auto">{{ message.content }}</p>
+    </div>
+  }
+</article>

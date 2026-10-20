@@ -1,0 +1,310 @@
+name: Release bundle
+
+# Everything a release must pass (ADR-010): CI itself, the wheel built and started on every
+# supported Python, the contracts against the last release, the journeys in both directions
+# against that wheel, and the upgrade from the last release. Every part lands in one reference
+# tarball. `release.yml` calls it on every tag and it blocks the release; it also runs nightly
+# on main and reports.
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: "The release tag being made; empty for a nightly"
+        type: string
+        default: ""
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bundle-${{ inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    name: Build the wheel
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      previous: ${{ steps.version.outputs.previous }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # A candidate is stamped from its tag; a nightly is X.Y.Z.devN of the version main is
+      # preparing. Either way the commit itself holds X.Y.Z.
+      - name: Stamp the version
+        id: version
+        working-directory: backend
+        env:
+          TAG: ${{ inputs.tag }}
+          RUN: ${{ github.run_number }}
+        run: |
+          final="$(python -m tools.release.version check)"
+          if [ -n "$TAG" ]; then
+            python -m tools.release.version check --tag "$TAG"
+            python -m tools.release.version stamp --tag "$TAG"
+            tag="$TAG"
+          else
+            python -m tools.release.version stamp --dev "$RUN"
+            tag="v$final"
+          fi
+          version="$(sed -n 's/^__version__: str = "\(.*\)"$/\1/p' mesbah/__init__.py)"
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+            echo "previous=$(python -m tools.release.tags previous "$tag")"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build the frontend, the wheel and the source archive
+        run: |
+          pip install "build>=1.3,<2" "twine>=6,<7"
+          python backend/tools/build_wheel.py
+          twine check --strict backend/dist/*
+          (cd backend/dist && sha256sum * > SHA256SUMS)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: backend/dist/
+
+  smoke:
+    name: Start the wheel on Python ${{ matrix.python }}
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install it where nothing else is, and start it
+        shell: bash
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          python -m venv "$RUNNER_TEMP/clean"
+          "$RUNNER_TEMP/clean/bin/pip" install dist/*.whl
+          "$RUNNER_TEMP/clean/bin/mesbah" --version | grep -F "mesbah $VERSION"
+          "$RUNNER_TEMP/clean/bin/mesbah" doctor
+          "$RUNNER_TEMP/clean/bin/mesbah" --data-dir "$RUNNER_TEMP/data" start --no-browser &
+          mesbah=$!
+          for attempt in $(seq 1 90); do
+            curl -fs http://127.0.0.1:8077/api/health/ && break
+            sleep 2
+          done
+          curl -fs http://127.0.0.1:8077/api/auth/setup/ | grep '"needed":true'
+          curl -fs http://127.0.0.1:8077/projects | grep '<app-root>'
+          kill -TERM "$mesbah"
+          wait "$mesbah"
+      - name: The source archive installs too
+        if: matrix.python == '3.13'
+        shell: bash
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          python -m venv "$RUNNER_TEMP/from-source"
+          "$RUNNER_TEMP/from-source/bin/pip" install dist/*.tar.gz
+          "$RUNNER_TEMP/from-source/bin/mesbah" --version | grep -F "mesbah $VERSION"
+
+  contracts:
+    name: Contracts against the last release
+    needs: build
+    if: needs.build.outputs.previous != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # On a tag a change larger than the bump fails the release; at night it is only reported.
+      - name: Compare and check the bump
+        working-directory: backend
+        env:
+          PREVIOUS: ${{ needs.build.outputs.previous }}
+          TAG: ${{ needs.build.outputs.tag }}
+          REPORT_ONLY: ${{ inputs.tag == '' && '--report-only' || '' }}
+        run: |
+          python -m tools.release.contracts --previous "$PREVIOUS" --tag "$TAG" \
+            --out "$GITHUB_WORKSPACE/reports/contracts" $REPORT_ONLY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contracts
+          path: reports/contracts/
+
+  e2e:
+    name: Journeys, in English and Arabic
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      # The wheel runs Mesbah; the checkout's dev environment runs the fake engine and the stack.
+      - name: Install the wheel and the tools
+        run: |
+          python -m venv "$RUNNER_TEMP/wheel"
+          "$RUNNER_TEMP/wheel/bin/pip" install dist/*.whl
+          pip install "uv>=0.9,<1"
+          uv pip install --system -r backend/pyproject.toml --extra dev
+      - name: Install the browser
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Run the journeys
+        working-directory: frontend
+        env:
+          CI: "1"
+          E2E_PYTHON: python
+          E2E_MESBAH: ${{ runner.temp }}/wheel/bin/mesbah
+          E2E_RESULTS: ${{ github.workspace }}/reports/e2e
+        run: npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e
+          path: |
+            reports/e2e/
+            !reports/e2e/data/
+            !reports/e2e/auth/
+
+  upgrade:
+    name: Upgrade from the last release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Install the tools
+        run: |
+          pip install "uv>=0.9,<1"
+          uv pip install --system -r backend/pyproject.toml --extra dev
+      - name: Seed the last release, upgrade it, check it
+        working-directory: backend
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m tools.release.upgrade --new "$(ls "$GITHUB_WORKSPACE"/dist/*.whl)" \
+            --work "$GITHUB_WORKSPACE/reports/upgrade"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: upgrade
+          path: |
+            reports/upgrade/
+            !reports/upgrade/venv/
+            !reports/upgrade/data/
+            !reports/upgrade/previous/
+            !reports/upgrade/seed/
+
+  reference:
+    name: The reference artifact
+    needs: [gate, build, smoke, contracts, e2e, upgrade]
+    if: always() && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          path: reports/
+      # Fails, after packing everything, when any part did not pass.
+      - name: Pack it
+        working-directory: backend
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          TAG: ${{ needs.build.outputs.tag }}
+          PREVIOUS: ${{ needs.build.outputs.previous }}
+          SHA: ${{ github.sha }}
+          GATE: ${{ needs.gate.result }}
+          SMOKE: ${{ needs.smoke.result }}
+          CONTRACTS: ${{ needs.contracts.result }}
+          E2E: ${{ needs.e2e.result }}
+          UPGRADE: ${{ needs.upgrade.result }}
+        run: |
+          reports="$GITHUB_WORKSPACE/reports"
+          python -m tools.release.reference --version "$VERSION" \
+            --out "$reports/out/mesbah-${TAG#v}-reference.tar.gz" \
+            --part "dist=$reports/dist" --part "contracts=$GITHUB_WORKSPACE/backend/contracts" \
+            --part "compare=$reports/contracts" --part "e2e=$reports/e2e" \
+            --part "upgrade=$reports/upgrade" \
+            --result "gate=$GATE" --result "smoke=$SMOKE" --result "contracts=$CONTRACTS" \
+            --result "e2e=$E2E" --result "upgrade=$UPGRADE" \
+            --note "sha=$SHA" --note "tag=$TAG" --note "previous=$PREVIOUS"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reference
+          path: reports/out/
+          retention-days: ${{ inputs.tag == '' && 14 || 90 }}
+
+  nightly-failed:
+    name: Say the nightly failed
+    needs: reference
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Open the issue, or add to the open one
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          open="$(gh issue list --label nightly-failure --state open --json number --jq '.[0].number')"
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --body "It failed again: $RUN"
+          else
+            gh label create nightly-failure --color B60205 --force
+            gh issue create --title "The nightly release bundle failed" --label nightly-failure \
+              --body "The release bundle failed on main: $RUN. A release tag would fail the same way."
+          fi

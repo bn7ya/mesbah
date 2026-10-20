@@ -1,0 +1,79 @@
+<section class="list" aria-labelledby="chat-list-heading">
+  <div class="list__head">
+    <h2 id="chat-list-heading">{{ 'chat.list.title' | t }}</h2>
+    @if (canWrite()) {
+      <button
+        matButton="filled"
+        type="button"
+        [disabled]="creating()"
+        [attr.aria-busy]="creating()"
+        (click)="create()"
+      >
+        <mat-icon fontIcon="fa-plus" />
+        {{ (creating() ? 'chat.list.creating' : 'chat.list.new') | t }}
+      </button>
+    }
+  </div>
+
+  @if (loading() && items().length === 0) {
+    <mat-progress-bar mode="indeterminate" [attr.aria-label]="'chat.list.loading' | t" />
+  }
+
+  @if (error(); as failure) {
+    <app-note kind="error">{{ failure.message }}</app-note>
+    <div>
+      <button matButton type="button" (click)="tryAgain()">{{ 'actions.retry' | t }}</button>
+    </div>
+  }
+
+  @if (items().length > 0) {
+    <mat-nav-list [attr.aria-label]="'chat.list.title' | t">
+      @for (conversation of items(); track conversation.id) {
+        <div class="list__row">
+          <a
+            mat-list-item
+            class="list__link"
+            [routerLink]="['/projects', projectId(), 'chat', conversation.id]"
+            [activated]="conversation.id === activeId()"
+            [attr.aria-current]="conversation.id === activeId() ? 'page' : null"
+            (click)="chosen.emit()"
+          >
+            <span matListItemTitle><span dir="auto">{{ title(conversation) }}</span></span>
+            <span matListItemLine>{{ conversation.updated_at | datetime: 'medium' }}</span>
+            <span matListItemLine>{{ 'chat.list.messages' | t: { count: count(conversation) } }}</span>
+          </a>
+          @if (canWrite()) {
+            <button
+              matIconButton
+              type="button"
+              [disabled]="removing().includes(conversation.id)"
+              [attr.aria-label]="'chat.list.remove' | t: { title: title(conversation) }"
+              (click)="remove(conversation)"
+            >
+              <mat-icon fontIcon="fa-trash" />
+            </button>
+          }
+        </div>
+      }
+    </mat-nav-list>
+
+    @if (hasMore()) {
+      <div>
+        <button matButton type="button" [disabled]="loading()" (click)="more()">
+          {{ 'chat.list.more' | t }}
+        </button>
+      </div>
+    }
+  } @else if (empty()) {
+    <div class="list__empty">
+      <mat-icon fontIcon="fa-comments" />
+      <p class="list__empty-title">{{ 'chat.list.emptyTitle' | t }}</p>
+      <p class="text-secondary">{{ (canWrite() ? 'chat.list.emptyWrite' : 'chat.list.emptyRead') | t }}</p>
+      <p class="list__terms text-secondary">
+        <span>{{ 'chat.list.terms' | t }}</span>
+        <app-term key="approved" />
+        <app-term key="thinking" />
+      </p>
+    </div>
+  }
+</section>

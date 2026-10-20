@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
 """Stop hook: keep feature memory in sync with feature code.
 
-Mesbah's own root CLAUDE.md says every feature directory carries a
-CLAUDE.md, updated whenever the feature changes -- on both the live FastAPI
-backend (backend/app/features/) and the Angular frontend
-(frontend/src/app/features/), plus the Django migration target
-(backend/apps/, apps/common excepted per its own CLAUDE.md). This hook
-reads the session transcript, works out which feature directories were
-written to this turn, and blocks the stop if any of them has a missing or
-stale CLAUDE.md.
+Rule 3 says every feature directory carries a CLAUDE.md, and that it is updated
+whenever the feature changes. This hook reads the session transcript, works out
+which feature directories were written to this turn, and blocks the stop if any
+of them has a missing or stale CLAUDE.md.
 
-Stale means: a source file in the feature was modified during this turn but
-the feature's CLAUDE.md was not.
+Stale means: a source file in the feature was modified during this turn but the
+feature's CLAUDE.md was not.
 """
 
 from __future__ import annotations
@@ -26,8 +22,7 @@ from session_registry import project_root
 
 FEATURE_ROOTS = (
     ("frontend", "src", "app", "features"),
-    ("backend", "app", "features"),   # live FastAPI backend
-    ("backend", "apps"),              # Django migration target
+    ("backend", "apps"),
 )
 IGNORED_APPS = {"common"}
 WRITE_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
@@ -126,8 +121,7 @@ def main() -> int:
         return 0
 
     lines = [
-        "Feature memory is out of sync (root CLAUDE.md: every feature",
-        "directory carries a CLAUDE.md).",
+        "Feature memory is out of sync (rule 3 in CLAUDE.md).",
         "",
         "You changed these features but their CLAUDE.md was not written:",
         "",
@@ -138,9 +132,8 @@ def main() -> int:
     lines += [
         "",
         "Write or update each one, then finish. A feature's CLAUDE.md should record",
-        "what the feature does, its slice counterpart on the other side (if any),",
-        "its routes and endpoints, and any decision a future session would",
-        "otherwise re-litigate.",
+        "what the feature does, its slice counterpart on the other side, its routes",
+        "and endpoints, and any decision a future session would otherwise re-litigate.",
     ]
 
     print("\n".join(lines), file=sys.stderr)

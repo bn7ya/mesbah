@@ -1,0 +1,299 @@
+{
+  "architect": {
+    "title": "Model designer",
+    "subtitle": "Design a new model and train it from nothing, on approved replies and datasets.",
+    "start": {
+      "title": "Start from",
+      "presets": "Ready-made designs",
+      "saved": "Saved designs"
+    },
+    "preset": {
+      "tiny": "Tiny, for testing",
+      "dense_100m": "Decoder, small",
+      "dense_500m": "Decoder, medium",
+      "moe_1b": "Mixture of experts",
+      "t5_60m": "Encoder-decoder, small",
+      "parameters": "Parameters: {count}",
+      "active": "Used for each token: {count}",
+      "use": "Use",
+      "useFor": "Use {name} as the starting point",
+      "loaded": "In the designer",
+      "loading": "Loading the ready-made designs"
+    },
+    "drafts": {
+      "loading": "Loading the saved designs",
+      "pages": "Pages of saved designs",
+      "empty": "No saved designs yet.",
+      "emptyWrite": "Save a design from the designer and it appears here.",
+      "emptyRead": "A trainer or an administrator can save designs.",
+      "changed": "Updated: {date}",
+      "current": "In the designer",
+      "open": "Open",
+      "openFor": "Open {name}",
+      "rename": "Rename",
+      "renameFor": "Rename {name}",
+      "remove": "Remove",
+      "removeFor": "Remove {name}"
+    },
+    "remove": {
+      "title": "Remove {name}?",
+      "body": "The saved design is removed. Models already trained from it aren't affected.",
+      "confirm": "Remove"
+    },
+    "discard": {
+      "title": "Discard the unsaved changes?",
+      "body": "The designer holds changes that aren't saved. Continuing replaces them.",
+      "confirm": "Discard"
+    },
+    "design": {
+      "title": "Design",
+      "fromPreset": "Started from:",
+      "fromDraft": "Saved design:",
+      "fresh": "A new design, not saved yet.",
+      "unsaved": "Unsaved changes",
+      "readOnly": "Only a trainer or an administrator can save a design or train it."
+    },
+    "actions": {
+      "save": "Save",
+      "train": "Train model"
+    },
+    "family": {
+      "title": "Kind of model",
+      "dense_decoder": {
+        "name": "Decoder",
+        "about": "Writes text one token at a time. This is how chat models work."
+      },
+      "moe_decoder": {
+        "name": "Mixture of experts",
+        "about": "Holds many specialist blocks and uses only a few for each token. It is large but cheap to run."
+      },
+      "encoder_decoder": {
+        "name": "Encoder-decoder",
+        "about": "Reads the whole input first, then writes the answer. T5 works this way."
+      }
+    },
+    "group": {
+      "shape": {
+        "title": "Shape"
+      },
+      "attention": {
+        "intro": "Attention connects each token to the ones before it. Each head follows its own pattern."
+      },
+      "feed_forward": {
+        "intro": "Processes each token on its own after attention. Most of a model's parameters sit here.",
+        "introMoe": "Each layer holds many experts. A router picks a few of them for each token."
+      },
+      "vocabulary": {
+        "title": "Vocabulary and context"
+      },
+      "tokenizer": {
+        "intro": "The new model reuses the tokenizer of a published model, so it reads text the same way. Training needs one."
+      },
+      "training": {
+        "title": "Training step",
+        "intro": "The length of each example and how many go through each step. They set the memory training needs."
+      }
+    },
+    "field": {
+      "range": "From {min} to {max}.",
+      "layers": {
+        "label": "Layers",
+        "hint": "Blocks stacked one after another. More layers make a deeper model."
+      },
+      "encoder_layers": {
+        "label": "Encoder layers",
+        "hint": "Blocks that read the input."
+      },
+      "decoder_layers": {
+        "label": "Decoder layers",
+        "hint": "Blocks that write the output."
+      },
+      "hidden_size": {
+        "label": "Hidden size",
+        "hint": "How many numbers describe each token inside the model."
+      },
+      "heads": {
+        "label": "Attention heads",
+        "hint": "The hidden size must divide evenly by this number."
+      },
+      "kv_heads": {
+        "label": "Key-value heads",
+        "hint": "Heads share keys and values to save memory. Leave empty for no sharing."
+      },
+      "intermediate_size": {
+        "label": "Feed-forward width",
+        "hint": "The width of the feed-forward block in each layer.",
+        "labelMoe": "Width of each expert",
+        "hintMoe": "The width of the feed-forward block in one expert."
+      },
+      "experts": {
+        "label": "Experts",
+        "hint": "How many experts each layer holds."
+      },
+      "experts_per_token": {
+        "label": "Experts for each token",
+        "hint": "How many experts each token uses. No more than the experts."
+      },
+      "vocab_size": {
+        "label": "Vocabulary size",
+        "hint": "How many different tokens the model knows. A number below the tokenizer's is raised to match."
+      },
+      "context_length": {
+        "label": "Context length",
+        "hint": "The longest text the model can keep in view, counted in tokens."
+      },
+      "tie_embeddings": {
+        "label": "Share the vocabulary table with the output",
+        "hint": "The same numbers read tokens in and write them out. This saves parameters."
+      },
+      "seq_len": {
+        "label": "Sequence length",
+        "hint": "The length of each training example, in tokens."
+      },
+      "batch": {
+        "label": "Batch size",
+        "hint": "How many examples go through together in each step."
+      },
+      "tokenizer": {
+        "label": "Tokenizer",
+        "hint": "The name of a published model on HuggingFace, such as Qwen/Qwen3-0.6B."
+      }
+    },
+    "vocabulary": {
+      "raised": "The tokenizer of {tokenizer} has a vocabulary size of {tokens}. The counts below use that size."
+    },
+    "error": {
+      "range": "Enter a whole number from {min} to {max}.",
+      "kvNotDivisible": "The attention heads must divide evenly by the key-value heads."
+    },
+    "results": {
+      "title": "Size and memory",
+      "working": "Calculating the size and memory",
+      "fix": "This design can't be built yet. Fix the fields that show a message."
+    },
+    "breakdown": {
+      "where": "Where the parameters are",
+      "active": "Each token uses {active} of {total}.",
+      "allActive": "All of them work on every token.",
+      "embeddings_dominate": "The vocabulary table makes up {share} of this model. More layers or a wider model would make it more capable for the same size."
+    },
+    "memory": {
+      "title": "Memory to train it here",
+      "intro": "What training needs on this machine, with each kind of optimizer.",
+      "needed": "Needed in total",
+      "adamw": "AdamW",
+      "adamw8": "8-bit Adam",
+      "verdict": {
+        "fits": "Fits",
+        "tight": "Tight",
+        "too_large": "Too large",
+        "cpu_only": "CPU only",
+        "unknown": "Unknown"
+      },
+      "noGpu": "No GPU found. Training runs on the CPU, which is very slow.",
+      "available": "available to Mesbah: {size}",
+      "weights": "The finished model takes {size} in half precision.",
+      "runtime": "Training software"
+    },
+    "save": {
+      "saveTitle": "Save the design",
+      "renameTitle": "Rename the design",
+      "name": "Name",
+      "nameRequired": "Enter a name.",
+      "notes": "Notes",
+      "notesHint": "Optional. What the design is for.",
+      "submit": "Save",
+      "working": "Saving…"
+    },
+    "report": {
+      "saved": "Design saved.",
+      "renamed": "Design renamed.",
+      "removed": "Design removed."
+    },
+    "train": {
+      "title": "Train from nothing",
+      "intro": "A new project holds the model. The model learns from the approved replies and datasets you choose.",
+      "name": "Name of the new project",
+      "nameRequired": "Enter a name.",
+      "nameHint": "The trained model becomes this project's base model.",
+      "sources": "Learn from",
+      "projects": "Approved replies from projects",
+      "datasets": "Datasets",
+      "loading": "Loading the projects",
+      "replies": "Approved replies: {count}",
+      "none": "No approved replies yet.",
+      "unknown": "The replies couldn't be counted.",
+      "selected": "Approved replies chosen: {count}",
+      "pick": "Choose at least one project or dataset.",
+      "expectation": "Training from nothing needs far more examples than customizing an existing model. A small model trained on few replies will mostly repeat them.",
+      "submit": "Start training",
+      "working": "Starting…",
+      "started": "Training started.",
+      "needSaved": "Save the design first.",
+      "needSaving": "Save the changes first.",
+      "needTokenizer": "Add a tokenizer and save the design.",
+      "rows": "Rows: {count}",
+      "hasThinking": "Includes thinking",
+      "limit": "Row limit",
+      "limitFor": "Row limit for the dataset {name}",
+      "limitHint": "Optional. Leave empty to use every row.",
+      "limitError": "Enter a whole number of 1 or more.",
+      "nothing": "Nothing to learn from yet. Import a dataset or approve replies in Chat.",
+      "toDatasets": "Go to Datasets"
+    }
+  },
+  "errors": {
+    "design_missing": "This field needs a number.",
+    "design_invalid": "This field needs a whole number.",
+    "design_out_of_range": "This number is outside the allowed range.",
+    "design_not_divisible": "The hidden size must divide evenly by the attention heads.",
+    "design_odd_head_dim": "Each head needs an even width. Choose a hidden size and a number of heads that give one.",
+    "design_too_many_active_experts": "A token can't use more experts than the model has.",
+    "design_tied_only": "An encoder-decoder shares its vocabulary table with the output.",
+    "tokenizer_needed": "Add a tokenizer to the design and save it before training.",
+    "nothing_to_learn": "There is nothing to learn from yet. Approve replies in Chat or choose a dataset.",
+    "dataset_not_ready": "The dataset hasn't finished importing. Wait for it to finish or choose another."
+  },
+  "glossary": {
+    "encoder_decoder": {
+      "term": "Encoder-decoder",
+      "explain": "A model in two parts. The encoder reads the whole input, then the decoder writes the output from it. T5 is one."
+    },
+    "kv_heads": {
+      "term": "Key-value heads",
+      "explain": "Grouped attention. Several attention heads share one set of keys and values. This saves memory at little cost in quality."
+    },
+    "experts": {
+      "term": "Experts",
+      "explain": "In a mixture of experts, each layer holds several feed-forward blocks. A router picks a few of them for each token."
+    },
+    "embeddings": {
+      "term": "Vocabulary table",
+      "explain": "Also called embeddings. It turns each token into a list of numbers the model works with. It has one row for every token the model knows."
+    },
+    "router": {
+      "term": "Router",
+      "explain": "In a mixture of experts, the small part that picks the experts each token goes through."
+    },
+    "norms": {
+      "term": "Normalization",
+      "explain": "Small adjustments that keep the numbers inside the model in a steady range. They hold very few parameters."
+    },
+    "lm_head": {
+      "term": "Output layer",
+      "explain": "The final table that turns the model's result into a score for every token. When it is shared with the vocabulary table, it adds no parameters."
+    },
+    "tokenizer": {
+      "term": "Tokenizer",
+      "explain": "Cuts text into tokens and turns each piece into a number. A model must run with the tokenizer it was trained with, so a new model reuses a published one."
+    },
+    "optimizer": {
+      "term": "Optimizer",
+      "explain": "The part of training that adjusts the parameters after each step. It keeps extra numbers for every parameter, so it needs more memory than the model itself. AdamW is the usual one. 8-bit Adam stores those numbers in less space."
+    },
+    "activations": {
+      "term": "Activations",
+      "explain": "Temporary results the model holds while it works through a batch of text. They grow with the batch size and the sequence length."
+    }
+  }
+}

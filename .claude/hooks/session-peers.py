@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """UserPromptSubmit hook: speak only when the live set actually changed.
 
-Session awareness. Two hooks already run on every prompt, one of which prints fifteen
+Rule 28. Two hooks already run on every prompt, one of which prints fifteen
 lines whenever the prompt looks like work. A third talkative hook is how a
 person ends up deleting all three, so this one is silent by default: it hashes
 the live set into a digest, keeps the digest in its own document, and prints

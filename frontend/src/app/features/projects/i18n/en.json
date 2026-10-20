@@ -1,0 +1,95 @@
+{
+  "projects": {
+    "title": "Projects",
+    "subtitle": "A project is one model being customized. It starts from a model in the library and keeps every version trained from it.",
+    "loading": "Loading projects",
+    "pages": "Pages of projects",
+    "activeVersion": "Active version:",
+    "updated": "Updated:",
+    "parameters": "Parameters: {count}",
+    "open": "Open",
+    "openFor": "Open {name}",
+    "noDescription": "No description.",
+    "created": "Project created.",
+    "back": "Projects",
+    "tabs": {
+      "label": "Project pages",
+      "overview": "Overview",
+      "chat": "Chat",
+      "versions": "Versions",
+      "training": "Training"
+    },
+    "empty": {
+      "title": "No projects yet.",
+      "write": "Start a project from a model in the library. Then chat with it, edit its replies and train it.",
+      "noModel": "A project starts from a model downloaded to this machine. Download one first.",
+      "read": "A trainer or an administrator can start projects.",
+      "models": "Go to Models"
+    },
+    "new": {
+      "open": "New project",
+      "title": "New project",
+      "name": "Name",
+      "nameRequired": "Enter a name for the project.",
+      "model": "Base model",
+      "modelRequired": "Choose the base model.",
+      "modelHint": "Models in the library that finished downloading.",
+      "description": "Description",
+      "noModel": "No model is ready.",
+      "noModelBody": "A project starts from a model downloaded to this machine.",
+      "toModels": "Go to Models",
+      "loadingModels": "Loading models",
+      "submit": "Create project",
+      "working": "Creating…"
+    },
+    "overview": {
+      "loading": "Loading the project",
+      "reset": "Reset",
+      "saving": "Saving…",
+      "saved": "Changes saved.",
+      "about": {
+        "title": "About",
+        "name": "Name",
+        "nameRequired": "Enter a name for the project.",
+        "description": "Description",
+        "descriptionNone": "No description.",
+        "baseModel": "Base model",
+        "viewModels": "View models",
+        "created": "Created",
+        "changed": "Updated"
+      },
+      "remove": {
+        "title": "Remove project",
+        "body": "The project and all of its versions are removed. The base model stays in the library.",
+        "open": "Remove project",
+        "confirmTitle": "Remove {name}?",
+        "confirmBody": "The project and all of its versions are removed. The base model stays in the library.",
+        "confirm": "Remove",
+        "done": "Project removed."
+      }
+    },
+    "reply": {
+      "title": "Reply settings",
+      "intro": "Every conversation in this project starts from these settings.",
+      "instructions": "Instructions",
+      "instructionsHint": "Text every conversation starts with, such as the model's role, its tone and the language to answer in. Optional.",
+      "instructionsNone": "No instructions.",
+      "thinking": "Thinking",
+      "thinkingHint": "The model writes out its reasoning before it replies. The reasoning can be read and edited.",
+      "thinkingUnsupported": "This base model doesn't write out its thinking.",
+      "on": "On",
+      "off": "Off",
+      "temperature": "Creativity",
+      "temperatureHint": "Low values give steady replies. High values give more varied ones.",
+      "topP": "Word choice range",
+      "topPHint": "Low values keep to the most likely words. High values allow less common ones.",
+      "maxTokens": "Longest reply",
+      "maxTokensHint": "Counted in tokens. A reply stops when it reaches this length.",
+      "readOnly": "Only a trainer or an administrator can change these settings."
+    }
+  },
+  "errors": {
+    "base_model_not_ready": "The base model isn't ready yet. Wait for its download or training to finish.",
+    "not_found": "That couldn't be found. It may have been removed."
+  }
+}

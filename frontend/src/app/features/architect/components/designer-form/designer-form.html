@@ -1,0 +1,103 @@
+<div class="designer">
+  <section class="designer__block" aria-labelledby="designer-family">
+    <h3 id="designer-family">{{ 'architect.family.title' | t }}</h3>
+
+    <mat-button-toggle-group
+      aria-labelledby="designer-family"
+      [vertical]="!roomy()"
+      [value]="family()"
+      (change)="chooseFamily($event.value)"
+    >
+      @for (option of families; track option) {
+        <mat-button-toggle [value]="option">{{ 'architect.family.' + option + '.name' | t }}</mat-button-toggle>
+      }
+    </mat-button-toggle-group>
+
+    <p class="designer__about" role="status">
+      {{ 'architect.family.' + family() + '.about' | t }}
+      @if (familyTerm(); as key) {
+        <app-term [key]="key" />
+      }
+    </p>
+  </section>
+
+  @for (group of groups(); track group.key) {
+    <section class="designer__block" [attr.aria-labelledby]="'designer-' + group.key">
+      <h3 [id]="'designer-' + group.key">
+        @if (group.termKey) {
+          <app-term [key]="moe() && group.moeTermKey ? group.moeTermKey : group.termKey" />
+        } @else {
+          {{ 'architect.group.' + group.key + '.title' | t }}
+        }
+      </h3>
+
+      @if (group.intro) {
+        <p class="designer__intro text-secondary">{{ 'architect.group.' + group.key + '.intro' + wording(group) | t }}</p>
+      }
+
+      @if (group.key === 'tokenizer') {
+        <mat-form-field subscriptSizing="dynamic">
+          <mat-label>{{ 'architect.field.tokenizer.label' | t }}</mat-label>
+          <input
+            matInput
+            dir="ltr"
+            autocomplete="off"
+            spellcheck="false"
+            [placeholder]="tokenizerExample"
+            [maxlength]="tokenizerMax"
+            [ngModel]="blueprint().tokenizer"
+            (ngModelChange)="setTokenizer($event)"
+          />
+          <mat-hint>{{ 'architect.field.tokenizer.hint' | t }}</mat-hint>
+        </mat-form-field>
+      } @else {
+        <div class="designer__fields">
+          @for (field of group.fields; track field.key) {
+            <mat-form-field subscriptSizing="dynamic">
+              <mat-label>{{ 'architect.field.' + field.key + '.label' + wording(field) | t }}</mat-label>
+              <input
+                matInput
+                type="number"
+                inputmode="numeric"
+                step="1"
+                autocomplete="off"
+                [errorStateMatcher]="matcher(field.key)"
+                [ngModel]="blueprint()[field.key]"
+                (ngModelChange)="setNumber(field.key, $event)"
+              />
+              <mat-hint>{{ 'architect.field.' + field.key + '.hint' + wording(field) | t }} {{ range(field.key) }}</mat-hint>
+              <mat-error>{{ errors()[field.key] }}</mat-error>
+            </mat-form-field>
+          }
+        </div>
+
+        @for (field of group.fields; track field.key) {
+          @if (field.termKey; as termKey) {
+            <p><app-term [key]="termKey" /></p>
+          }
+        }
+
+        @if (group.key === 'vocabulary') {
+          @if (vocabularyNote(); as note) {
+            <app-note>{{ note }}</app-note>
+          }
+        }
+
+        @if (group.key === 'vocabulary' && decoder()) {
+          <div class="designer__tied">
+            <mat-slide-toggle
+              aria-describedby="designer-tied-hint"
+              [checked]="blueprint().tie_embeddings"
+              (change)="setTied($event.checked)"
+            >
+              {{ 'architect.field.tie_embeddings.label' | t }}
+            </mat-slide-toggle>
+            <p class="designer__hint text-secondary" id="designer-tied-hint">
+              {{ 'architect.field.tie_embeddings.hint' | t }}
+            </p>
+          </div>
+        }
+      }
+    </section>
+  }
+</div>

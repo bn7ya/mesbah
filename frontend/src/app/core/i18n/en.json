@@ -1,0 +1,228 @@
+{
+  "app": {
+    "name": "Mesbah",
+    "skipToContent": "Skip to content"
+  },
+  "language": {
+    "label": "Language",
+    "english": "English",
+    "arabic": "العربية"
+  },
+  "auth": {
+    "signIn": {
+      "title": "Sign in",
+      "subtitle": "Enter your details to continue.",
+      "username": "Username",
+      "usernamePlaceholder": "Your username",
+      "password": "Password",
+      "passwordPlaceholder": "Your password",
+      "submit": "Sign in",
+      "working": "Signing in…",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password"
+    },
+    "signOut": "Sign out",
+    "signedInAs": "Signed in as {name}",
+    "errors": {
+      "usernameRequired": "Enter your username.",
+      "passwordRequired": "Enter your password.",
+      "unavailable": "Can't reach the server. Check your connection and try again."
+    },
+    "setup": {
+      "title": "Set up Mesbah",
+      "subtitle": "Create the owner account. The owner is an administrator and can't be deactivated.",
+      "code": "Setup code",
+      "codeHint": "Printed in the terminal where Mesbah started, or in the server log.",
+      "codeRequired": "Enter the setup code.",
+      "name": "Your name",
+      "passwordHint": "At least 8 characters that are hard to guess.",
+      "submit": "Create the owner account",
+      "working": "Creating…"
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Try again.",
+    "notFound": "Page not found.",
+    "notFoundBody": "The link may be out of date, or the page may have moved.",
+    "forbidden": "You don't have access to this.",
+    "forbiddenBody": "Ask an administrator for access.",
+    "goHome": "Go to Projects",
+    "authentication_failed": "That username and password don't match an account.",
+    "account_deactivated": "This account has been deactivated. Contact an administrator.",
+    "setup_code_rejected": "That setup code doesn't match. Copy it again from the terminal.",
+    "setup_done": "Mesbah is already set up. Sign in.",
+    "weak_password": "That password is too easy to guess. Choose a longer or less common one.",
+    "hf_unreachable": "HuggingFace can't be reached right now. Try again later."
+  },
+  "actions": {
+    "cancel": "Cancel",
+    "stop": "Stop",
+    "retry": "Try again",
+    "save": "Save changes"
+  },
+  "money": {
+    "currency": "Omani rials"
+  },
+  "nav": {
+    "label": "Main menu",
+    "open": "Open the menu",
+    "projects": "Projects",
+    "models": "Models",
+    "datasets": "Datasets",
+    "architect": "Model designer",
+    "engines": "Engines",
+    "system": "System",
+    "members": "Members"
+  },
+  "version": {
+    "baseName": "Base model"
+  },
+  "mode": {
+    "label": "Level of detail",
+    "simple": "Simple",
+    "expert": "Expert"
+  },
+  "codeBlock": {
+    "name": "Code"
+  },
+  "meter": {
+    "free": "Free",
+    "ofTotal": "of {total}"
+  },
+  "glossary": {
+    "explainTerm": "Explain: {term}",
+    "gpu": {
+      "term": "GPU",
+      "explain": "The graphics card. It does the heavy math for training and chat much faster than the main processor."
+    },
+    "vram": {
+      "term": "VRAM",
+      "explain": "The memory on the GPU. A model and its training must fit in it, so it decides which models this machine can train."
+    },
+    "ram": {
+      "term": "RAM",
+      "explain": "The computer's main memory. Parts of a model can move here when the GPU is full. That works, but more slowly."
+    },
+    "cpu": {
+      "term": "CPU",
+      "explain": "The computer's main processor. It can run small models, slowly."
+    },
+    "parameters": {
+      "term": "Parameters",
+      "explain": "The numbers a model learned during training. More parameters usually mean a more capable model that needs more memory."
+    },
+    "context": {
+      "term": "Context length",
+      "explain": "How much text the model can keep in view at once, counted in tokens. A longer context fits longer documents and chats."
+    },
+    "thinking": {
+      "term": "Thinking",
+      "explain": "Some models write out their reasoning before the reply. That reasoning can be read and edited."
+    },
+    "qlora": {
+      "term": "QLoRA",
+      "explain": "A way to train a large model on a small GPU. Only a small part is trained, on top of a compressed copy of the model."
+    },
+    "moe": {
+      "term": "MoE",
+      "explain": "Mixture of experts. The model holds many specialist parts and uses only a few for each token, so it runs faster than its size suggests."
+    },
+    "token": {
+      "term": "token",
+      "explain": "A small piece of text, such as a short word or part of a word. Models split all text into tokens and count limits in them."
+    },
+    "temperature": {
+      "term": "Temperature",
+      "explain": "How varied the model's word choices are. A low value gives steady, predictable replies. A high value gives more varied ones."
+    },
+    "top_p": {
+      "term": "top_p",
+      "explain": "Limits the next word to the most likely choices. At 0.9 the model picks only among the most likely words that together cover 90% of the probability. A lower value gives safer replies."
+    },
+    "system_prompt": {
+      "term": "System prompt",
+      "explain": "The instructions every conversation starts with, before anyone types. They set the model's role, tone and rules."
+    },
+    "version": {
+      "term": "Version",
+      "explain": "One saved state of the model. The first is the base model as downloaded. Each training run adds another, stored as a small change on top of the base."
+    },
+    "lora": {
+      "term": "LoRA",
+      "explain": "A way to customize a model by training a small add-on on top of it. A version then needs little disk space and switches quickly."
+    },
+    "delta": {
+      "term": "Change",
+      "explain": "Only what training changed in the model's parameters, stored on its own. The base model isn't copied into the version."
+    },
+    "adapter": {
+      "term": "Adapter",
+      "explain": "The small file that holds a version's change. It is applied on top of the base model when the version runs."
+    },
+    "engine": {
+      "term": "Engine",
+      "explain": "A server that loads a model and answers messages. Mesbah has its own engine and can connect to others."
+    },
+    "quantization": {
+      "term": "Compression",
+      "explain": "Storing the model's numbers with fewer bits, so it takes less memory. Also called quantization. 4-bit needs about a quarter of the memory of 16-bit, with a small loss of quality."
+    },
+    "api_key": {
+      "term": "API key",
+      "explain": "A secret code that lets a tool use Mesbah. It can do whatever the role of its owner allows."
+    },
+    "openai_api": {
+      "term": "OpenAI API",
+      "explain": "The request format many tools and libraries already use. A tool made for it works with Mesbah once you change its address and key."
+    },
+    "gguf": {
+      "term": "GGUF",
+      "explain": "A single-file model format that Ollama and llama.cpp load. A version must be exported to it before Ollama can run it."
+    },
+    "vllm": {
+      "term": "vLLM",
+      "explain": "A fast model server for GPUs. It can run on another machine. Connect it to Mesbah by its address."
+    },
+    "ollama": {
+      "term": "Ollama",
+      "explain": "A program that runs language models on a personal computer. Connect it to Mesbah by its address."
+    },
+    "dataset": {
+      "term": "Dataset",
+      "explain": "A collection of examples a model learns from. Each example is one row, either a conversation or a piece of text."
+    },
+    "subset": {
+      "term": "Subset",
+      "explain": "Some datasets come in several variants, such as one for each language or task. Each variant is a subset."
+    },
+    "split": {
+      "term": "Split",
+      "explain": "A part of a dataset kept for one use, such as train for training or test for checking the result."
+    },
+    "jsonl": {
+      "term": "JSONL",
+      "explain": "A text file with one record on each line. Every dataset is saved this way, one row on each line."
+    },
+    "rank": {
+      "term": "Rank",
+      "explain": "The size of the LoRA add-on. A larger rank can learn more and needs more memory and disk space."
+    },
+    "attention": {
+      "term": "Attention",
+      "explain": "The part of each layer that links every token to the ones before it, to find what matters. Its modules are q_proj, k_proj, v_proj and o_proj."
+    },
+    "feed_forward": {
+      "term": "Feed-forward",
+      "explain": "The part of each layer that processes every token on its own after attention. Most of a model's parameters sit here. Its modules are gate_proj, up_proj and down_proj."
+    }
+  },
+  "paginator": {
+    "perPage": "Per page:",
+    "next": "Next page",
+    "previous": "Previous page",
+    "first": "First page",
+    "last": "Last page",
+    "range": "{from}–{to} of {total}",
+    "empty": "Nothing to show"
+  }
+}

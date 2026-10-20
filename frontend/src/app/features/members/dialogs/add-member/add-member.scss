@@ -1,0 +1,17 @@
+@use "layout" as *;
+
+.add-member {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+  max-inline-size: $card-max;
+}
+
+.add-member__names {
+  display: grid;
+  gap: var(--app-space-4);
+
+  @include from($screen-sm) {
+    grid-template-columns: 1fr 1fr;
+  }
+}

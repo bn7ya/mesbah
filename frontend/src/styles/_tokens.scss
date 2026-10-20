@@ -1,0 +1,28 @@
+:root {
+  --app-space-1: 0.25rem;
+  --app-space-2: 0.5rem;
+  --app-space-3: 0.75rem;
+  --app-space-4: 1rem;
+  --app-space-5: 1.25rem;
+  --app-space-6: 1.5rem;
+  --app-space-7: 2rem;
+  --app-space-8: 2.5rem;
+  --app-space-9: 3rem;
+  --app-space-10: 4rem;
+
+  --app-focus-width: 0.125rem;
+  --app-icon-size: 1.25rem;
+  --app-icon-box: 1.5rem;
+  --app-icon-size-small: 0.875rem;
+  --app-icon-box-small: 1rem;
+  --app-popover-max: 20rem;
+  --app-nav-width: 16rem;
+  --app-hairline: 1px;
+  --app-font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --app-duration-short: 120ms;
+  --app-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  --app-layer-bar: 10;
+  --app-layer-skip-link: 1200;
+}

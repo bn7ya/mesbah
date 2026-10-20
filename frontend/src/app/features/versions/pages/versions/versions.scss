@@ -1,0 +1,33 @@
+@use "layout" as *;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-5);
+  max-inline-size: $reading-max;
+}
+
+.versions__intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+
+  h2,
+  p {
+    margin: 0;
+  }
+}
+
+.versions__terms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--app-space-1) var(--app-space-4);
+  align-items: center;
+  font: var(--mat-sys-body-medium);
+}
+
+.versions__tree {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}

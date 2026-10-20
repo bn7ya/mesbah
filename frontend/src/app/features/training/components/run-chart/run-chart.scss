@@ -1,0 +1,35 @@
+@use "layout" as *;
+
+:host {
+  display: block;
+}
+
+.chart {
+  position: relative;
+  inline-size: 100%;
+  aspect-ratio: 4 / 3;
+
+  @include from($screen-sm) {
+    aspect-ratio: 16 / 7;
+  }
+}
+
+.swatch {
+  display: none;
+}
+
+.swatch--primary {
+  color: var(--mat-sys-primary);
+}
+
+.swatch--tertiary {
+  color: var(--mat-sys-tertiary);
+}
+
+.swatch--grid {
+  color: var(--mat-sys-outline-variant);
+}
+
+.swatch--text {
+  color: var(--mat-sys-on-surface-variant);
+}

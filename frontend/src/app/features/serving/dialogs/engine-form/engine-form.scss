@@ -1,0 +1,13 @@
+@use "layout" as *;
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+  max-inline-size: $card-max;
+}
+
+.form__note {
+  margin: 0;
+  font: var(--mat-sys-body-medium);
+}

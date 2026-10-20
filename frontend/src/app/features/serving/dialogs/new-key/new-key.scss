@@ -1,0 +1,8 @@
+@use "layout" as *;
+
+.new-key {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-4);
+  max-inline-size: $card-max;
+}

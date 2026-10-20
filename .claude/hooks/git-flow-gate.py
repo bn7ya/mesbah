@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""UserPromptSubmit hook: nudge feature, fix and refactor work toward the git flow.
+"""UserPromptSubmit hook: hold feature, fix and refactor work to the git flow.
 
-`.claude/skills/git-flow/SKILL.md` describes an issue-first, small-commits
-workflow. It isn't mesbah's only accepted workflow — a session working a
-pre-assigned branch for a specific task doesn't need to open its own issue
-first — so this hook is purely advisory: it classifies, it prints, and it
-always exits 0. A prompt is never blocked.
+Rules 23 to 27 in CLAUDE.md say an issue comes before the first edit and the
+work lands as small commits that each pass CI. A rule read once at session start
+scrolls away; this hook restates it on every prompt that looks like the kind of
+work it governs.
 
-Claude Code delivers the event as JSON on stdin and injects whatever this
-hook writes to stdout into the context.
+Claude Code delivers the event as JSON on stdin and injects whatever this hook
+writes to stdout into the context. It is advisory — it classifies, it prints,
+and it always exits 0. A prompt is never blocked.
 """
 
 from __future__ import annotations
@@ -74,17 +74,16 @@ ACTION = re.compile(
 REMINDER = """\
 [git-flow] This reads as {kind} work.
 
-If this session isn't already working a pre-assigned branch for this task,
-`.claude/skills/git-flow/SKILL.md` has the issue-first, small-commits flow:
+The issue comes before the first edit — `.claude/skills/git-flow/SKILL.md`, and
+rules 23 to 27 in CLAUDE.md:
 
   1. `gh issue create --label {label}` — one issue per thing that works alone
   2. `git switch -c {kind}/<issue>-<slug> main` — one slice per branch
-  3. verify against .claude/docs/design-pattern.md before committing
+  3. run the gate — what CI runs; red is not a commit
   4. `{kind}(<scope>): <subject> (#N)`, push it, PR when the slice is done
 
 Split the work by behaviour, never into a backend commit and then a frontend
-one — see design-pattern.md §1: a change touching only one side isn't a
-slice, it's incomplete.
+one. Every commit must be a working application on its own.
 
 Already building an issue for this? Stay on it. Asking rather than building?
 Ignore this."""

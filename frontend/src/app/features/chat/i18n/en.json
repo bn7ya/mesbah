@@ -1,0 +1,173 @@
+{
+  "chat": {
+    "sender": {
+      "you": "You",
+      "model": "The model"
+    },
+    "copied": "Copied.",
+    "copyFailed": "Couldn't copy.",
+    "choose": {
+      "title": "Choose a conversation",
+      "body": "Or start a new one from the list.",
+      "back": "Back to conversations"
+    },
+    "list": {
+      "title": "Conversations",
+      "show": "Show conversations",
+      "new": "New conversation",
+      "creating": "Starting…",
+      "loading": "Loading conversations",
+      "untitled": "New conversation",
+      "messages": "Messages: {count}",
+      "remove": "Remove {title}",
+      "more": "Show more",
+      "terms": "Terms:",
+      "emptyTitle": "No conversations yet.",
+      "emptyWrite": "Ask a question, then edit a wrong reply or approve a good one. Approved replies become training examples.",
+      "emptyRead": "A reviewer, a trainer or an administrator can start conversations."
+    },
+    "remove": {
+      "title": "Remove {title}?",
+      "body": "The conversation and its messages are removed.",
+      "confirm": "Remove",
+      "done": "Conversation removed."
+    },
+    "header": {
+      "titleLabel": "Title",
+      "rename": "Rename conversation",
+      "version": "Version",
+      "activeVersion": "The active version",
+      "engine": "Engine",
+      "defaultEngine": "The default engine",
+      "thinking": "Thinking",
+      "settings": "Settings",
+      "thinkingUnsupported": "This base model doesn't write out its thinking.",
+      "on": "On",
+      "off": "Off"
+    },
+    "messages": {
+      "label": "Messages",
+      "loading": "Loading messages",
+      "empty": "No messages yet.",
+      "jump": "Go to the latest message"
+    },
+    "composer": {
+      "label": "Message",
+      "hint": "Enter sends. Shift and Enter add a line.",
+      "send": "Send",
+      "stop": "Stop",
+      "readOnly": "You can read this conversation. A reviewer, a trainer or an administrator can send messages."
+    },
+    "stream": {
+      "loading": "Loading the model…",
+      "thinking": "Thinking…",
+      "writing": "Writing…"
+    },
+    "status": {
+      "failedUnknown": "The reply couldn't be completed. Send the message again.",
+      "stoppedEmpty": "Stopped before the model wrote anything.",
+      "emptyReply": "The model wrote nothing.",
+      "openEngines": "Go to Engines"
+    },
+    "marks": {
+      "approved": "Approved",
+      "edited": "Edited",
+      "thinkingEdited": "Thinking edited",
+      "stopped": "Stopped",
+      "failed": "Failed",
+      "notTrained": "Not used for training"
+    },
+    "menu": {
+      "label": "Reply actions",
+      "editReply": "Edit reply",
+      "editThinking": "Edit thinking",
+      "addThinking": "Add thinking",
+      "approve": "Approve as it is",
+      "withdraw": "Withdraw approval",
+      "training": "Used for training",
+      "restoreReply": "Restore the model's reply",
+      "restoreThinking": "Restore the model's thinking",
+      "copy": "Copy"
+    },
+    "thinking": {
+      "show": "Show the thinking",
+      "hide": "Hide the thinking"
+    },
+    "edit": {
+      "replyLabel": "Reply",
+      "thinkingLabel": "Thinking",
+      "thinkingHint": "Leave empty to remove the thinking.",
+      "blank": "A reply needs some text.",
+      "showOriginal": "Show what the model wrote",
+      "hideOriginal": "Hide what the model wrote",
+      "original": "What the model wrote",
+      "originalEmpty": "The model wrote no thinking.",
+      "saving": "Saving…",
+      "saved": "Edit saved."
+    },
+    "approval": {
+      "given": "Reply approved.",
+      "withdrawn": "Approval withdrawn."
+    },
+    "training": {
+      "included": "The reply is used for training.",
+      "excluded": "The reply is no longer used for training."
+    },
+    "restore": {
+      "replyTitle": "Restore the model's reply?",
+      "replyBody": "The edit is removed and the reply goes back to what the model wrote.",
+      "thinkingTitle": "Restore the model's thinking?",
+      "thinkingBody": "The edit is removed and the thinking goes back to what the model wrote.",
+      "confirm": "Restore",
+      "done": "Restored."
+    },
+    "expert": {
+      "engine": "Engine",
+      "tokens": "Prompt: {prompt}. Reply: {reply}.",
+      "duration": "Duration",
+      "seconds": "{count} s",
+      "editedBy": "Edited by",
+      "approvedBy": "Approved by"
+    },
+    "settings": {
+      "title": "Conversation settings",
+      "intro": "A setting left unchanged follows the project.",
+      "instructions": "Instructions",
+      "instructionsLabel": "Instructions for this conversation",
+      "instructionsHint": "Leave empty to use the project's instructions.",
+      "instructionsNone": "The project has no instructions.",
+      "projectInstructions": "The project's instructions:",
+      "temperature": "Creativity",
+      "temperatureHint": "Low values give steady replies. High values give more varied ones.",
+      "topP": "Word choice range",
+      "topPHint": "Low values keep to the most likely words. High values allow less common ones.",
+      "maxTokens": "Longest reply",
+      "maxTokensHint": "Counted in tokens. A reply stops when it reaches this length.",
+      "useProject": "Use the project's: {value}",
+      "fromProject": "Follows the project.",
+      "saving": "Saving…"
+    }
+  },
+  "errors": {
+    "engine_unreachable": "The engine isn't running. Start it or choose another engine.",
+    "no_engine": "No engine is available to run models. An administrator can turn one on or connect one.",
+    "model_not_on_disk": "The base model isn't downloaded yet. Download it in Models.",
+    "engine_timeout": "The engine took too long to answer. Try again.",
+    "engine_failed": "The engine couldn't do that. Try again.",
+    "generation_failed": "The model hit an error partway through its reply. Send the message again.",
+    "engine_rejected_token": "The engine didn't accept the saved API key. Check the key and try again.",
+    "needs_gguf": "This version needs a GGUF export first. Export it from Versions.",
+    "engine_base_mismatch": "This engine runs a different base model from the project's. Choose another engine.",
+    "training_in_progress": "Training is using the memory chat needs. Try again when the run ends.",
+    "no_version": "This project has no version to chat with.",
+    "message_changed": "Someone else changed this reply. Try again to replace their change.",
+    "not_editable": "Only a finished reply from the model can be edited.",
+    "empty_reply": "An empty reply can't be approved."
+  },
+  "glossary": {
+    "approved": {
+      "term": "Approved",
+      "explain": "A reply marked as right, either as it is or after an edit. Approved replies become training examples."
+    }
+  }
+}

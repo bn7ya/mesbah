@@ -1,0 +1,27 @@
+:host {
+  display: inline-flex;
+  gap: var(--app-space-1);
+  align-items: center;
+  vertical-align: middle;
+}
+
+.term__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+  max-inline-size: var(--app-popover-max);
+  padding: var(--app-space-4);
+  font: var(--mat-sys-body-medium);
+  color: var(--mat-sys-on-surface);
+  background: var(--mat-sys-surface-container-high);
+  border-radius: var(--mat-sys-corner-medium);
+  box-shadow: var(--mat-sys-level2);
+
+  p {
+    margin: 0;
+  }
+}
+
+.term__title {
+  font: var(--mat-sys-title-small);
+}

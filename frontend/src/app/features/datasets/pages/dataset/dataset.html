@@ -1,0 +1,159 @@
+<nav class="dataset__back" [attr.aria-label]="'datasets.detail.breadcrumb' | t">
+  <a matButton routerLink="/datasets">
+    <mat-icon fontIcon="fa-arrow-left" class="mat-icon-rtl-mirror" />
+    {{ 'datasets.title' | t }}
+  </a>
+</nav>
+
+@if (openError(); as failure) {
+  <app-note kind="error">{{ failure.message }}</app-note>
+}
+
+@if (dataset() === null && openError() === null) {
+  <mat-progress-bar mode="indeterminate" [attr.aria-label]="'datasets.detail.loading' | t" />
+}
+
+@if (dataset(); as current) {
+  <header class="dataset__header">
+    <p class="dataset__eyebrow text-secondary"><app-term key="dataset" /></p>
+    <h1><span dir="auto">{{ current.name }}</span></h1>
+    @if (current.description) {
+      <p class="dataset__description" dir="auto">{{ current.description }}</p>
+    } @else {
+      <p class="text-secondary">{{ 'datasets.detail.noDescription' | t }}</p>
+    }
+    @if (canWrite()) {
+      <div class="dataset__actions">
+        <button matButton="tonal" type="button" (click)="edit(current)">
+          <mat-icon fontIcon="fa-pen" />
+          {{ 'datasets.detail.edit' | t }}
+        </button>
+        <button matButton type="button" (click)="remove(current)">
+          <mat-icon fontIcon="fa-trash" />
+          {{ 'datasets.library.remove' | t }}
+        </button>
+      </div>
+    }
+  </header>
+
+  <section class="dataset__section" aria-labelledby="dataset-about">
+    <h2 id="dataset-about">{{ 'datasets.detail.about' | t }}</h2>
+    <dl class="dataset__facts">
+      <div>
+        <dt>{{ 'datasets.detail.source' | t }}</dt>
+        <dd>
+          @if (current.source === 'hub') {
+            <mat-icon fontIcon="fa-cloud-arrow-down" />
+            <span dir="ltr">{{ current.repo_id }}</span>
+          } @else {
+            <mat-icon fontIcon="fa-file-arrow-up" />
+            <span dir="auto">{{ current.file_name }}</span>
+          }
+        </dd>
+      </div>
+      @if (current.source === 'hub') {
+        <div>
+          <dt><app-term key="subset" /></dt>
+          <dd><span dir="ltr">{{ current.config_name }}</span></dd>
+        </div>
+        <div>
+          <dt><app-term key="split" /></dt>
+          <dd><span dir="ltr">{{ current.split }}</span></dd>
+        </div>
+      }
+      @if (current.format) {
+        <div>
+          <dt>{{ 'datasets.detail.format' | t }}</dt>
+          <dd>{{ 'datasets.format.' + current.format + '.name' | t }}</dd>
+        </div>
+      }
+      <div>
+        <dt>{{ 'datasets.detail.rows' | t }}</dt>
+        <dd>{{ count(current.rows) }}</dd>
+      </div>
+      <div>
+        <dt>{{ 'datasets.detail.skipped' | t }}</dt>
+        <dd>{{ count(current.skipped) }}</dd>
+      </div>
+      @if (current.status === 'ready') {
+        <div>
+          <dt>{{ 'datasets.detail.size' | t }}</dt>
+          <dd>{{ current.size_bytes | bytes }}</dd>
+        </div>
+      }
+      <div>
+        <dt><app-term key="thinking" /></dt>
+        <dd>{{ (current.has_thinking ? 'datasets.detail.thinkingYes' : 'datasets.detail.thinkingNo') | t }}</dd>
+      </div>
+      @if (current.created_by) {
+        <div>
+          <dt>{{ 'datasets.detail.addedBy' | t }}</dt>
+          <dd dir="auto">{{ current.created_by }}</dd>
+        </div>
+      }
+      <div>
+        <dt>{{ 'datasets.detail.addedAt' | t }}</dt>
+        <dd>{{ when(current.created_at) }}</dd>
+      </div>
+      @if (expert() && current.mapping; as mapping) {
+        <div>
+          <dt>{{ 'datasets.detail.columns' | t }}</dt>
+          <dd>
+            @for (column of usedColumns(mapping); track column) {
+              <code dir="ltr">{{ column }}</code>
+            }
+          </dd>
+        </div>
+      }
+      @if (expert() && current.sha256) {
+        <div class="dataset__wide">
+          <dt>{{ 'datasets.detail.checksum' | t }}</dt>
+          <dd><code dir="ltr">{{ current.sha256 }}</code></dd>
+        </div>
+      }
+    </dl>
+  </section>
+
+  <section class="dataset__section" aria-labelledby="dataset-rows" [attr.aria-busy]="rowsLoading()">
+    <h2 id="dataset-rows">{{ 'datasets.detail.rowsTitle' | t }}</h2>
+
+    @switch (current.status) {
+      @case ('ready') {
+        @if (rowsLoading()) {
+          <mat-progress-bar mode="indeterminate" [attr.aria-label]="'datasets.detail.rowsLoading' | t" />
+        }
+        @if (rowsError(); as failure) {
+          <app-note kind="error">{{ failure.message }}</app-note>
+          <div>
+            <button matButton type="button" (click)="reloadRows()">{{ 'actions.retry' | t }}</button>
+          </div>
+        }
+        <ol class="dataset__rows">
+          @for (conversation of rows().results; track conversation.index) {
+            <li><app-dataset-conversation [conversation]="conversation" [number]="conversation.index + 1" /></li>
+          }
+        </ol>
+        @if (rows().count > 0) {
+          <mat-paginator
+            [length]="rows().count"
+            [pageIndex]="rowsIndex()"
+            [pageSize]="rowsSize()"
+            [pageSizeOptions]="[10, 25, 50]"
+            [attr.aria-label]="'datasets.detail.pages' | t"
+            (page)="turnPage($event)"
+          />
+        }
+      }
+      @case ('failed') {
+        <app-status tone="error" icon="fa-triangle-exclamation">{{ failureKey(current) | t }}</app-status>
+      }
+      @case ('cancelled') {
+        <app-status icon="fa-circle-pause">{{ 'datasets.detail.stopped' | t }}</app-status>
+      }
+      @default {
+        <mat-progress-bar mode="indeterminate" [attr.aria-label]="'datasets.library.progressLabel' | t: { name: current.name }" />
+        <p class="text-secondary" role="status">{{ 'datasets.detail.importing' | t: { count: count(current.rows) } }}</p>
+      }
+    }
+  </section>
+}

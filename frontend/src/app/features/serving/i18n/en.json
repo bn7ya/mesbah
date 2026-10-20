@@ -1,0 +1,180 @@
+{
+  "serving": {
+    "title": "Engines",
+    "subtitle": "Where Mesbah runs models, and how other tools reach them.",
+    "loading": "Loading engines",
+    "address": "Address",
+    "modelName": "Model name",
+    "versions": "Versions loaded",
+    "versionsOf": "Versions of {name}",
+    "unreachable": "This engine isn't answering. Check that it is started and the address is right.",
+    "state": {
+      "running": "Running",
+      "stopped": "Not running",
+      "busy": "Busy answering",
+      "default": "Default",
+      "off": "Turned off"
+    },
+    "kinds": {
+      "vllm": {
+        "name": "vLLM",
+        "explain": "Loads each version beside the base model. It must be able to read Mesbah's data folder."
+      },
+      "ollama": {
+        "name": "Ollama",
+        "explain": "Runs a version from its GGUF export."
+      },
+      "llamacpp": {
+        "name": "llama.cpp",
+        "explain": "Answers with the one model it serves."
+      },
+      "openai": {
+        "name": "OpenAI-compatible",
+        "explain": "Answers with the one model it serves."
+      }
+    },
+    "builtin": {
+      "title": "Mesbah's engine",
+      "lead": "Built in. It runs the models for chat and training on this machine.",
+      "idle": "Nothing is loaded. The first chat in a project loads a model.",
+      "baseModel": "Base model",
+      "device": "Runs on",
+      "deviceCpu": "The processor (slow)",
+      "compressed": "Compressed to 4-bit",
+      "makeDefault": "Make default",
+      "madeDefault": "Default engine changed.",
+      "stopped": {
+        "title": "The engine isn't running.",
+        "body": "Chat and training need it. How to start it depends on how Mesbah was installed.",
+        "pip": "Installed with pip",
+        "pipBody": "Install the training parts, then start Mesbah again.",
+        "docker": "Docker",
+        "dockerBody": "Starts the engine and training on the processor.",
+        "dockerGpu": "Docker with a GPU",
+        "dockerGpuBody": "Starts both on the GPUs."
+      },
+      "free": {
+        "open": "Free memory",
+        "title": "Free the engine's memory?",
+        "body": "The loaded model leaves memory. The next chat loads it again, which takes a while.",
+        "confirm": "Free memory",
+        "done": "Memory freed."
+      }
+    },
+    "others": {
+      "title": "Other engines",
+      "lead": "Engines that run outside Mesbah.",
+      "connect": "Connect an engine",
+      "emptyTitle": "No other engine is connected.",
+      "emptyAdmin": "Mesbah's own engine is enough to start. Connect another to use a stronger machine or a server you already have.",
+      "emptyRead": "Mesbah's own engine is enough to start. An administrator can connect others.",
+      "turnOn": "Turn on",
+      "turnOff": "Turn off",
+      "turnOnFor": "Turn on {name}",
+      "turnOffFor": "Turn off {name}",
+      "makeDefault": "Make default",
+      "makeDefaultFor": "Make default, {name}",
+      "edit": "Edit",
+      "editFor": "Edit {name}",
+      "disconnect": "Disconnect",
+      "disconnectFor": "Disconnect {name}",
+      "connected": "Engine connected.",
+      "saved": "Changes saved.",
+      "turnedOn": "Engine turned on.",
+      "turnedOff": "Engine turned off.",
+      "madeDefault": "Default engine changed.",
+      "disconnected": "Engine disconnected.",
+      "disconnectTitle": "Disconnect {name}?",
+      "disconnectBody": "Versions can no longer run on it from Mesbah. The engine itself isn't changed.",
+      "disconnectConfirm": "Disconnect"
+    },
+    "form": {
+      "connectTitle": "Connect an engine",
+      "editTitle": "Edit {name}",
+      "name": "Name",
+      "nameRequired": "Enter a name.",
+      "kind": "Kind",
+      "address": "Address",
+      "addressHint": "For example:",
+      "addressInvalid": "Enter an address that starts with http:// or https://.",
+      "modelName": "Model name",
+      "modelNameHint": "The name the engine gives its model. Leave empty if it needs none.",
+      "apiKey": "API key",
+      "apiKeyNone": "Leave empty if the engine needs no key.",
+      "apiKeySaved": "A key is saved. Leave empty to keep it.",
+      "removeKey": "Remove the key",
+      "keepKey": "Keep the key",
+      "keyRemoved": "The key is removed when you save.",
+      "makeDefault": "Use as the default engine",
+      "defaultLocked": "This is the default engine. Make another engine the default to change it.",
+      "connect": "Connect",
+      "connecting": "Connecting…",
+      "saving": "Saving…"
+    },
+    "keys": {
+      "title": "API keys",
+      "lead": "A key lets another tool use Mesbah's models. It can do whatever the role of its owner allows.",
+      "trainersOnly": "Keys are for trainers and administrators",
+      "trainersOnlyBody": "Ask one of them if a tool needs a key.",
+      "new": "New key",
+      "loading": "Loading keys",
+      "pages": "Pages of keys",
+      "emptyTitle": "No API keys yet.",
+      "emptyBody": "Create a key to let another tool use Mesbah.",
+      "name": "Name",
+      "prefix": "Starts with",
+      "owner": "Owner",
+      "lastUsed": "Last used",
+      "created": "Created",
+      "actions": "Actions",
+      "never": "Never",
+      "revoke": "Revoke",
+      "revokeFor": "Revoke {name}",
+      "revokeTitle": "Revoke {name}?",
+      "revokeBody": "Tools using this key stop working at once. This can't be undone.",
+      "revokeConfirm": "Revoke",
+      "revoked": "Key revoked."
+    },
+    "newKey": {
+      "title": "New API key",
+      "name": "Name",
+      "nameHint": "What the key is for, such as the tool that uses it.",
+      "nameRequired": "Enter a name.",
+      "submit": "Create key",
+      "working": "Creating…",
+      "createdTitle": "Copy the key",
+      "warning": "This is the only time the key is shown. Copy it and keep it somewhere safe.",
+      "keyLabel": "API key",
+      "done": "Done"
+    },
+    "guide": {
+      "title": "Use from other tools",
+      "lead": "Tools and libraries reach Mesbah's models at these addresses. Every request needs an API key.",
+      "address": "Address",
+      "python": "Python",
+      "curl": "curl",
+      "openaiTitle": "OpenAI-compatible API",
+      "openaiBody": "For tools and libraries made for OpenAI.",
+      "ollamaTitle": "Ollama-compatible API",
+      "ollamaBody": "For tools and libraries made for Ollama.",
+      "modelsTitle": "Model names",
+      "modelsLead": "A project's short name is its model name.",
+      "modelActive": "The project's active version",
+      "modelVersion": "A specific version, such as version 3"
+    },
+    "copy": {
+      "action": "Copy",
+      "for": "Copy {what}",
+      "done": "Copied.",
+      "failed": "Couldn't copy. Select the text and copy it by hand."
+    }
+  },
+  "errors": {
+    "builtin_engine_kept": "Mesbah's own engine can't be disconnected.",
+    "engine_unreachable": "The engine isn't running. Start it or choose another engine.",
+    "engine_timeout": "The engine took too long to answer. Try again.",
+    "engine_rejected_token": "The engine didn't accept the saved API key. Check the key and try again.",
+    "engine_failed": "The engine couldn't do that. Try again.",
+    "no_engine": "No engine is available to run models. An administrator can turn one on or connect one."
+  }
+}

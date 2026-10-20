@@ -1,0 +1,33 @@
+@use "layout" as *;
+
+.sign-in {
+  display: grid;
+  place-items: center;
+  min-block-size: 100dvh;
+  padding-block: var(--app-space-7);
+}
+
+.sign-in__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-7);
+  inline-size: 100%;
+  max-inline-size: $card-max;
+  padding: var(--app-space-7);
+}
+
+.sign-in__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+}
+
+.sign-in__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--app-space-2);
+}
+
+.sign-in__submit {
+  margin-block-start: var(--app-space-3);
+}

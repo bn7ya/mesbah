@@ -1,45 +1,106 @@
-# apps/common (Django side)
+# apps/common
 
-Shared foundation every Django app on this side inherits from. Not a page
-itself — the one deliberate exception to "one Django app per Angular
-feature."
+The foundation every slice inherits from. **Not a feature** — it has no frontend
+counterpart and no page, which is why it is the one exception to rule 13.
 
-## Files
-- `models/base.py` — `BaseModel`: UUID primary key, `created_at`/`updated_at`,
-  soft delete (`deleted_at`), `created_by`. Every model in `apps/*` inherits
-  this. `objects` (default manager) excludes soft-deleted rows;
-  `all_objects` includes them.
-- `managers.py` — `SoftDeleteQuerySet`/`SoftDeleteManager`/`AllObjectsManager`
-  backing `BaseModel`. `queryset.delete()` marks rows, never removes them;
-  `.purge()` (data migrations only) really deletes.
-- `repositories/base.py` — `BaseRepository[TModel]`: the only place `.objects`
-  may be called outside a `repositories/` module. `active()`/
-  `all_including_deleted()`, `get`/`find`/`exists`, `create`/`update`,
-  `soft_delete`/`restore`/`bulk_soft_delete`.
-- `pagination.py` — `DefaultPagination` (page/page_size, the DRF-wide
-  default) and `LargeTablePagination` (cursor-based, for tables where deep
-  offsets get expensive — not needed yet at Mesbah's single-user scale).
-- `exceptions.py` — `exception_handler`: flattens every DRF error into one
-  `{"error": {"code", "message", "fields"?}}` envelope. Wired as
-  `REST_FRAMEWORK["EXCEPTION_HANDLER"]`.
-- `views.py`/`urls.py` — `GET /api/health/`, the one public (`AllowAny`)
-  endpoint: reports whether the process can reach Postgres and Redis.
+Nothing here is specific to a domain. If something in this directory only makes
+sense for one feature, it is in the wrong place.
 
-## Why this exists (relative to the FastAPI side)
-This is the Django/DRF half of Mesbah's in-progress backend migration — see
-the root plan for the full rewrite (FastAPI+SQLModel+SQLite →
-Django+DRF+PostgreSQL+Celery+Redis, ported from the `bn7ya/template`
-architecture). `backend/app/` (FastAPI) is untouched and still the one
-actually wired into the Angular frontend and the training pipeline; `apps/`
-+ `config/` here are the **foundation** of the new backend, brought up and
-verified independently (migrations run, schema generates, tests pass)
-before any product feature is ported onto it. Do not wire the Angular app
-to this yet.
+## What lives here
 
-## Deliberately deferred from the template this was ported from
-- `django-dbs` (encrypted scheduled backups) is not wired yet — add it once
-  there's real data on this side worth backing up.
-- Django Channels isn't installed yet; `config/asgi.py` is a plain ASGI app
-  for now. Training's live metrics/log-tail WebSocket only gets ported once
-  the `training` app itself is ported (a later phase) — that's also when
-  Channels + its Redis channel layer get added.
+| Module | Provides |
+|---|---|
+| `models/base.py` | `BaseModel` — uuid pk, `created_at`, `updated_at`, `deleted_at`, `created_by` (rule 15) |
+| `managers.py` | `SoftDeleteManager`, `AllObjectsManager`, `SoftDeleteQuerySet` (rule 16) |
+| `repositories/base.py` | `BaseRepository` — the only sanctioned ORM surface (rule 14) |
+| `fields.py` | `MoneyField` — an amount in Omani rials, three decimal places, sent as a string (rule 29) |
+| `pagination.py` | `DefaultPagination` (global), `LargeTablePagination` (keyset) (rule 17) |
+| `exceptions.py` | The single API error envelope |
+| `views.py` | `GET /api/health/` — public, checks Postgres and Redis |
+
+## Using it
+
+```python
+# models/order.py
+from apps.common.models import BaseModel
+
+class Order(BaseModel):
+    ...
+
+# repositories/order_repository.py
+from apps.common.repositories import BaseRepository
+
+class OrderRepository(BaseRepository[Order]):
+    model = Order
+
+    def for_user(self, user):
+        return self.active().filter(owner=user).select_related("owner")
+```
+
+`BaseRepository` gives you `active()`, `all_including_deleted()`, `get()`,
+`find()`, `exists()`, `create()`, `update()`, `soft_delete()`, `restore()`,
+`bulk_soft_delete()`. Add whatever else your service needs — repositories are
+allowed to grow, as long as they stay free of business rules.
+
+## Classes and methods
+
+**`BaseModel`** (`models/base.py`) — the abstract parent of every model. A UUID key, when the
+row was created and last changed, who created it, and when it was soft-deleted.
+- `delete()` marks the row deleted; it never issues `DELETE`.
+- `restore()` clears the mark. `is_deleted` says whether it is set.
+- `purge()` really removes the row — data migrations only.
+
+**`SoftDeleteQuerySet`** (`managers.py`) — a queryset whose `delete()` marks every row
+instead of removing it. `purge()` removes for real; `alive()` and `dead()` filter on the mark.
+
+**`SoftDeleteManager`** — the default manager (`objects`): soft-deleted rows are invisible.
+**`AllObjectsManager`** — `all_objects`: every row, deleted or not.
+
+**`BaseRepository[TModel]`** (`repositories/base.py`) — the only surface over the ORM. A
+subclass names its `model` and adds the queries its service needs.
+- `active()` — live rows, the default read. `all_including_deleted()` — every row.
+- `get()` / `find()` — one live row, raising or returning `None`. `exists()`.
+- `create()`, `update()`, `soft_delete()`, `restore()`, `bulk_soft_delete()` — writes.
+
+**`MoneyField`** (`fields.py`) — an amount in Omani rials: a decimal to three places, sent
+by the API as a string (rule 29).
+
+**`DefaultPagination`** / **`LargeTablePagination`** (`pagination.py`) — page-number
+pagination for every list, and keyset pagination for tables too large for deep offsets.
+
+**`paginate()`**, **`page_of()`**, **`PAGE_PARAMETERS`** (`pages.py`, Mesbah) — a list endpoint
+on a plain `APIView`: `paginate()` pages a service's queryset with `DefaultPagination` and
+renders each row, `page_of()` builds the `{count, next, previous, results}` serializer the
+schema shows, and `PAGE_PARAMETERS` documents `page` and `page_size`.
+
+**`exception_handler`** (`exceptions.py`) — turns every DRF failure into the one error
+envelope; anything DRF does not handle is logged and left to Django's 500.
+
+**`HealthView`** (`views.py`) — `GET /api/health/`: public, reports whether Postgres and
+Redis answer, 200 when both do and 503 otherwise.
+
+## Decisions worth not re-litigating
+
+**`objects` hides soft-deleted rows.** This is the reason `active()` is the
+default read path and `all_including_deleted()` has to be asked for by name. A
+repository method that bypasses `active()` needs a comment saying why.
+
+**`delete()` never issues `DELETE`.** Both `BaseModel.delete()` and
+`SoftDeleteQuerySet.delete()` set `deleted_at`. Real removal is `purge()`, which
+exists for data migrations and nothing else.
+
+**The error envelope is single-shaped on purpose.** DRF's defaults vary by
+exception type; the frontend would need a special case per endpoint. Every error
+comes back as `{"error": {"code", "message", "fields?"}}`. `message` is
+user-facing copy and belongs to `copywriter`.
+
+**`/api/health/` is public.** Rule 18 says auth by default; a probe that needs
+credentials cannot report that the service is up. It is the deliberate
+exception, and it is the only one.
+
+## Changing anything here
+
+A change in this directory is a change to every slice at once. `BaseModel`'s
+fields, the pagination envelope and the error envelope are all part of the
+frontend contract — `unifier` or `architect` signs off, and both sides move
+together.

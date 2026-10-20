@@ -1,0 +1,104 @@
+<section class="keys" aria-labelledby="engines-keys" [attr.aria-busy]="loading()">
+  <header class="keys__header">
+    <div class="keys__heading">
+      <h2 id="engines-keys">{{ 'serving.keys.title' | t }}</h2>
+      <p class="text-secondary">
+        {{ 'serving.keys.lead' | t }}
+        <app-term key="api_key" />
+      </p>
+    </div>
+    @if (canTrain()) {
+      <button matButton="filled" type="button" (click)="create()">
+        <mat-icon fontIcon="fa-plus" />
+        {{ 'serving.keys.new' | t }}
+      </button>
+    }
+  </header>
+
+  @if (!canTrain()) {
+    <app-empty-state icon="fa-key" [heading]="'serving.keys.trainersOnly' | t">
+      {{ 'serving.keys.trainersOnlyBody' | t }}
+    </app-empty-state>
+  } @else {
+    @if (error(); as failure) {
+      <app-note kind="error">{{ failure.message }}</app-note>
+    }
+
+    @if (loading() && page().results.length === 0) {
+      <mat-progress-bar mode="indeterminate" [attr.aria-label]="'serving.keys.loading' | t" />
+    }
+
+    @if (empty()) {
+      <app-empty-state icon="fa-key" [heading]="'serving.keys.emptyTitle' | t">
+        {{ 'serving.keys.emptyBody' | t }}
+      </app-empty-state>
+    } @else if (page().count > 0) {
+      <div class="keys__table">
+        <div class="keys__scroll">
+          <table mat-table [dataSource]="page().results">
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef>{{ 'serving.keys.name' | t }}</th>
+              <td mat-cell *matCellDef="let key"><span dir="auto">{{ key.name }}</span></td>
+            </ng-container>
+
+            <ng-container matColumnDef="prefix">
+              <th mat-header-cell *matHeaderCellDef>{{ 'serving.keys.prefix' | t }}</th>
+              <td mat-cell *matCellDef="let key"><span dir="ltr">{{ key.prefix }}…</span></td>
+            </ng-container>
+
+            <ng-container matColumnDef="owner">
+              <th mat-header-cell *matHeaderCellDef>{{ 'serving.keys.owner' | t }}</th>
+              <td mat-cell *matCellDef="let key"><span dir="ltr">{{ key.owner }}</span></td>
+            </ng-container>
+
+            <ng-container matColumnDef="lastUsed">
+              <th mat-header-cell *matHeaderCellDef>{{ 'serving.keys.lastUsed' | t }}</th>
+              <td mat-cell *matCellDef="let key">
+                @if (key.last_used_at) {
+                  {{ key.last_used_at | datetime }}
+                } @else {
+                  <span class="text-secondary">{{ 'serving.keys.never' | t }}</span>
+                }
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="created">
+              <th mat-header-cell *matHeaderCellDef>{{ 'serving.keys.created' | t }}</th>
+              <td mat-cell *matCellDef="let key">{{ key.created_at | datetime }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>
+                <span class="cdk-visually-hidden">{{ 'serving.keys.actions' | t }}</span>
+              </th>
+              <td mat-cell *matCellDef="let key">
+                <button
+                  matButton
+                  type="button"
+                  [disabled]="isWorking(key)"
+                  [attr.aria-label]="'serving.keys.revokeFor' | t: { name: key.name }"
+                  (click)="revoke(key)"
+                >
+                  <mat-icon fontIcon="fa-ban" />
+                  {{ 'serving.keys.revoke' | t }}
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="columns"></tr>
+            <tr mat-row *matRowDef="let row; columns: columns"></tr>
+          </table>
+        </div>
+
+        <mat-paginator
+          [length]="page().count"
+          [pageIndex]="pageIndex()"
+          [pageSize]="pageSize()"
+          [pageSizeOptions]="pageSizeOptions"
+          [attr.aria-label]="'serving.keys.pages' | t"
+          (page)="turnPage($event)"
+        />
+      </div>
+    }
+  }
+</section>

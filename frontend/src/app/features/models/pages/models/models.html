@@ -1,0 +1,261 @@
+<header class="models__header">
+  <h1>{{ 'models.title' | t }}</h1>
+  <p class="text-secondary">{{ 'models.subtitle' | t }}</p>
+</header>
+
+@if (error(); as failure) {
+  <app-note kind="error">{{ failure.message }}</app-note>
+}
+
+<section class="models__section" aria-labelledby="models-library" [attr.aria-busy]="loading()">
+  <h2 id="models-library">{{ 'models.library.title' | t }}</h2>
+
+  @if (loading() && page().results.length === 0) {
+    <mat-progress-bar mode="indeterminate" [attr.aria-label]="'models.library.loading' | t" />
+  }
+
+  @if (libraryEmpty()) {
+    <app-empty-state icon="fa-box-open" [heading]="'models.library.emptyTitle' | t">
+      {{ (canWrite() ? 'models.library.emptyWrite' : 'models.library.emptyRead') | t }}
+    </app-empty-state>
+  }
+
+  <ul class="models__list">
+    @for (model of page().results; track model.id) {
+      <li>
+        <mat-card appearance="outlined" class="models__row">
+          <div class="models__identity">
+            <h3 class="models__repo"><span dir="ltr">{{ model.repo_id }}</span></h3>
+            <p class="models__meta text-secondary">
+              @if (model.parameters !== null) {
+                <span>{{ 'models.parameters' | t: { count: (model.parameters | compact) } }}</span>
+              }
+              <span>{{ 'models.family.' + model.family | t }}</span>
+              @if (model.supports_thinking) {
+                <app-status icon="fa-brain">{{ 'models.thinking' | t }}</app-status>
+              }
+            </p>
+          </div>
+
+          <div class="models__status">
+            @switch (model.status) {
+              @case ('queued') {
+                <mat-progress-bar
+                  mode="indeterminate"
+                  [attr.aria-label]="'models.library.progressLabel' | t: { name: model.repo_id }"
+                />
+                <p class="text-secondary">{{ 'models.library.queued' | t }}</p>
+              }
+              @case ('downloading') {
+                <mat-progress-bar
+                  mode="determinate"
+                  [value]="percent(model)"
+                  [attr.aria-label]="'models.library.progressLabel' | t: { name: model.repo_id }"
+                />
+                <p class="text-secondary">
+                  {{
+                    'models.library.progress'
+                      | t: { done: (model.downloaded_bytes | bytes), total: (model.size_bytes | bytes) }
+                  }}
+                </p>
+              }
+              @case ('ready') {
+                <p class="models__state">
+                  <app-status tone="ok" icon="fa-circle-check">{{ 'models.library.ready' | t }}</app-status>
+                  <span class="text-secondary">{{ model.size_bytes | bytes }}</span>
+                </p>
+              }
+              @case ('failed') {
+                <app-status tone="error" icon="fa-triangle-exclamation">{{ 'models.library.failed' | t }}</app-status>
+                <p class="text-secondary">
+                  {{ failureKey(model) | t }}
+                  @if (model.error_code === 'gated') {
+                    <a routerLink="/system">{{ 'models.tokenLink' | t }}</a>
+                  }
+                </p>
+              }
+              @case ('cancelled') {
+                <app-status icon="fa-circle-pause">{{ 'models.library.stopped' | t }}</app-status>
+              }
+            }
+          </div>
+
+          @if (canWrite()) {
+            <div class="models__actions">
+              @if (model.status === 'queued' || model.status === 'downloading') {
+                <button
+                  matButton
+                  type="button"
+                  [disabled]="isWorking(model)"
+                  [attr.aria-label]="'models.library.cancelFor' | t: { name: model.repo_id }"
+                  (click)="cancel(model)"
+                >
+                  <mat-icon fontIcon="fa-stop" />
+                  {{ 'actions.stop' | t }}
+                </button>
+              }
+              @if (model.status === 'failed' || model.status === 'cancelled') {
+                <button
+                  matButton
+                  type="button"
+                  [disabled]="isWorking(model)"
+                  [attr.aria-label]="'models.library.retryFor' | t: { name: model.repo_id }"
+                  (click)="retry(model)"
+                >
+                  <mat-icon fontIcon="fa-rotate-right" />
+                  {{ 'actions.retry' | t }}
+                </button>
+              }
+              <button
+                matButton
+                type="button"
+                [disabled]="isWorking(model)"
+                [attr.aria-label]="'models.library.removeFor' | t: { name: model.repo_id }"
+                (click)="remove(model)"
+              >
+                <mat-icon fontIcon="fa-trash" />
+                {{ 'models.library.remove' | t }}
+              </button>
+            </div>
+          }
+        </mat-card>
+      </li>
+    }
+  </ul>
+
+  @if (paged()) {
+    <mat-paginator
+      [length]="page().count"
+      [pageIndex]="pageIndex()"
+      [pageSize]="pageSize()"
+      [pageSizeOptions]="[25, 50, 100]"
+      [attr.aria-label]="'models.library.pages' | t"
+      (page)="turnPage($event)"
+    />
+  }
+</section>
+
+<section class="models__section" aria-labelledby="models-find">
+  <h2 id="models-find">{{ 'models.find.title' | t }}</h2>
+
+  <form class="models__search" role="search" novalidate (ngSubmit)="submitSearch()">
+    <mat-form-field class="models__query" subscriptSizing="dynamic">
+      <mat-label>{{ 'models.find.label' | t }}</mat-label>
+      <input
+        matInput
+        type="search"
+        name="search"
+        dir="ltr"
+        autocomplete="off"
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+      />
+      <button matIconButton matSuffix type="submit" [attr.aria-label]="'models.find.submit' | t">
+        <mat-icon fontIcon="fa-magnifying-glass" />
+      </button>
+      <mat-hint>{{ 'models.find.hint' | t }}</mat-hint>
+    </mat-form-field>
+
+    <mat-button-toggle-group
+      class="models__task"
+      [attr.aria-label]="'models.find.task' | t"
+      [value]="task()"
+      [disabled]="searchBlank()"
+      (change)="chooseTask($event.value)"
+    >
+      @for (option of tasks; track option) {
+        <mat-button-toggle [value]="option">{{ 'models.find.tasks.' + option | t }}</mat-button-toggle>
+      }
+    </mat-button-toggle-group>
+  </form>
+
+  <div class="models__results" [attr.aria-busy]="hubLoading()">
+    <p class="models__results-title" role="status">
+      @if (popular()) {
+        {{ 'models.find.popular' | t }}
+      } @else {
+        {{ 'models.find.resultsFor' | t }}
+        <span dir="ltr">{{ hubQuery().search }}</span>
+      }
+    </p>
+
+    @if (hubLoading()) {
+      <mat-progress-bar mode="indeterminate" [attr.aria-label]="'models.find.loading' | t" />
+    }
+
+    @if (hubError(); as failure) {
+      <app-note kind="error">{{ failure.message }}</app-note>
+      <div>
+        <button matButton type="button" (click)="searchAgain()">{{ 'actions.retry' | t }}</button>
+      </div>
+    } @else if (!hubLoading() && hubResults().length === 0) {
+      <app-empty-state icon="fa-magnifying-glass" [heading]="'models.find.empty' | t">
+        {{ 'models.find.emptyHint' | t }}
+      </app-empty-state>
+    }
+
+    <ul class="models__grid">
+      @for (result of hubResults(); track result.repo_id) {
+        <li>
+          <mat-card appearance="outlined" class="models__card">
+            <div class="models__card-top">
+              <h3 class="models__repo"><span dir="ltr">{{ result.repo_id }}</span></h3>
+              @if (result.in_library) {
+                <app-status tone="ok" icon="fa-circle-check">{{ 'models.find.inLibrary' | t }}</app-status>
+              }
+            </div>
+
+            <p class="models__stats">
+              <span class="models__stat">
+                <mat-icon fontIcon="fa-download" />
+                <span class="cdk-visually-hidden">{{ 'models.find.downloads' | t }}:</span>
+                {{ result.downloads | compact }}
+              </span>
+              <span class="models__stat">
+                <mat-icon fontIcon="fa-heart" />
+                <span class="cdk-visually-hidden">{{ 'models.find.likes' | t }}:</span>
+                {{ result.likes | compact }}
+              </span>
+            </p>
+
+            <p class="models__meta text-secondary">
+              @if (result.parameters !== null) {
+                <span>{{ 'models.parameters' | t: { count: (result.parameters | compact) } }}</span>
+              }
+              @if (result.license) {
+                <span>
+                  {{ 'models.find.license' | t }}
+                  <span dir="ltr">{{ result.license }}</span>
+                </span>
+              }
+            </p>
+
+            <p class="models__tags">
+              @if (result.gated) {
+                <app-status icon="fa-lock">{{ 'models.find.gated' | t }}</app-status>
+              }
+              @if (result.supports_thinking) {
+                <app-status icon="fa-brain">{{ 'models.thinking' | t }}</app-status>
+              }
+              <app-fit-verdict [verdict]="result.fit.chat.verdict">
+                {{ 'models.find.chat' | t }}: {{ 'models.fit.verdict.' + result.fit.chat.verdict | t }}
+              </app-fit-verdict>
+            </p>
+
+            <div class="models__card-actions">
+              <button
+                matButton
+                type="button"
+                [attr.aria-label]="'models.find.detailsFor' | t: { name: result.repo_id }"
+                (click)="showDetails(result)"
+              >
+                <mat-icon fontIcon="fa-circle-info" />
+                {{ 'models.find.details' | t }}
+              </button>
+            </div>
+          </mat-card>
+        </li>
+      }
+    </ul>
+  </div>
+</section>

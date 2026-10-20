@@ -1,0 +1,8 @@
+<mat-card appearance="outlined" class="empty">
+  <mat-icon [fontIcon]="icon()" />
+  <div class="empty__text">
+    <p class="empty__title">{{ heading() }}</p>
+    <p class="empty__body text-secondary"><ng-content /></p>
+    <div class="empty__actions"><ng-content select="[emptyActions]" /></div>
+  </div>
+</mat-card>

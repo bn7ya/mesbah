@@ -1,0 +1,21 @@
+<section class="thinking">
+  <div class="thinking__head">
+    <button
+      matIconButton
+      type="button"
+      [attr.aria-expanded]="open()"
+      [attr.aria-controls]="bodyId"
+      [attr.aria-label]="(open() ? 'chat.thinking.hide' : 'chat.thinking.show') | t"
+      (click)="toggle()"
+    >
+      <mat-icon [fontIcon]="open() ? 'fa-chevron-down' : 'fa-chevron-right'" class="mat-icon-rtl-mirror" />
+    </button>
+    <app-term key="thinking" />
+  </div>
+
+  @if (open()) {
+    <div class="thinking__body" [id]="bodyId">
+      <ng-content />
+    </div>
+  }
+</section>
